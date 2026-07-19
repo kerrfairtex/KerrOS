@@ -49,3 +49,6 @@ Voltizen-Meralco-IDOL-Hackathon/
 models/
 _archived_system_b/
 generated_code/
+data/*.json
+data/rag_store.db
+data/tasks/
