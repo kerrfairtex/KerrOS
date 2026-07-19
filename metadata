@@ -1,0 +1,6 @@
+{
+  "id": "paper_001",
+  "authors": ["Vaswani"],
+  "year": 2017,
+  "keywords": ["transformer", "attention"]
+}

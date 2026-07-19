@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# KerrOS secret-scan pre-commit hook.
+# Install: cp pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/>
+#
+# Prefers gitleaks if installed (best accuracy). Falls back to a regex>
+# of the staged diff if gitleaks isn't available on this device.
+
+set -euo pipefail
+
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "[pre-commit] running gitleaks..."
+    gitleaks protect --staged --verbose
+    exit $?
+fi
+
+echo "[pre-commit] gitleaks not found, using fallback regex scan..."
+
+STAGED_DIFF=$(git diff --cached -U0)
+FOUND=0
+
+check() {
+    local label="$1" pattern="$2"
+    if echo "$STAGED_DIFF" | grep -Eq "$pattern"; then
+        echo "  ✗ possible $label detected in staged changes"
+        FOUND=1
+    fi
+}
+
+check "AWS access key"        "AKIA[0-9A-Z]{16}"
+check "generic API key"       "(api[_-]?key|apikey)['\"]?\s*[:=]\s*['\>
+check "Groq/OpenAI-style key" "(sk|gsk|groq)-[A-Za-z0-9]{20,}"
+check "private key header"    "-----BEGIN (RSA|EC|OPENSSH|DSA) PRIVATE>
+check "bearer token"          "Bearer\s+[A-Za-z0-9_\-\.]{20,}"
+check ".env-style secret"     "^\+(SECRET|TOKEN|PASSWORD|API_KEY)[A-Z_>
+check "Supabase/DB URL w/ pw" "postgres(ql)?://[^:]+:[^@]+@"
+
+if [ "$FOUND" -eq 1 ]; then
+    echo
+    echo "[pre-commit] BLOCKED: possible secret in staged changes."
+    echo "  - If it's a real secret: remove it, rotate it, use .env in>
+    echo "  - If it's a false positive: git commit --no-verify (use sp>
+    exit 1
+fi
+
+echo "[pre-commit] no obvious secrets found."
+exit 0
+
+

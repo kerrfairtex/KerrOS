@@ -1,0 +1,19 @@
+{
+  "authorized_targets": [
+    "127.0.0.1",
+    "localhost",
+    "8.8.8.8",
+    "5.5.5.5",
+    "kerr",
+    "kerr.fairtex",
+    "all",
+    "to",
+    "the"
+  ],
+  "authorized_cidrs": [
+    "192.168.0.0/16",
+    "10.0.0.0/8"
+  ],
+  "require_explicit_authorization": true,
+  "deploy_armed_until": 1784409508.3975177
+}

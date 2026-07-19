@@ -1,0 +1,402 @@
+.
+├── __pycache__
+│   ├── agent_os_v3_kernel.cpython-313.pyc
+│   ├── agent_os_v4_kernel.cpython-313.pyc
+│   ├── bootstrap_supervisor.cpython-313.pyc
+│   ├── fix_agent_os_contract.cpython-313.pyc
+│   ├── fix_agent_stability_singleshot.cpython-313.pyc
+│   ├── fix_supervisor_stability.cpython-313.pyc
+│   ├── fix_unify_supervisor_clean.cpython-313.pyc
+│   ├── import_capec.cpython-313.pyc
+│   ├── import_cisa.cpython-313.pyc
+│   ├── import_cve.cpython-313.pyc
+│   ├── import_cwe.cpython-313.pyc
+│   ├── import_mitre_attack.cpython-313.pyc
+│   ├── import_nist.cpython-313.pyc
+│   ├── import_owasp.cpython-313.pyc
+│   ├── import_sigma.cpython-313.pyc
+│   ├── import_yara.cpython-313.pyc
+│   ├── ingest_skills.cpython-313.pyc
+│   ├── install_daemon_core.cpython-313.pyc
+│   ├── install_kernel.cpython-313.pyc
+│   ├── install_self_healing.cpython-313.pyc
+│   ├── install_supervisor.cpython-313.pyc
+│   ├── install_supervisor_v2.cpython-313.pyc
+│   ├── multi_agent_supervisor_grid.cpython-313.pyc
+│   ├── patch_adaptive.cpython-313.pyc
+│   ├── patch_agents_wire.cpython-313.pyc
+│   ├── patch_analyze_complete.cpython-313.pyc
+│   ├── patch_calc_extract.cpython-313.pyc
+│   ├── patch_chat_knowledge.cpython-313.pyc
+│   ├── patch_codeagent_complete.cpython-313.pyc
+│   ├── patch_codeagent_tokens.cpython-313.pyc
+│   ├── patch_codesaver.cpython-313.pyc
+│   ├── patch_config_tokens.cpython-313.pyc
+│   ├── patch_context.cpython-313.pyc
+│   ├── patch_context2.cpython-313.pyc
+│   ├── patch_context3.cpython-313.pyc
+│   ├── patch_context4.cpython-313.pyc
+│   ├── patch_engine.cpython-313.pyc
+│   ├── patch_grounding.cpython-313.pyc
+│   ├── patch_help.cpython-313.pyc
+│   ├── patch_planner_fix.cpython-313.pyc
+│   ├── patch_reflect_wire.cpython-313.pyc
+│   ├── patch_reflection_guard.cpython-313.pyc
+│   ├── patch_router.cpython-313.pyc
+│   ├── patch_store_cwe.cpython-313.pyc
+│   ├── patch_store_final.cpython-313.pyc
+│   ├── patch_store_owasp.cpython-313.pyc
+│   ├── patch_summarizer_guard.cpython-313.pyc
+│   ├── repair_rag_store.cpython-313.pyc
+│   ├── repair_rag_store2.cpython-313.pyc
+│   ├── run_daemon.cpython-313.pyc
+│   ├── start_system.cpython-313.pyc
+│   ├── supervisor_full_singleshot_fix.cpython-313.pyc
+│   └── verify.cpython-313.pyc
+├── abstrats
+├── add_wikipedia.sh
+├── agent_os_kernel.py
+├── agent_os_v3_kernel.py
+├── agent_os_v4_kernel.py
+├── agents
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── code.cpython-313.pyc
+│   │   ├── daemon_worker.cpython-313.pyc
+│   │   ├── intelligence_worker.cpython-313.pyc
+│   │   ├── knowledge.cpython-313.pyc
+│   │   ├── planner.cpython-313.pyc
+│   │   ├── react.cpython-313.pyc
+│   │   ├── reflection.cpython-313.pyc
+│   │   ├── research.cpython-313.pyc
+│   │   └── security.cpython-313.pyc
+│   ├── agents
+│   │   └── supervisor
+│   ├── code.py
+│   ├── daemon_worker.py
+│   ├── intelligence_worker.py
+│   ├── knowledge.py
+│   ├── path
+│   ├── planner.py
+│   ├── react.py
+│   ├── reflection.py
+│   ├── research.py
+│   ├── security.py
+│   └── supervisor
+│       ├── CHANGELOG.md
+│       ├── README.md
+│       ├── __init__.py
+│       ├── __pycache__
+│       ├── _bootstrap.py
+│       ├── agents
+│       ├── assets
+│       ├── awareness
+│       ├── awareness_hub.py
+│       ├── civilization
+│       ├── config
+│       ├── constants.py
+│       ├── core
+│       ├── diagnostics
+│       ├── exceptions.py
+│       ├── execution
+│       ├── executive
+│       ├── experience
+│       ├── healing
+│       ├── intelligence
+│       ├── interfaces
+│       ├── knowledge
+│       ├── knowledge_base
+│       ├── maintenance
+│       ├── memory
+│       ├── objectives
+│       ├── observability
+│       ├── observer
+│       ├── planning
+│       ├── plugins
+│       ├── reflection
+│       ├── reports
+│       ├── run_daemon.py
+│       ├── run_daemon_kernel.py
+│       ├── run_persistent_daemon.py
+│       ├── runtime
+│       ├── security
+│       ├── supervisor.py
+│       ├── supervisor_runtime.py
+│       ├── swarm
+│       ├── tasks
+│       ├── tests
+│       ├── tools
+│       ├── utils
+│       ├── verification
+│       ├── version.py
+│       └── worlds
+├── assets
+│   └── boot_logo.png
+├── bootstrap_supervisor.py
+├── citations
+├── cli
+│   ├── __pycache__
+│   │   └── chat.cpython-313.pyc
+│   ├── _chat_else.py
+│   ├── chat.py
+│   └── chat.py.bak
+├── config.json
+├── core
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── adaptive_engine.cpython-313.pyc
+│   │   ├── complete.cpython-313.pyc
+│   │   ├── config.cpython-313.pyc
+│   │   ├── context.cpython-313.pyc
+│   │   ├── engine.cpython-313.pyc
+│   │   ├── multi_api.cpython-313.pyc
+│   │   ├── retriever.cpython-313.pyc
+│   │   ├── thinking.cpython-313.pyc
+│   │   └── unified_supervisor.cpython-313.pyc
+│   ├── adaptive_engine.py
+│   ├── bootstrap
+│   │   ├── __pycache__
+│   │   └── safe_bootstrap.py
+│   ├── boundary
+│   │   ├── __pycache__
+│   │   └── decision_boundary.py
+│   ├── complete.py
+│   ├── config.py
+│   ├── context.py
+│   ├── engine.py
+│   ├── multi_api.py
+│   ├── retriever.py
+│   ├── thinking.py
+│   └── unified_supervisor.py
+├── data
+│   ├── documents
+│   │   ├── API-Security
+│   │   ├── API-Security-Checklist
+│   │   ├── awesome
+│   │   ├── awesome-chatgpt-prompts
+│   │   ├── awesome-iot
+│   │   ├── awesome-pentest
+│   │   ├── defenseclaw
+│   │   ├── skill-scanner
+│   │   ├── the-book-of-secret-knowledge
+│   │   ├── tldr
+│   │   └── wikipedia
+│   ├── episodic.json
+│   ├── knowledge
+│   ├── memory.json
+│   ├── profile.json
+│   ├── rag_store.json
+│   ├── reflections.json
+│   └── semantic.json
+├── download_model.sh
+├── execution
+│   ├── __pycache__
+│   │   └── safe_executor.cpython-313.pyc
+│   ├── safe_executor.py
+│   └── sandbox
+│       ├── __pycache__
+│       └── process_sandbox.py
+├── files.txt
+├── fix_agent_os_contract.py
+├── fix_agent_stability_singleshot.py
+├── fix_supervisor_stability.py
+├── fix_unify_supervisor_clean.py
+├── folders.txt
+├── generated_code
+│   ├── __pycache__
+│   │   └── kerros_output_0.cpython-313.pyc
+│   ├── codeagent_20260709_224540
+│   │   ├── __pycache__
+│   │   └── kerros_output.py
+│   ├── codeagent_20260709_231209
+│   │   ├── __pycache__
+│   │   └── kerros_output.py
+│   ├── codeagent_20260709_231647
+│   │   ├── __pycache__
+│   │   └── kerros_output.py
+│   ├── kerros_output_0.py
+│   ├── test_2
+│   │   ├── __pycache__
+│   │   ├── kerros_output_0.py
+│   │   ├── kerros_output_1.txt
+│   │   └── kerros_output_2.py
+│   ├── test_3
+│   │   ├── __pycache__
+│   │   ├── kerros_output_0.py
+│   │   └── kerros_output_1.py
+│   └── test_project
+│       ├── __pycache__
+│       ├── kerros_output_0.py
+│       ├── kerros_output_1.py
+│       └── kerros_output_2.py
+├── import_capec.py
+├── import_cisa.py
+├── import_cve.py
+├── import_cwe.py
+├── import_mitre_attack.py
+├── import_nist.py
+├── import_owasp.py
+├── import_sigma.py
+├── import_yara.py
+├── indexer
+│   ├── __pycache__
+│   │   └── build_index.cpython-313.pyc
+│   └── build_index.py
+├── ingest_skills.py
+├── install_daemon_core.py
+├── install_kernel.py
+├── install_phase1.sh
+├── install_self_healing.py
+├── install_supervisor.py
+├── install_supervisor_v2.py
+├── logs
+│   └── wikipedia_install.log
+├── memory
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── episodic.cpython-313.pyc
+│   │   ├── manager.cpython-313.pyc
+│   │   ├── semantic.cpython-313.pyc
+│   │   └── summarizer.cpython-313.pyc
+│   ├── episodic.py
+│   ├── manager.py
+│   ├── semantic.py
+│   └── summarizer.py
+├── metadata
+├── models
+│   ├── engine
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── generator.py
+│   │   └── loader.py
+│   ├── model.gguf
+│   └── qwen0.5b-q4.gguf
+├── multi_agent_supervisor_grid.py
+├── papers
+├── patch_adaptive.py
+├── patch_agents_wire.py
+├── patch_analyze_complete.py
+├── patch_calc_extract.py
+├── patch_chat_knowledge.py
+├── patch_codeagent_complete.py
+├── patch_codeagent_tokens.py
+├── patch_codesaver.py
+├── patch_config_tokens.py
+├── patch_context.py
+├── patch_context2.py
+├── patch_context3.py
+├── patch_context4.py
+├── patch_engine.py
+├── patch_grounding.py
+├── patch_help.py
+├── patch_planner_fix.py
+├── patch_reflect_wire.py
+├── patch_reflection_guard.py
+├── patch_router.py
+├── patch_store_cwe.py
+├── patch_store_final.py
+├── patch_store_owasp.py
+├── patch_summarizer_guard.py
+├── prompts
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   └── system.cpython-313.pyc
+│   └── system.py
+├── rag
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   └── store.cpython-313.pyc
+│   └── store.py
+├── repair_rag_store.py
+├── repair_rag_store2.py
+├── run.sh
+├── run_daemon.py
+├── runtime
+│   ├── __pycache__
+│   │   └── daily_learning.cpython-313.pyc
+│   ├── bootstrap
+│   │   ├── __pycache__
+│   │   ├── bootstrap.py
+│   │   └── daemon_boot.py
+│   ├── daemon
+│   │   ├── __pycache__
+│   │   └── persistent_daemon.py
+│   ├── daily_learning.py
+│   ├── evolution
+│   │   ├── __pycache__
+│   │   ├── evolution_logger.py
+│   │   ├── failure_learner.py
+│   │   ├── mutation_engine.py
+│   │   ├── self_rewrite_core.py
+│   │   └── supervisor_evolution_core.py
+│   ├── healing
+│   │   ├── __pycache__
+│   │   ├── failure_memory.py
+│   │   ├── healing_engine.py
+│   │   ├── rollback_engine.py
+│   │   └── self_healing_loop.py
+│   ├── integrity
+│   │   ├── __pycache__
+│   │   ├── auto_patcher.py
+│   │   ├── checker.py
+│   │   └── contract_registry.py
+│   ├── logs
+│   │   ├── __pycache__
+│   │   └── crash_logger.py
+│   ├── meta
+│   │   ├── __pycache__
+│   │   ├── architecture_feedback.py
+│   │   └── meta_observer.py
+│   ├── policy
+│   ├── state
+│   │   ├── __pycache__
+│   │   └── snapshot_engine.py
+│   └── watchdog
+│       ├── __pycache__
+│       ├── failure_analyzer.py
+│       ├── health_monitor_loop.py
+│       └── watchdog.py
+├── runtime_archive
+├── runtime_memory.json
+├── skills
+│   ├── ai_patterns
+│   │   ├── agentic_loops.md
+│   │   ├── api_fallback_routing.md
+│   │   ├── rag_basics.md
+│   │   └── tool_use_design.md
+│   └── web_stack
+│       ├── auth_patterns.md
+│       ├── deployment_patterns.md
+│       ├── nextjs_react_patterns.md
+│       ├── stripe_patterns.md
+│       └── supabase_patterns.md
+├── start_daemon.sh
+├── start_system.py
+├── supervisor.service
+├── supervisor_full_singleshot_fix.py
+├── test_kerros
+├── test_kerros_backup
+├── tests
+│   ├── __pycache__
+│   │   └── test_supervisor.cpython-313.pyc
+│   ├── integration
+│   ├── test_supervisor.py
+│   └── unit
+├── tools
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── code_saver.cpython-313.pyc
+│   │   └── router.cpython-313.pyc
+│   ├── code_saver.py
+│   └── router.py
+├── tree.txt
+├── unify_supervisor_system.py
+└── verify.py
+
+128 directories, 272 files

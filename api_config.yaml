@@ -1,0 +1,113 @@
+# KerrOS API & Endpoint Registry
+# Load with: config = yaml.safe_load(open("api_config.yaml"))
+# Each provider maps to an env var name only — never hardcode keys here.
+
+llm_cloud:
+  anthropic:   { env: ANTHROPIC_API_KEY,   base_url: "https://api.anthropic.com/v1", model: "claude-sonnet-4-6" }
+  openai:      { env: OPENAI_API_KEY,      base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" }
+  groq:        { env: GROQ_API_KEY,        base_url: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" }
+  gemini:      { env: GEMINI_API_KEY,      base_url: "https://generativelanguage.googleapis.com/v1beta" }
+  deepseek:    { env: DEEPSEEK_API_KEY,    base_url: "https://api.deepseek.com/v1", model: "deepseek-chat" }
+  cohere:      { env: COHERE_API_KEY,      base_url: "https://api.cohere.ai/v1" }
+  nvidia_nim:  { env: NVIDIA_API_KEY,      base_url: "https://integrate.api.nvidia.com/v1", model: "meta/llama-3.1-8b-instruct" }
+  openrouter:  { env: OPENROUTER_API_KEY,  base_url: "https://openrouter.ai/api/v1", model: "auto" }
+  huggingface: { env: HUGGINGFACE_API_KEY, base_url: "https://api-inference.huggingface.co" }
+  # cerebras/sambanova model catalogs rotate often — verify before relying on a
+  # hardcoded id: curl $base_url/models -H "Authorization: Bearer $KEY"
+  cerebras:    { env: CEREBRAS_API_KEY,    base_url: "https://api.cerebras.ai/v1", model: "REPLACE_ME" }
+  sambanova:   { env: SAMBANOVA_API_KEY,   base_url: "https://api.sambanova.ai/v1", model: "REPLACE_ME" }
+  asi_one:     { env: ASI_ONE_KEY,         base_url: "https://api.asi1.ai/v1" }
+
+llm_local:
+  ollama:      { env: OLLAMA_ENDPOINT,          default: "http://localhost:11434/v1" }
+  lm_studio:   { env: LM_STUDIO_ENDPOINT,       default: "http://localhost:1234/v1" }
+  vllm:        { env: VLLM_ENDPOINT,            default: "http://localhost:8000/v1" }
+  llama_cpp:   { env: LLAMA_CPP_SERVER_ENDPOINT, default: "http://localhost:8080/v1" }
+  kobold_cpp:  { env: KOBOLD_CPP_ENDPOINT,      default: "http://localhost:5001/v1" }
+  local_ai:    { env: LOCAL_AI_ENDPOINT,        default: "http://localhost:8080/v1" }
+
+# Priority order for engine.py fallback chain (edit freely)
+fallback_chain:
+  - groq
+  - nvidia_nim
+  - cerebras
+  - sambanova
+  - openrouter
+  - deepseek
+  - gemini
+  - cohere
+  - anthropic
+  - openai
+  - ollama
+  - lm_studio
+  - vllm
+  - llama_cpp
+  - kobold_cpp
+  - local_ai
+
+vector_db:
+  milvus:  { env: MILVUS_ENDPOINT,  default: "http://localhost:19530" }
+  qdrant:  { env: QDRANT_ENDPOINT,  default: "http://localhost:6333" }
+  chroma:  { env: CHROMA_DB_ENDPOINT, default: "http://localhost:8000" }
+
+database:
+  postgresql: { env: LOCAL_POSTGRESQL, default: "postgresql://postgres:postgres@localhost:5432/barmm_db" }
+  snowflake:
+    pat_env: SNOWFLAKE_PAT_KEY
+    endpoint_env: SNOWFLAKE_PAT_ENDPOINT
+  supabase:
+    api_env: SUPABASE_LOCAL_ENDPOINT
+    default: "http://localhost:54321"
+    studio_env: SUPABASE_STUDIO_ENDPOINT
+    studio_default: "http://localhost:54323"
+
+storage:
+  minio: { env: MINIO_ENDPOINT, default: "http://localhost:9000" }
+
+search_and_research:
+  tavily:            { env: TAVILY_API_KEY,   base_url: "https://api.tavily.com" }
+  tavily_mcp:        { env: TAVILY_MCP }
+  searxng:           { env: SEARXNG_ENDPOINT, default: "http://localhost:8080" }
+  scite_ai:          { env: SCITE_AI_KEY,     base_url: "https://api.scite.ai" }
+  core_api:          { env: CORE_API_KEY,     base_url: "https://api.core.ac.uk/v3" }
+  unpaywall:         { env: UNPAYWALL,        base_url: "https://api.unpaywall.org/v2" }
+  semantic_scholar:
+    graph:           { env: SEMANTIC_SCHOLAR_GRAPH,           default: "https://api.semanticscholar.org/graph/v1" }
+    recommendations: { env: SEMANTIC_SCHOLAR_RECOMMENDATIONS, default: "https://api.semanticscholar.org/recommendations/v1" }
+    datasets:        { env: SEMANTIC_SCHOLAR_DATASETS,        default: "https://api.semanticscholar.org/datasets/v1" }
+
+utility_services:
+  deepl:      { env: DEEPL_API_KEY,     base_url: "https://api-free.deepl.com/v2" }
+  elevenlabs: { env: ELEVENLAB_API_KEY, base_url: "https://api.elevenlabs.io/v1" }
+  # NOTE: a ghp_... key is a GitHub Personal Access Token, not a Copilot
+  # inference key — Copilot has no public chat-completions API. Use this
+  # for GitHub REST/GraphQL calls (repos, issues, PRs) only.
+  capilot:    { env: CAPILOT_API_KEY, base_url: "https://api.github.com" }
+
+deploy:
+  github:
+    token_env: GITHUB_TOKEN
+    owner_env: GITHUB_OWNER
+    repo_env: GITHUB_REPOSITORY
+  vercel:
+    token_env: VERCEL_TOKEN
+    project_id_env: VERCEL_PROJECT_ID
+    org_id_env: VERCEL_ORG_ID
+  supabase_prod:
+    url_env: SUPABASE_URL
+    anon_key_env: SUPABASE_ANON_KEY
+    service_role_key_env: SUPABASE_SERVICE_ROLE_KEY
+    access_token_env: SUPABASE_ACCESS_TOKEN
+    project_id_env: SUPABASE_PROJECT_ID
+    db_url_env: SUPABASE_DB_URL
+  git_identity:
+    author_name_env: GIT_AUTHOR_NAME
+    author_email_env: GIT_AUTHOR_EMAIL
+
+app_specific:
+  supp_ai:
+    widget_key_env: SUPP_AI_WEDGET_KEY
+    api_key_env: SUPP_AI_API_KEY
+
+docs:
+  latex: "LaTeX (local toolchain, not an API — ensure texlive/tectonic installed)"
