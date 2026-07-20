@@ -53,3 +53,4 @@ data/*.json
 data/rag_store.db
 data/tasks/
 data/*.bak
+*.crt
