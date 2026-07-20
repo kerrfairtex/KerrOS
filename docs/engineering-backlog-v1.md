@@ -342,4 +342,3 @@ docs/
 - `docs/decisions/` holds non-ADR governance decisions like KOS-013.
 - No README/wiki work is in this backlog — that was already flagged separately as a pre-existing gap (stub README, public repo) and is a documentation-hygiene task independent of this architecture rollout.
 - Each new Port/adapter file should carry a module-level docstring stating what it wraps and what it deliberately does *not* change — this is cheaper than separate docs and keeps the "thin kernel, dumb adapters" intent visible in the code itself.
-
