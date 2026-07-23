@@ -280,6 +280,8 @@ def main():
                 ("/list [path]",       "List workspace directory (claw)"),
                 ("/workspace",         "Show claw workspace root"),
                 ("/kernel",            "Show kernel boot status"),
+                ("/health",            "Show runtime health report"),
+                ("/services",          "Show managed service status"),
                 ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
@@ -381,6 +383,34 @@ def main():
             print(f"  {BL}Base:{R}       {status['base']}")
             print(f"  {BL}Services:{R}   {', '.join(status['services'])}")
             print(f"  {BL}Boot log:{R}   {' → '.join(status['boot_log'])}")
+            divider()
+
+        elif user=="/health":
+            divider()
+            try:
+                health = resolve("health_monitor")
+                mgr = resolve("service_manager")
+                report = health.collect(mgr)
+                print(f"  {BL}Healthy:{R}   {report['healthy']}")
+                print(f"  {BL}Uptime:{R}    {report['uptime_s']}s")
+                for name, comp in report["components"].items():
+                    print(f"  {GO}{name}{R}: {comp.get('status', 'unknown')}")
+            except Exception as e:
+                print(f"  {RE}Health unavailable: {e}{R}")
+            divider()
+
+        elif user=="/services":
+            divider()
+            try:
+                mgr = resolve("service_manager")
+                status = mgr.status()
+                for name, info in status["services"].items():
+                    print(
+                        f"  {GO}{name}{R}  {info['state']}  "
+                        f"pid={info.get('pid') or '-'}  restarts={info['restart_count']}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Services unavailable: {e}{R}")
             divider()
 
         elif user=="/decisions":

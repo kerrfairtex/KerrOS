@@ -31,6 +31,8 @@ SERVICE_TOOL_PORT = "tool_port"
 SERVICE_MEMORY_PORT = "memory_port"
 SERVICE_DISPATCH_PORT = "dispatch_port"
 SERVICE_DECISION_LOG = "decision_log"
+SERVICE_SERVICE_MANAGER = "service_manager"
+SERVICE_HEALTH_MONITOR = "health_monitor"
 SERVICE_ROUTER = "router"
 
 # Port registration keys used during boot.

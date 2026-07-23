@@ -64,7 +64,10 @@ class KernelBootTest(unittest.TestCase):
     def test_boot_registers_services(self):
         boot()
         names = get_kernel().container.names()
-        for svc in ("config", "router", "tool_port", "llm_port", "memory_port", "dispatch_port", "decision_log"):
+        for svc in (
+            "config", "router", "tool_port", "llm_port", "memory_port",
+            "dispatch_port", "decision_log", "service_manager", "health_monitor",
+        ):
             self.assertIn(svc, names)
 
     def test_resolve_before_boot_raises(self):

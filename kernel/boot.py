@@ -24,9 +24,11 @@ from kernel.contract import (
     SERVICE_CONFIG,
     SERVICE_DECISION_LOG,
     SERVICE_DISPATCH_PORT,
+    SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
     SERVICE_MEMORY_PORT,
     SERVICE_ROUTER,
+    SERVICE_SERVICE_MANAGER,
     SERVICE_TOOL_PORT,
 )
 
@@ -54,6 +56,7 @@ class Kernel:
             self._set_phase(BootPhase.SERVICES)
             self._register_core_services()
             self._register_decision_log()
+            self._register_runtime_services()
 
             if register_defaults:
                 self._set_phase(BootPhase.PORTS)
@@ -118,6 +121,20 @@ class Kernel:
             lambda: DecisionLog(self.config.base / "data" / "decision_log.db"),
             singleton=True,
         )
+
+    def _register_runtime_services(self) -> None:
+        from runtime.service_bus import ServiceBus
+        from runtime.services import ServiceManager, default_services
+        from runtime.health import HealthMonitor
+
+        bus = ServiceBus()
+        manager = ServiceManager(bus)
+        for spec in default_services():
+            manager.register(spec)
+        health = HealthMonitor()
+
+        self.container.register(SERVICE_SERVICE_MANAGER, manager, singleton=True)
+        self.container.register(SERVICE_HEALTH_MONITOR, health, singleton=True)
 
     def _register_default_ports(self) -> None:
         from adapters.tools.claw_adapter import ClawToolAdapter
