@@ -282,6 +282,10 @@ def main():
                 ("/kernel",            "Show kernel boot status"),
                 ("/health",            "Show runtime health report"),
                 ("/services",          "Show managed service status"),
+                ("/events [n]",        "Show recent event bus events"),
+                ("/schedule",          "List scheduled jobs"),
+                ("/workflows",         "List registered workflows"),
+                ("/llm",               "Show LLM provider status"),
                 ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
@@ -411,6 +415,74 @@ def main():
                     )
             except Exception as e:
                 print(f"  {RE}Services unavailable: {e}{R}")
+            divider()
+
+        elif user.startswith("/events"):
+            divider()
+            try:
+                parts = user.split()
+                count = int(parts[1]) if len(parts) > 1 else 10
+                bus = resolve("event_bus")
+                events = bus.recent(count)
+                if not events:
+                    print(f"  {GY}No events yet.{R}")
+                for ev in events:
+                    print(
+                        f"  {GO}{ev['topic']}{R} "
+                        f"{GY}{ev.get('source', '')}{R} "
+                        f"{str(ev.get('payload', {}))[:80]}"
+                    )
+                stats = bus.stats()
+                print(f"  {BL}Total:{R} {stats['events']} events, {stats['listeners']} listeners")
+            except Exception as e:
+                print(f"  {RE}Events unavailable: {e}{R}")
+            divider()
+
+        elif user == "/schedule":
+            divider()
+            try:
+                sched = resolve("scheduler")
+                jobs = sched.list_jobs()
+                if not jobs:
+                    print(f"  {GY}No scheduled jobs.{R}")
+                for job in jobs:
+                    print(
+                        f"  {GO}{job['name']}{R} id={job['id'][:8]} "
+                        f"runs={job['run_count']} "
+                        f"interval={job.get('interval_s') or '-'}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Scheduler unavailable: {e}{R}")
+            divider()
+
+        elif user == "/workflows":
+            divider()
+            try:
+                wf = resolve("workflow_engine")
+                names = wf.list_workflows()
+                if not names:
+                    print(f"  {GY}No workflows registered.{R}")
+                for name in names:
+                    print(f"  {GO}{name}{R}")
+            except Exception as e:
+                print(f"  {RE}Workflows unavailable: {e}{R}")
+            divider()
+
+        elif user == "/llm":
+            divider()
+            try:
+                port = resolve("llm_port")
+                status = port.status() if hasattr(port, "status") else {}
+                print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
+                print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
+                print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
+                for key in ("ollama", "vllm", "cloud"):
+                    info = status.get(key, {})
+                    if isinstance(info, dict):
+                        avail = info.get("available", info.get("groq", "?"))
+                        print(f"  {GO}{key}{R}: available={avail}")
+            except Exception as e:
+                print(f"  {RE}LLM status unavailable: {e}{R}")
             divider()
 
         elif user=="/decisions":

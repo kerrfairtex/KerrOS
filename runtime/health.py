@@ -88,6 +88,24 @@ class HealthMonitor:
             report["components"]["decision_log"] = {"status": "error", "error": str(exc)}
             self.record("decision_log", "error", str(exc))
 
+        try:
+            from kernel.boot import resolve as kernel_resolve
+
+            bus = kernel_resolve("event_bus")
+            sched = kernel_resolve("scheduler")
+            report["components"]["event_bus"] = {
+                "status": "ok",
+                "events": bus.stats().get("events", 0),
+            }
+            report["components"]["scheduler"] = {
+                "status": "ok",
+                "jobs": len(sched.list_jobs()),
+            }
+            self.record("event_bus", "ok", str(bus.stats().get("events", 0)))
+        except Exception as exc:
+            report["components"]["event_bus"] = {"status": "error", "error": str(exc)}
+            self.record("event_bus", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:

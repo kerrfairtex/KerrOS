@@ -33,6 +33,9 @@ SERVICE_DISPATCH_PORT = "dispatch_port"
 SERVICE_DECISION_LOG = "decision_log"
 SERVICE_SERVICE_MANAGER = "service_manager"
 SERVICE_HEALTH_MONITOR = "health_monitor"
+SERVICE_EVENT_BUS = "event_bus"
+SERVICE_SCHEDULER = "scheduler"
+SERVICE_WORKFLOW_ENGINE = "workflow_engine"
 SERVICE_ROUTER = "router"
 
 # Port registration keys used during boot.

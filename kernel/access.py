@@ -31,9 +31,42 @@ def get_llm_port():
             return _resolve("llm_port")
         except Exception:
             pass
-    from adapters.llm.multi_api_adapter import MultiAPIAdapter
+    from adapters.llm.composite_adapter import CompositeLLMAdapter
 
-    return MultiAPIAdapter()
+    return CompositeLLMAdapter()
+
+
+def get_event_bus():
+    if _kernel_ready():
+        try:
+            return _resolve("event_bus")
+        except Exception:
+            pass
+    from runtime.event_bus import EventBus
+
+    return EventBus()
+
+
+def get_scheduler():
+    if _kernel_ready():
+        try:
+            return _resolve("scheduler")
+        except Exception:
+            pass
+    from runtime.scheduler import Scheduler
+
+    return Scheduler()
+
+
+def get_workflow_engine():
+    if _kernel_ready():
+        try:
+            return _resolve("workflow_engine")
+        except Exception:
+            pass
+    from runtime.workflows import WorkflowEngine
+
+    return WorkflowEngine()
 
 
 def get_dispatch_port():

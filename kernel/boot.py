@@ -24,8 +24,11 @@ from kernel.contract import (
     SERVICE_CONFIG,
     SERVICE_DECISION_LOG,
     SERVICE_DISPATCH_PORT,
+    SERVICE_EVENT_BUS,
     SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
+    SERVICE_SCHEDULER,
+    SERVICE_WORKFLOW_ENGINE,
     SERVICE_MEMORY_PORT,
     SERVICE_ROUTER,
     SERVICE_SERVICE_MANAGER,
@@ -57,6 +60,7 @@ class Kernel:
             self._register_core_services()
             self._register_decision_log()
             self._register_runtime_services()
+            self._register_event_infrastructure()
 
             if register_defaults:
                 self._set_phase(BootPhase.PORTS)
@@ -72,6 +76,11 @@ class Kernel:
     def shutdown(self) -> None:
         """Tear down kernel services."""
         self._set_phase(BootPhase.SHUTDOWN)
+        try:
+            if self.container.has(SERVICE_SCHEDULER):
+                self.container.resolve(SERVICE_SCHEDULER).stop()
+        except Exception:
+            pass
         self.container.clear()
         self.config = None
         self.booted_at = None
@@ -136,6 +145,21 @@ class Kernel:
         self.container.register(SERVICE_SERVICE_MANAGER, manager, singleton=True)
         self.container.register(SERVICE_HEALTH_MONITOR, health, singleton=True)
 
+    def _register_event_infrastructure(self) -> None:
+        from runtime.event_bus import EventBus
+        from runtime.scheduler import Scheduler
+        from runtime.workflows import WorkflowEngine
+
+        bus = EventBus()
+        scheduler = Scheduler(bus=bus)
+        workflows = WorkflowEngine(bus=bus)
+
+        self.container.register(SERVICE_EVENT_BUS, bus, singleton=True)
+        self.container.register(SERVICE_SCHEDULER, scheduler, singleton=True)
+        self.container.register(SERVICE_WORKFLOW_ENGINE, workflows, singleton=True)
+
+        scheduler.start()
+
     def _register_default_ports(self) -> None:
         from adapters.tools.claw_adapter import ClawToolAdapter
         from adapters.tools.router_adapter import RouterAdapter
@@ -146,9 +170,9 @@ class Kernel:
         self.container.register(SERVICE_MEMORY_PORT, RagStoreAdapter, singleton=True)
 
         def _llm_port_factory():
-            from adapters.llm.multi_api_adapter import MultiAPIAdapter
+            from adapters.llm.composite_adapter import CompositeLLMAdapter
 
-            return MultiAPIAdapter()
+            return CompositeLLMAdapter()
 
         self.container.register(SERVICE_LLM_PORT, _llm_port_factory, singleton=True)
 

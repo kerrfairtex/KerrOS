@@ -17,12 +17,15 @@ from kernel.contract import (
     SERVICE_CONFIG,
     SERVICE_DECISION_LOG,
     SERVICE_DISPATCH_PORT,
+    SERVICE_EVENT_BUS,
     SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
     SERVICE_MEMORY_PORT,
     SERVICE_ROUTER,
+    SERVICE_SCHEDULER,
     SERVICE_SERVICE_MANAGER,
     SERVICE_TOOL_PORT,
+    SERVICE_WORKFLOW_ENGINE,
 )
 from kernel.decision_log import DecisionLog, get_decision_log, record_decision
 from kernel.access import (
@@ -30,9 +33,12 @@ from kernel.access import (
     run_tool,
     detect_domain,
     memory_query,
+    get_event_bus,
     get_llm_port,
     get_dispatch_port,
     get_memory_port,
+    get_scheduler,
+    get_workflow_engine,
 )
 
 __all__ = [
@@ -46,12 +52,15 @@ __all__ = [
     "SERVICE_CONFIG",
     "SERVICE_DECISION_LOG",
     "SERVICE_DISPATCH_PORT",
+    "SERVICE_EVENT_BUS",
     "SERVICE_HEALTH_MONITOR",
     "SERVICE_LLM_PORT",
     "SERVICE_MEMORY_PORT",
     "SERVICE_ROUTER",
+    "SERVICE_SCHEDULER",
     "SERVICE_SERVICE_MANAGER",
     "SERVICE_TOOL_PORT",
+    "SERVICE_WORKFLOW_ENGINE",
     "boot",
     "get_decision_log",
     "get_kernel",
@@ -64,7 +73,10 @@ __all__ = [
     "run_tool",
     "detect_domain",
     "memory_query",
+    "get_event_bus",
     "get_llm_port",
     "get_dispatch_port",
     "get_memory_port",
+    "get_scheduler",
+    "get_workflow_engine",
 ]
