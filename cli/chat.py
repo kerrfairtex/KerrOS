@@ -14,6 +14,7 @@ from tools.router import detect_tool, run_tool, detect_domain
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
 from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
+from kernel import boot as kernel_boot, get_kernel
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -132,6 +133,9 @@ def ask_mode(engine, spinner):
 # ── Main ──────────────────────────────────────────────────
 def main():
     boot_sequence()
+    kernel = kernel_boot()
+    kcfg = kernel.config
+    print(f"  {GR}[kernel]{R} {CY}{kernel.phase.value}{R}  {GY}workspace={kcfg.workspace}{R}")
     init_session()  # reset in-memory session
     engine = AdaptiveEngine()
     spinner = Spinner()
@@ -269,6 +273,7 @@ def main():
                 ("/exec <cmd>",        "Run shell command in workspace (claw)"),
                 ("/list [path]",       "List workspace directory (claw)"),
                 ("/workspace",         "Show claw workspace root"),
+                ("/kernel",            "Show kernel boot status"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -361,7 +366,16 @@ def main():
             add_message("user", user)
             add_message("assistant", tool_result[:800])
 
-        elif user.startswith("/document "):
+        elif user=="/kernel":
+            divider()
+            status = get_kernel().status()
+            print(f"  {BL}Phase:{R}      {status['phase']}")
+            print(f"  {BL}Workspace:{R}  {status['workspace']}")
+            print(f"  {BL}Base:{R}       {status['base']}")
+            print(f"  {BL}Services:{R}   {', '.join(status['services'])}")
+            print(f"  {BL}Boot log:{R}   {' → '.join(status['boot_log'])}")
+            divider()
+
             from agents.document import DocumentAgent
             topic = user.split(" ",1)[1].strip()
             spinner.stop()
