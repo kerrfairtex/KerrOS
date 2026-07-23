@@ -17,9 +17,11 @@ from kernel.contract import (
     SERVICE_CONFIG,
     SERVICE_DECISION_LOG,
     SERVICE_DISPATCH_PORT,
+    SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
     SERVICE_MEMORY_PORT,
     SERVICE_ROUTER,
+    SERVICE_SERVICE_MANAGER,
     SERVICE_TOOL_PORT,
 )
 from kernel.decision_log import DecisionLog, get_decision_log, record_decision
@@ -44,9 +46,11 @@ __all__ = [
     "SERVICE_CONFIG",
     "SERVICE_DECISION_LOG",
     "SERVICE_DISPATCH_PORT",
+    "SERVICE_HEALTH_MONITOR",
     "SERVICE_LLM_PORT",
     "SERVICE_MEMORY_PORT",
     "SERVICE_ROUTER",
+    "SERVICE_SERVICE_MANAGER",
     "SERVICE_TOOL_PORT",
     "boot",
     "get_decision_log",
