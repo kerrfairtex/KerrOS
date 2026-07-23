@@ -21,10 +21,11 @@ from kernel.contract import (
     BootPhase,
     KernelBootError,
     KernelNotReadyError,
-    PORT_LLM,
-    PORT_TOOL,
     SERVICE_CONFIG,
+    SERVICE_DECISION_LOG,
+    SERVICE_DISPATCH_PORT,
     SERVICE_LLM_PORT,
+    SERVICE_MEMORY_PORT,
     SERVICE_ROUTER,
     SERVICE_TOOL_PORT,
 )
@@ -52,6 +53,7 @@ class Kernel:
 
             self._set_phase(BootPhase.SERVICES)
             self._register_core_services()
+            self._register_decision_log()
 
             if register_defaults:
                 self._set_phase(BootPhase.PORTS)
@@ -108,10 +110,23 @@ class Kernel:
             },
         )
 
+    def _register_decision_log(self) -> None:
+        from kernel.decision_log import DecisionLog
+
+        self.container.register(
+            SERVICE_DECISION_LOG,
+            lambda: DecisionLog(self.config.base / "data" / "decision_log.db"),
+            singleton=True,
+        )
+
     def _register_default_ports(self) -> None:
         from adapters.tools.claw_adapter import ClawToolAdapter
+        from adapters.tools.router_adapter import RouterAdapter
+        from adapters.memory.rag_store_adapter import RagStoreAdapter
 
         self.container.register(SERVICE_TOOL_PORT, ClawToolAdapter, singleton=True)
+        self.container.register(SERVICE_DISPATCH_PORT, RouterAdapter, singleton=True)
+        self.container.register(SERVICE_MEMORY_PORT, RagStoreAdapter, singleton=True)
 
         def _llm_port_factory():
             from adapters.llm.multi_api_adapter import MultiAPIAdapter

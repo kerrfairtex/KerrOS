@@ -51,9 +51,12 @@ shutdown()
 | Name | Type | Description |
 |------|------|-------------|
 | `config` | `KernelConfig` | Runtime configuration snapshot |
+| `decision_log` | `DecisionLog` | Append-only audit log (KOS-008) |
 | `router` | `dict` | `detect_tool`, `run_tool`, `detect_domain` |
 | `llm_port` | `LLMPort` | `MultiAPIAdapter` (default) |
-| `tool_port` | `ToolPort` | `ClawToolAdapter` (default) |
+| `tool_port` | `ToolPort` | `ClawToolAdapter` (filesystem/exec) |
+| `memory_port` | `MemoryPort` | `RagStoreAdapter` (KOS-006) |
+| `dispatch_port` | `DispatchPort` | `RouterAdapter` (KOS-007) |
 
 ## Configuration
 

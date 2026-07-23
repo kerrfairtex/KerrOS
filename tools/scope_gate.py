@@ -14,8 +14,23 @@ in chat, which requires the human to explicitly confirm.
 """
 import os, json, ipaddress, re, time
 
-BASE = os.path.expanduser("~/offline_ai")
-SCOPE_PATH = f"{BASE}/config/scope.json"
+from kernel.config import load_config
+
+
+def _base() -> str:
+    return str(load_config().base)
+
+
+def _scope_path() -> str:
+    return str(load_config().scope_path)
+
+
+def _audit(decision_type: str, input_summary: str, outcome: str, reason: str = "") -> None:
+    try:
+        from kernel.decision_log import record_decision
+        record_decision("scope_gate", decision_type, input_summary, outcome, reason)
+    except Exception:
+        pass
 
 # Tools that touch real targets and require scope authorization.
 # Passive/local tools (calc, sysinfo, file ops, knowledge lookups) are exempt.
@@ -48,6 +63,7 @@ def arm_deploy(minutes=5):
     scope = _load_scope()
     scope["deploy_armed_until"] = time.time() + (minutes * 60)
     _save_scope(scope)
+    _audit("deploy_arm", f"minutes={minutes}", "armed", f"until={scope['deploy_armed_until']}")
     return minutes
 
 
@@ -55,22 +71,25 @@ def disarm_deploy():
     scope = _load_scope()
     scope["deploy_armed_until"] = 0
     _save_scope(scope)
+    _audit("deploy_arm", "manual", "disarmed", "")
 
 
 
 def _load_scope():
-    if not os.path.exists(SCOPE_PATH):
+    path = _scope_path()
+    if not os.path.exists(path):
         return {"authorized_targets": [], "authorized_cidrs": [], "require_explicit_authorization": True}
     try:
-        with open(SCOPE_PATH) as f:
+        with open(path) as f:
             return json.load(f)
     except Exception:
         return {"authorized_targets": [], "authorized_cidrs": [], "require_explicit_authorization": True}
 
 
 def _save_scope(scope):
-    os.makedirs(os.path.dirname(SCOPE_PATH), exist_ok=True)
-    with open(SCOPE_PATH, "w") as f:
+    path = _scope_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
         json.dump(scope, f, indent=2)
 
 
@@ -120,7 +139,9 @@ def check(tool, args):
         until, armed = _arm_status()
         if armed:
             remaining = int(until - time.time())
+            _audit("deploy_check", tool, "allowed", f"{remaining}s remaining")
             return True, f"deploy armed, {remaining}s remaining"
+        _audit("deploy_check", tool, "denied", "deploy window not armed")
         return False, (
             f"BLOCKED: '{tool}' requires an armed deploy window. "
             f"Use /scope arm-deploy <minutes> to authorize, then retry."
@@ -131,8 +152,10 @@ def check(tool, args):
 
     target = _extract_target(args)
     if is_authorized(target):
+        _audit("scope_check", f"{tool}:{target}", "allowed", "target authorized")
         return True, "authorized"
 
+    _audit("scope_check", f"{tool}:{target}", "denied", "target not in scope")
     return False, (
         f"BLOCKED: '{target}' is not in the authorized scope. "
         f"Use /scope add {target} to explicitly authorize it first."
@@ -145,6 +168,7 @@ def add_target(target):
     if target not in scope.get("authorized_targets", []):
         scope.setdefault("authorized_targets", []).append(target)
         _save_scope(scope)
+        _audit("scope_add", target, "added", "")
         return True
     return False
 
@@ -155,6 +179,7 @@ def remove_target(target):
     if target in scope.get("authorized_targets", []):
         scope["authorized_targets"].remove(target)
         _save_scope(scope)
+        _audit("scope_remove", target, "removed", "")
         return True
     return False
 

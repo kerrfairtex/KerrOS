@@ -2,11 +2,7 @@ import os, json
 from memory.manager import get_recent, get_profile
 from rag.store import search
 from prompts.system import SYSTEM_PROMPT
-
-BASE = os.path.expanduser("~/offline_ai")
-
-def cfg():
-    with open(f"{BASE}/config.json") as f: return json.load(f)
+from core.config import cfg
 
 def _tokens(t): return len(t) // 4
 

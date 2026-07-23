@@ -14,7 +14,7 @@ from tools.router import detect_tool, run_tool, detect_domain
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
 from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
-from kernel import boot as kernel_boot, get_kernel
+from kernel import boot as kernel_boot, get_kernel, resolve
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -274,6 +274,7 @@ def main():
                 ("/list [path]",       "List workspace directory (claw)"),
                 ("/workspace",         "Show claw workspace root"),
                 ("/kernel",            "Show kernel boot status"),
+                ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -374,6 +375,22 @@ def main():
             print(f"  {BL}Base:{R}       {status['base']}")
             print(f"  {BL}Services:{R}   {', '.join(status['services'])}")
             print(f"  {BL}Boot log:{R}   {' → '.join(status['boot_log'])}")
+            divider()
+
+        elif user=="/decisions":
+            divider()
+            try:
+                log = resolve("decision_log")
+                rows = log.read_recent(15)
+                if not rows:
+                    print(f"  {GY}No decision log entries yet.{R}")
+                for row in rows:
+                    print(
+                        f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
+                        f"{row.outcome} — {row.input_summary[:60]}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Decision log unavailable: {e}{R}")
             divider()
 
             from agents.document import DocumentAgent
@@ -494,15 +511,6 @@ def main():
             srcs=list_sources()
             print(f"  {BL}Sources:{R}", ", ".join(srcs) if srcs else f"{GY}None{R}")
 
-        elif user.startswith("/search "):
-            hits=search(user[8:].strip(),top_k=3)
-            divider()
-            if hits:
-                for _,text,src in hits:
-                    print(f"  {BL}[{src}]{R} {text[:200]}")
-            else: print(f"  {GY}No results found{R}")
-            divider()
-
         elif user=="/recall" or user.startswith("/recall "):
             from memory.episodic import get_recent_episodes, search_episodes
             query=user.replace("/recall","").strip()
@@ -519,29 +527,20 @@ def main():
             else: print(f"  {GY}No episodes found{R}")
             divider()
 
-        elif user=="/sources":
-            srcs=list_sources()
-
-        elif user=="/recall" or user.startswith("/recall "):
-            from memory.episodic import get_recent_episodes, search_episodes
-            query=user.replace("/recall","").strip()
-            divider()
-            episodes=search_episodes(query) if query else get_recent_episodes(5)
-            label=f"Search: {query}" if query else "Recent sessions:"
-            print(f"  {BL}{label}{R}")
-            if episodes:
-                for ep in episodes:
-                    print()
-            else: print(f"  {GY}No episodes found{R}")
-            divider()
-
-
         elif user.startswith("/search "):
-            hits=search(user[8:].strip(),top_k=3); divider()
+            query = user[8:].strip()
+            hits = []
+            try:
+                mem = resolve("memory_port")
+                hits = [(float(s), t, src) for s, t, src in mem.query(query, top_k=3)]
+            except Exception:
+                hits = search(query, top_k=3)
+            divider()
             if hits:
-                for _,text,src in hits:
+                for _, text, src in hits:
                     print(f"  {BL}[{src}]{R} {text[:200]}")
-            else: print(f"  {GY}No results found{R}")
+            else:
+                print(f"  {GY}No results found{R}")
             divider()
 
         else:
