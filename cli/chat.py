@@ -13,6 +13,7 @@ from rag.store import ingest_file, ingest_text, list_sources, search
 from tools.router import detect_tool, run_tool, detect_domain
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
+from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -263,6 +264,11 @@ def main():
                 ("/history",           "Show conversation history"),
                 ("/memory",            "Show user profile"),
                 ("/tools",             "List all tools"),
+                ("/read <path>",       "Read a workspace file (claw)"),
+                ("/write <p> :: <txt>", "Write a workspace file (claw)"),
+                ("/exec <cmd>",        "Run shell command in workspace (claw)"),
+                ("/list [path]",       "List workspace directory (claw)"),
+                ("/workspace",         "Show claw workspace root"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -325,6 +331,10 @@ def main():
 
         elif user=="/tools":
             divider()
+            print(f"  {GO}Filesystem (claw){R}  {GY}{claw_tools_summary()}{R}")
+            for cmd, desc in claw_tool_help_lines():
+                print(f"    {BL}{cmd:<28}{R} {GY}{desc}{R}")
+            print()
             cats={
                 f"{GO}Network{R}":       "nmap · ping · traceroute · nikto · whois · dig",
                 f"{GO}OSINT{R}":         "osint · recon · geoip · geoint · dnsenum · reversedns",
@@ -336,6 +346,20 @@ def main():
             for cat,tools in cats.items():
                 print(f"  {cat}  {GY}{tools}{R}")
             divider()
+
+        elif (claw_match := detect_claw_tool(user))[0]:
+            claw_name, claw_args = claw_match
+            print(f"  {GR}◈ Claw: {claw_name}{R}")
+            spinner.label = "Executing"
+            spinner.start()
+            tool_result = run_claw_tool(claw_name, claw_args)
+            spinner.stop()
+            divider()
+            for line in tool_result.split("\n"):
+                print(f"  {GY}{line}{R}")
+            divider()
+            add_message("user", user)
+            add_message("assistant", tool_result[:800])
 
         elif user.startswith("/document "):
             from agents.document import DocumentAgent
@@ -535,6 +559,20 @@ def main():
             if domain: print(f"  {PU}◈ Domain: {domain}{R}")
 
             tool_result=None
+            claw_name, claw_args = detect_claw_tool(user)
+            if claw_name:
+                print(f"  {GR}◈ Claw: {claw_name}{R}")
+                spinner.label = "Executing"
+                spinner.start()
+                spinner.stop()
+                tool_result = run_claw_tool(claw_name, claw_args)
+                divider()
+                for line in tool_result.split("\n"):
+                    print(f"  {GY}{line}{R}")
+                divider()
+                add_message("assistant", tool_result[:800])
+                continue
+
             tool,args=detect_tool(user, bypass_gate=_is_goal_step)
             if tool:
                 print(f"  {GR}◈ Tool: {tool}{R}")

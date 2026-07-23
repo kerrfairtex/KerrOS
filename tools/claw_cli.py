@@ -1,0 +1,133 @@
+"""
+tools/claw_cli.py
+=================
+CLI integration for OpenClaw-style tools in chat.
+
+Parses slash commands and dispatches to tools/registry.py.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from typing import Any
+
+from tools.registry import call_tool, format_result, get_workspace, list_tools, tool_names
+
+
+def detect_claw_tool(text: str) -> tuple[str | None, dict[str, Any] | None]:
+  """Detect explicit claw tool commands from user input."""
+  if not text or not text.strip():
+    return (None, None)
+
+  raw = text.strip()
+
+  if raw.startswith("/tool "):
+    body = raw[6:].strip()
+    if not body:
+      return (None, None)
+    parts = body.split(None, 1)
+    name = parts[0]
+    if name not in tool_names():
+      return (None, None)
+    args: dict[str, Any] = {}
+    if len(parts) == 2 and parts[1].strip():
+      try:
+        parsed = json.loads(parts[1])
+        if isinstance(parsed, dict):
+          args = parsed
+        else:
+          return (None, None)
+      except json.JSONDecodeError:
+        return (None, None)
+    return (name, args)
+
+  if raw.startswith("/read "):
+    path = raw[6:].strip().strip('"').strip("'")
+    return ("read", {"path": path}) if path else (None, None)
+
+  if raw.startswith("/write "):
+    body = raw[7:].strip()
+    if " :: " in body:
+      path, content = body.split(" :: ", 1)
+      return ("write", {"path": path.strip().strip('"').strip("'"), "content": content})
+    path = body.strip('"').strip("'")
+    return ("write", {"path": path, "content": ""}) if path else (None, None)
+
+  if raw.startswith("/edit "):
+    body = raw[6:].strip()
+    if " :: " not in body:
+      return (None, None)
+    parts = body.split(" :: ")
+    if len(parts) < 3:
+      return (None, None)
+    path = parts[0].strip().strip('"').strip("'")
+    old_string = parts[1]
+    new_string = parts[2]
+    replace_all = False
+    if new_string.endswith(" ::all"):
+      replace_all = True
+      new_string = new_string[:-6]
+    return ("edit", {
+      "path": path,
+      "old_string": old_string,
+      "new_string": new_string,
+      "replace_all": replace_all,
+    })
+
+  if raw.startswith("/exec ") or raw.startswith("/run "):
+    cmd = raw.split(" ", 1)[1].strip() if " " in raw else ""
+    return ("exec", {"command": cmd}) if cmd else (None, None)
+
+  if raw.startswith("/list") or raw.startswith("/ls"):
+    body = raw.split(None, 1)
+    path = "."
+    recursive = False
+    if len(body) > 1:
+      arg = body[1].strip()
+      if arg == "-r" or arg == "--recursive":
+        recursive = True
+      elif arg.startswith("-r "):
+        recursive = True
+        path = arg[3:].strip() or "."
+      else:
+        path = arg.strip('"').strip("'") or "."
+    return ("list", {"path": path, "recursive": recursive})
+
+  if raw.startswith("/remove ") or raw.startswith("/rm "):
+    path = raw.split(" ", 1)[1].strip().strip('"').strip("'")
+    return ("remove", {"path": path}) if path else (None, None)
+
+  if raw.startswith("/workspace"):
+    return ("__workspace__", {})
+
+  return (None, None)
+
+
+def run_claw_tool(name: str, args: dict[str, Any] | None = None) -> str:
+  """Execute a claw tool and return formatted output."""
+  if name == "__workspace__":
+    return f"workspace: {get_workspace()}"
+
+  result = call_tool(name, args or {})
+  if result.ok:
+    prefix = f"[{name}]"
+    return f"{prefix} {result.output}" if result.output else f"{prefix} ok"
+  return f"[{name}] error: {result.error or result.output or 'unknown error'}"
+
+
+def claw_tool_help_lines() -> list[tuple[str, str]]:
+  return [
+    ("/read <path>", "Read a workspace file"),
+    ("/write <path> :: <content>", "Write/create a file"),
+    ("/edit <path> :: <old> :: <new>", "Replace text in a file"),
+    ("/list [path]", "List directory (use -r for recursive)"),
+    ("/exec <command>", "Run a shell command"),
+    ("/remove <path>", "Delete a file or directory"),
+    ("/tool <name> <json>", "Call any claw tool with JSON args"),
+    ("/workspace", "Show active workspace root"),
+  ]
+
+
+def claw_tools_summary() -> str:
+  return " · ".join(tool_names())
