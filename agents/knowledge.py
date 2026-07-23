@@ -11,8 +11,7 @@ import re, os, sys
 sys.path.insert(0, os.path.expanduser("~/offline_ai"))
 from core.complete import generate_complete
 
-from rag.store import search_exact_id, search_by_category, search_multi_category, search
-from tools.router import detect_tool, run_tool
+from kernel.access import detect_tool, run_tool, memory_search_exact_id, memory_search_by_category, memory_search_multi_category, memory_query
 from prompts.system import SYSTEM_PROMPT
 
 R="\033[0m"; GO="\033[33m"; GR="\033[92m"; BL="\033[94m"
@@ -71,22 +70,22 @@ class KnowledgeAgent:
 
     def _kb_search(self, query):
         """Search local knowledge base using exact-id -> multi-cat -> single-cat -> general fallback chain."""
-        exact = search_exact_id(query)
+        exact = memory_search_exact_id(query)
         if exact:
             return exact, "exact-id"
 
         cat, multi_cats = self._route_category(query)
         if multi_cats:
-            hits = search_multi_category(query, multi_cats, top_k=4)
+            hits = memory_search_multi_category(query, multi_cats, top_k=4)
             if hits:
                 return hits, f"multi:{'+'.join(multi_cats)}"
 
         if cat:
-            hits = search_by_category(query, category=cat, top_k=4)
+            hits = memory_search_by_category(query, category=cat, top_k=4)
             if hits:
                 return hits, f"category:{cat}"
 
-        hits = search(query, top_k=4)
+        hits = memory_query(query, top_k=4)
         return hits, "general"
 
     def run(self, query, stream=True):

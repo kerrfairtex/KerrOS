@@ -18,10 +18,10 @@ class AdaptiveEngine:
 
     def init_online(self):
         try:
-            from core.multi_api import MultiAPIEngine
-            self._multi = MultiAPIEngine()
-            # Quick test with Groq
-            test = self._multi.generate("hi", max_tokens=5)
+            from kernel.access import get_llm_port
+            port = get_llm_port()
+            self._multi = port.engine if hasattr(port, "engine") else port
+            test = self._multi.generate("hi", max_tokens=5) if hasattr(self._multi, "generate") else port.complete("hi", max_tokens=5)
             if not test or "All APIs failed" in test:
                 return False, "All APIs failed"
             self.mode = "online"
@@ -50,6 +50,10 @@ class AdaptiveEngine:
             raise
 
     def _online_generate(self, user_message, system, history, stream):
+        from kernel.access import get_llm_port
+
+        if not self._multi:
+            self._multi = get_llm_port().engine if hasattr(get_llm_port(), "engine") else None
         if not self._multi:
             from core.multi_api import MultiAPIEngine
             self._multi = MultiAPIEngine()

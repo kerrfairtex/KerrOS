@@ -9,8 +9,14 @@ from core.thinking import needs_thinking
 from core.complete import generate_complete
 from memory.manager import (add_message, clear_session, init_session,
     get_history, get_recent, extract_and_learn, get_profile, update_profile)
-from rag.store import ingest_file, ingest_text, list_sources, search
-from tools.router import detect_tool, run_tool, detect_domain
+from rag.store import ingest_file, ingest_text
+from kernel.access import (
+    detect_tool,
+    run_tool,
+    detect_domain,
+    memory_query,
+    memory_list_sources,
+)
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
 from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
@@ -508,7 +514,7 @@ def main():
             ingest_file(user[8:].strip())
 
         elif user=="/sources":
-            srcs=list_sources()
+            srcs=memory_list_sources()
             print(f"  {BL}Sources:{R}", ", ".join(srcs) if srcs else f"{GY}None{R}")
 
         elif user=="/recall" or user.startswith("/recall "):
@@ -534,7 +540,8 @@ def main():
                 mem = resolve("memory_port")
                 hits = [(float(s), t, src) for s, t, src in mem.query(query, top_k=3)]
             except Exception:
-                hits = search(query, top_k=3)
+                from kernel.access import memory_query
+                hits = [(float(s), t, src) for s, t, src in memory_query(query, top_k=3)]
             divider()
             if hits:
                 for _, text, src in hits:
@@ -604,7 +611,7 @@ def main():
                         else:
                             print(f"  {GY}Cancelled.{R}")
                             continue
-                    from tools.router import run_tool as _run_devops_tool
+                    from kernel.access import run_tool as _run_devops_tool
                     tool_result = _run_devops_tool(tool, args)
                     divider(); ai_header(mode); typewrite(tool_result); divider()
                     add_message("assistant", tool_result)

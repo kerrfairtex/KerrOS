@@ -67,12 +67,12 @@ class CompletionDiagnostics:
 
 
         self.check(
-            "kernel",
+            "coordinator",
             lambda:
             __import__(
-                "core.completion_runtime_kernel",
-                fromlist=["kernel"]
-            ).kernel
+                "core.completion_runtime_coordinator",
+                fromlist=["coordinator"]
+            ).coordinator
         )
 
 

@@ -28,3 +28,19 @@ class RagStoreAdapter:
 
     def list_sources(self) -> list[str]:
         return rag_store.list_sources()
+
+    def search_by_category(
+        self, query: str, category: str | None = None, top_k: int = 4
+    ) -> list[tuple[str, str, str]]:
+        hits = rag_store.search_by_category(query, category, top_k)
+        return [(str(score), chunk, source) for score, chunk, source in hits]
+
+    def search_multi_category(
+        self, query: str, categories: list[str], top_k: int = 4
+    ) -> list[tuple[str, str, str]]:
+        hits = rag_store.search_multi_category(query, categories, top_k)
+        return [(str(score), chunk, source) for score, chunk, source in hits]
+
+    def search_exact_id(self, query: str) -> list[tuple[str, str, str]]:
+        hits = rag_store.search_exact_id(query)
+        return [(str(score), chunk, source) for score, chunk, source in hits]

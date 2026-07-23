@@ -1,6 +1,6 @@
 import os, json
 from memory.manager import get_recent, get_profile
-from rag.store import search
+from kernel.access import memory_query, memory_search_by_category, memory_search_multi_category, memory_search_exact_id
 from prompts.system import SYSTEM_PROMPT
 from core.config import cfg
 
@@ -16,9 +16,9 @@ def build(user_input, tool_result=None, domain=None):
         if parts: profile_str = "\n[User]: " + " | ".join(parts)
     system = SYSTEM_PROMPT + profile_str + "\n"
     rag_str = ""
-    hits = search(user_input, top_k=2)
+    hits = memory_query(user_input, top_k=2)
     if hits:
-        rag_str = "\n[Knowledge]:\n" + "\n".join([f"• {t[:200]}" for _,t,_ in hits]) + "\n"
+        rag_str = "\n[Knowledge]:\n" + "\n".join([f"• {t[:200]}" for _, t, _ in hits]) + "\n"
     tool_str = f"\n[Tool output]:\n{str(tool_result)[:800]}\n" if tool_result else ""
     domain_str = f"\n[Domain: {domain}]\n" if domain else ""
     from memory.manager import get_history
@@ -61,7 +61,6 @@ def build_chat(user_input, tool_result=None, domain=None):
     rag_str = ""
     try:
         import re as _re
-        from rag.store import search_by_category, search_multi_category, search_exact_id
         u = user_input.lower()
 
         multi_rules = [
@@ -91,9 +90,9 @@ def build_chat(user_input, tool_result=None, domain=None):
             elif "kev" in u or "known exploited" in u: cat = "cisa"
 
         if multi_cats:
-            hits = search_exact_id(user_input) or search_multi_category(user_input, multi_cats, top_k=4)
+            hits = memory_search_exact_id(user_input) or memory_search_multi_category(user_input, multi_cats, top_k=4)
         else:
-            hits = search_exact_id(user_input) or search_by_category(user_input, category=cat, top_k=4)
+            hits = memory_search_exact_id(user_input) or memory_search_by_category(user_input, category=cat, top_k=4)
         if hits:
             chunks = []
             for _, text, src in hits:

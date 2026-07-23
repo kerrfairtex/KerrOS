@@ -9,7 +9,7 @@ import re, os, sys
 sys.path.insert(0, os.path.expanduser("~/offline_ai"))
 from core.complete import generate_complete
 
-from tools.router import detect_tool, run_tool
+from kernel.access import detect_tool, run_tool
 from prompts.system import SYSTEM_PROMPT
 
 MAX_STEPS = 4

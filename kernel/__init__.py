@@ -23,6 +23,15 @@ from kernel.contract import (
     SERVICE_TOOL_PORT,
 )
 from kernel.decision_log import DecisionLog, get_decision_log, record_decision
+from kernel.access import (
+    detect_tool,
+    run_tool,
+    detect_domain,
+    memory_query,
+    get_llm_port,
+    get_dispatch_port,
+    get_memory_port,
+)
 
 __all__ = [
     "BootPhase",
@@ -47,4 +56,11 @@ __all__ = [
     "reload_config",
     "resolve",
     "shutdown",
+    "detect_tool",
+    "run_tool",
+    "detect_domain",
+    "memory_query",
+    "get_llm_port",
+    "get_dispatch_port",
+    "get_memory_port",
 ]

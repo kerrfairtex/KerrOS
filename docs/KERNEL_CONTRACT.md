@@ -76,6 +76,7 @@ Load order for values: `.env` overrides → `config.json` base → env var overr
 2. **Resolve after READY** — `resolve(name)` raises `KernelNotReadyError` before boot completes.
 3. **Singleton by default** — ports and config are cached; pass `singleton=False` for transient factories.
 4. **No circular imports** — factories are lazy; adapters import inside factory functions.
+5. **Port access facade** — callers use `kernel.access` (`detect_tool`, `memory_query`, `llm_complete`) for kernel-first resolution with direct fallback (KOS-014).
 
 ## Error types
 
