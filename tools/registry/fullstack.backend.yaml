@@ -1,0 +1,67 @@
+version: 1
+collection: kerros-fullstack-backend
+last_updated: 2026-07-25
+tools:
+  - name: NestJS
+    repo: https://github.com/nestjs/nest
+    category: framework
+    stack: [typescript, nodejs]
+    status: adopt
+    notes: "Opinionated Node.js framework with DI, modules, and decorators — ideal for large APIs."
+    last_reviewed: 2026-07-25
+
+  - name: Fastify
+    repo: https://github.com/fastify/fastify
+    category: framework
+    stack: [typescript, nodejs]
+    status: adopt
+    notes: "High-performance HTTP server; great for microservices and lightweight APIs."
+    last_reviewed: 2026-07-25
+
+  - name: Hono
+    repo: https://github.com/honojs/hono
+    category: framework
+    stack: [typescript, edge, nodejs]
+    status: adopt
+    notes: "Ultra-fast edge-first web framework; runs on Cloudflare Workers, Deno, Node.js, and Bun."
+    last_reviewed: 2026-07-25
+
+  - name: Express
+    repo: https://github.com/expressjs/express
+    category: framework
+    stack: [typescript, nodejs]
+    status: watch
+    notes: "Ubiquitous minimalist framework; prefer Fastify/Hono for new projects."
+    last_reviewed: 2026-07-25
+
+  - name: tRPC
+    repo: https://github.com/trpc/trpc
+    category: api
+    stack: [typescript, nextjs, nodejs]
+    status: adopt
+    notes: "End-to-end type-safe RPC; pairs perfectly with Next.js / T3 stack."
+    last_reviewed: 2026-07-25
+
+  - name: GraphQL Yoga
+    repo: https://github.com/dotansimha/graphql-yoga
+    category: api
+    stack: [typescript, graphql]
+    status: watch
+    notes: "Spec-compliant GraphQL server; works with any JS framework."
+    last_reviewed: 2026-07-25
+
+  - name: Zod
+    repo: https://github.com/colinhacks/zod
+    category: validation
+    stack: [typescript]
+    status: adopt
+    notes: "TypeScript-first schema validation; use for request bodies, env vars, and API contracts."
+    last_reviewed: 2026-07-25
+
+  - name: ElysiaJS
+    repo: https://github.com/elysiajs/elysia
+    category: framework
+    stack: [typescript, bun]
+    status: watch
+    notes: "Ergonomic Bun-native framework with end-to-end type safety."
+    last_reviewed: 2026-07-25

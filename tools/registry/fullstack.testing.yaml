@@ -1,0 +1,59 @@
+version: 1
+collection: kerros-fullstack-testing
+last_updated: 2026-07-25
+tools:
+  - name: Vitest
+    repo: https://github.com/vitest-dev/vitest
+    category: unit-testing
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Vite-native test runner; fast, ESM-first, and Jest-compatible API."
+    last_reviewed: 2026-07-25
+
+  - name: Playwright
+    repo: https://github.com/microsoft/playwright
+    category: e2e-testing
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Cross-browser E2E framework from Microsoft; reliable, fast, and excellent tracing."
+    last_reviewed: 2026-07-25
+
+  - name: Testing Library
+    repo: https://github.com/testing-library/react-testing-library
+    category: component-testing
+    stack: [typescript, react]
+    status: adopt
+    notes: "User-centric component testing utilities; encourages accessible queries."
+    last_reviewed: 2026-07-25
+
+  - name: MSW (Mock Service Worker)
+    repo: https://github.com/mswjs/msw
+    category: mocking
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "API mocking at the network level; works in both browser and Node.js environments."
+    last_reviewed: 2026-07-25
+
+  - name: Storybook Test Runner
+    repo: https://github.com/storybookjs/test-runner
+    category: visual-testing
+    stack: [typescript, react]
+    status: watch
+    notes: "Runs Storybook stories as Playwright tests; great for catching visual regressions."
+    last_reviewed: 2026-07-25
+
+  - name: Supertest
+    repo: https://github.com/ladjs/supertest
+    category: api-testing
+    stack: [typescript, nodejs]
+    status: adopt
+    notes: "HTTP integration testing for Express/Fastify/NestJS endpoints; minimal setup."
+    last_reviewed: 2026-07-25
+
+  - name: Faker.js
+    repo: https://github.com/faker-js/faker
+    category: test-data
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Generate realistic fake data for seeds, fixtures, and test factories."
+    last_reviewed: 2026-07-25
