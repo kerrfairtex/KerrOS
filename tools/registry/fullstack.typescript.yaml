@@ -1,0 +1,43 @@
+version: 1
+collection: kerros-fullstack-typescript
+last_updated: 2026-07-25
+tools:
+  - name: SaaS Boilerplate
+    repo: https://github.com/ixartz/SaaS-Boilerplate
+    category: boilerplate
+    stack: [typescript, nextjs]
+    status: adopt
+    notes: "Production-oriented SaaS baseline."
+    last_reviewed: 2026-07-25
+
+  - name: Next.js SaaS Starter
+    repo: https://github.com/nextjs/saas-starter
+    category: boilerplate
+    stack: [typescript, nextjs, postgres]
+    status: adopt
+    notes: "Clean baseline; easy to extend."
+    last_reviewed: 2026-07-25
+
+  - name: Bulletproof React
+    repo: https://github.com/alan2207/bulletproof-react
+    category: boilerplate
+    stack: [typescript, react]
+    status: watch
+    notes: "Excellent frontend architecture; pair with backend/API template."
+    last_reviewed: 2026-07-25
+
+  - name: Create T3 App
+    repo: https://github.com/t3-oss/create-t3-app
+    category: generator
+    stack: [typescript, nextjs, trpc]
+    status: adopt
+    notes: "Great generator for typed full-stack starts."
+    last_reviewed: 2026-07-25
+
+  - name: Next.js (Framework + Examples)
+    repo: https://github.com/vercel/next.js
+    category: framework
+    stack: [typescript, nextjs]
+    status: watch
+    notes: "Use as reference source for patterns/examples."
+    last_reviewed: 2026-07-25
