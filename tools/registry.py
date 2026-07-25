@@ -23,6 +23,7 @@ from tools.claw_tools import (
     remove,
     write,
 )
+from tools.skill_tools import skill_manage, skill_view, skills_list
 
 Handler = Callable[..., ToolResult]
 
@@ -133,6 +134,92 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             },
         },
     },
+    # ------------------------------------------------------------------
+    # Hermes-style Progressive Disclosure skill tools
+    # ------------------------------------------------------------------
+    {
+        "type": "function",
+        "function": {
+            "name": "skills_list",
+            "description": (
+                "Return a compact index of all available skills (name, category, description). "
+                "Inject this at session start (Level 0) to orient the agent without loading full docs. "
+                "Optionally filter by category."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Filter by category name (e.g. 'web_stack', 'ai_patterns', 'tool_catalog').",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "skill_view",
+            "description": (
+                "Load the full content of a skill by name (Level 1). "
+                "Call this when the agent needs detailed guidance for a specific skill. "
+                "Optionally supply file_path to load a specific reference file directly (Level 2)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Skill stem name, e.g. 'auth_patterns' or 'fullstack.backend'.",
+                    },
+                    "file_path": {
+                        "type": "string",
+                        "description": "Explicit file path relative to workspace (overrides name lookup).",
+                    },
+                },
+                "required": ["name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "skill_manage",
+            "description": (
+                "Create, update, or delete a skill (Dynamic Evolution). "
+                "Agents use this to persist newly discovered workflows as reusable skills. "
+                "Actions: 'save' (write skill content) or 'delete' (remove a skill)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["save", "delete"],
+                        "description": "Operation to perform.",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Skill stem name (snake_case, no extension).",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Markdown content for the skill (required for save).",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Category subdirectory. Defaults to 'custom'.",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "One-line summary shown in skills_list index.",
+                    },
+                },
+                "required": ["action", "name"],
+            },
+        },
+    },
 ]
 
 _HANDLERS: dict[str, Handler] = {
@@ -143,6 +230,10 @@ _HANDLERS: dict[str, Handler] = {
     "exec": exec_cmd,
     "apply_patch": apply_patch,
     "remove": remove,
+    # Hermes-style skill tools
+    "skills_list": skills_list,
+    "skill_view": skill_view,
+    "skill_manage": skill_manage,
 }
 
 
