@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""kerrd — KerrOS service daemon (Phase 2)."""
+from runtime.kerrd import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

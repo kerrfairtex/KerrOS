@@ -54,3 +54,4 @@ data/rag_store.db
 data/tasks/
 data/*.bak
 *.crt
+data/decision_log.db

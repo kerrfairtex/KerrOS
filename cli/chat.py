@@ -9,11 +9,18 @@ from core.thinking import needs_thinking
 from core.complete import generate_complete
 from memory.manager import (add_message, clear_session, init_session,
     get_history, get_recent, extract_and_learn, get_profile, update_profile)
-from rag.store import ingest_file, ingest_text, list_sources, search
-from tools.router import detect_tool, run_tool, detect_domain
+from rag.store import ingest_file, ingest_text
+from kernel.access import (
+    detect_tool,
+    run_tool,
+    detect_domain,
+    memory_query,
+    memory_list_sources,
+)
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
 from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
+from kernel import boot as kernel_boot, get_kernel, resolve
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -132,6 +139,9 @@ def ask_mode(engine, spinner):
 # ── Main ──────────────────────────────────────────────────
 def main():
     boot_sequence()
+    kernel = kernel_boot()
+    kcfg = kernel.config
+    print(f"  {GR}[kernel]{R} {CY}{kernel.phase.value}{R}  {GY}workspace={kcfg.workspace}{R}")
     init_session()  # reset in-memory session
     engine = AdaptiveEngine()
     spinner = Spinner()
@@ -269,6 +279,14 @@ def main():
                 ("/exec <cmd>",        "Run shell command in workspace (claw)"),
                 ("/list [path]",       "List workspace directory (claw)"),
                 ("/workspace",         "Show claw workspace root"),
+                ("/kernel",            "Show kernel boot status"),
+                ("/health",            "Show runtime health report"),
+                ("/services",          "Show managed service status"),
+                ("/events [n]",        "Show recent event bus events"),
+                ("/schedule",          "List scheduled jobs"),
+                ("/workflows",         "List registered workflows"),
+                ("/llm",               "Show LLM provider status"),
+                ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -361,7 +379,128 @@ def main():
             add_message("user", user)
             add_message("assistant", tool_result[:800])
 
-        elif user.startswith("/document "):
+        elif user=="/kernel":
+            divider()
+            status = get_kernel().status()
+            print(f"  {BL}Phase:{R}      {status['phase']}")
+            print(f"  {BL}Workspace:{R}  {status['workspace']}")
+            print(f"  {BL}Base:{R}       {status['base']}")
+            print(f"  {BL}Services:{R}   {', '.join(status['services'])}")
+            print(f"  {BL}Boot log:{R}   {' → '.join(status['boot_log'])}")
+            divider()
+
+        elif user=="/health":
+            divider()
+            try:
+                health = resolve("health_monitor")
+                mgr = resolve("service_manager")
+                report = health.collect(mgr)
+                print(f"  {BL}Healthy:{R}   {report['healthy']}")
+                print(f"  {BL}Uptime:{R}    {report['uptime_s']}s")
+                for name, comp in report["components"].items():
+                    print(f"  {GO}{name}{R}: {comp.get('status', 'unknown')}")
+            except Exception as e:
+                print(f"  {RE}Health unavailable: {e}{R}")
+            divider()
+
+        elif user=="/services":
+            divider()
+            try:
+                mgr = resolve("service_manager")
+                status = mgr.status()
+                for name, info in status["services"].items():
+                    print(
+                        f"  {GO}{name}{R}  {info['state']}  "
+                        f"pid={info.get('pid') or '-'}  restarts={info['restart_count']}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Services unavailable: {e}{R}")
+            divider()
+
+        elif user.startswith("/events"):
+            divider()
+            try:
+                parts = user.split()
+                count = int(parts[1]) if len(parts) > 1 else 10
+                bus = resolve("event_bus")
+                events = bus.recent(count)
+                if not events:
+                    print(f"  {GY}No events yet.{R}")
+                for ev in events:
+                    print(
+                        f"  {GO}{ev['topic']}{R} "
+                        f"{GY}{ev.get('source', '')}{R} "
+                        f"{str(ev.get('payload', {}))[:80]}"
+                    )
+                stats = bus.stats()
+                print(f"  {BL}Total:{R} {stats['events']} events, {stats['listeners']} listeners")
+            except Exception as e:
+                print(f"  {RE}Events unavailable: {e}{R}")
+            divider()
+
+        elif user == "/schedule":
+            divider()
+            try:
+                sched = resolve("scheduler")
+                jobs = sched.list_jobs()
+                if not jobs:
+                    print(f"  {GY}No scheduled jobs.{R}")
+                for job in jobs:
+                    print(
+                        f"  {GO}{job['name']}{R} id={job['id'][:8]} "
+                        f"runs={job['run_count']} "
+                        f"interval={job.get('interval_s') or '-'}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Scheduler unavailable: {e}{R}")
+            divider()
+
+        elif user == "/workflows":
+            divider()
+            try:
+                wf = resolve("workflow_engine")
+                names = wf.list_workflows()
+                if not names:
+                    print(f"  {GY}No workflows registered.{R}")
+                for name in names:
+                    print(f"  {GO}{name}{R}")
+            except Exception as e:
+                print(f"  {RE}Workflows unavailable: {e}{R}")
+            divider()
+
+        elif user == "/llm":
+            divider()
+            try:
+                port = resolve("llm_port")
+                status = port.status() if hasattr(port, "status") else {}
+                print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
+                print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
+                print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
+                for key in ("ollama", "vllm", "cloud"):
+                    info = status.get(key, {})
+                    if isinstance(info, dict):
+                        avail = info.get("available", info.get("groq", "?"))
+                        print(f"  {GO}{key}{R}: available={avail}")
+            except Exception as e:
+                print(f"  {RE}LLM status unavailable: {e}{R}")
+            divider()
+
+        elif user=="/decisions":
+            divider()
+            try:
+                log = resolve("decision_log")
+                rows = log.read_recent(15)
+                if not rows:
+                    print(f"  {GY}No decision log entries yet.{R}")
+                for row in rows:
+                    print(
+                        f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
+                        f"{row.outcome} — {row.input_summary[:60]}"
+                    )
+            except Exception as e:
+                print(f"  {RE}Decision log unavailable: {e}{R}")
+            divider()
+
             from agents.document import DocumentAgent
             topic = user.split(" ",1)[1].strip()
             spinner.stop()
@@ -477,17 +616,8 @@ def main():
             ingest_file(user[8:].strip())
 
         elif user=="/sources":
-            srcs=list_sources()
+            srcs=memory_list_sources()
             print(f"  {BL}Sources:{R}", ", ".join(srcs) if srcs else f"{GY}None{R}")
-
-        elif user.startswith("/search "):
-            hits=search(user[8:].strip(),top_k=3)
-            divider()
-            if hits:
-                for _,text,src in hits:
-                    print(f"  {BL}[{src}]{R} {text[:200]}")
-            else: print(f"  {GY}No results found{R}")
-            divider()
 
         elif user=="/recall" or user.startswith("/recall "):
             from memory.episodic import get_recent_episodes, search_episodes
@@ -505,29 +635,21 @@ def main():
             else: print(f"  {GY}No episodes found{R}")
             divider()
 
-        elif user=="/sources":
-            srcs=list_sources()
-
-        elif user=="/recall" or user.startswith("/recall "):
-            from memory.episodic import get_recent_episodes, search_episodes
-            query=user.replace("/recall","").strip()
-            divider()
-            episodes=search_episodes(query) if query else get_recent_episodes(5)
-            label=f"Search: {query}" if query else "Recent sessions:"
-            print(f"  {BL}{label}{R}")
-            if episodes:
-                for ep in episodes:
-                    print()
-            else: print(f"  {GY}No episodes found{R}")
-            divider()
-
-
         elif user.startswith("/search "):
-            hits=search(user[8:].strip(),top_k=3); divider()
+            query = user[8:].strip()
+            hits = []
+            try:
+                mem = resolve("memory_port")
+                hits = [(float(s), t, src) for s, t, src in mem.query(query, top_k=3)]
+            except Exception:
+                from kernel.access import memory_query
+                hits = [(float(s), t, src) for s, t, src in memory_query(query, top_k=3)]
+            divider()
             if hits:
-                for _,text,src in hits:
+                for _, text, src in hits:
                     print(f"  {BL}[{src}]{R} {text[:200]}")
-            else: print(f"  {GY}No results found{R}")
+            else:
+                print(f"  {GY}No results found{R}")
             divider()
 
         else:
@@ -591,7 +713,7 @@ def main():
                         else:
                             print(f"  {GY}Cancelled.{R}")
                             continue
-                    from tools.router import run_tool as _run_devops_tool
+                    from kernel.access import run_tool as _run_devops_tool
                     tool_result = _run_devops_tool(tool, args)
                     divider(); ai_header(mode); typewrite(tool_result); divider()
                     add_message("assistant", tool_result)

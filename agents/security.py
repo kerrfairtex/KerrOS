@@ -6,8 +6,7 @@ against local CVE/CWE/CISA KEV knowledge, produces a risk summary.
 import re, os, sys
 sys.path.insert(0, os.path.expanduser("~/offline_ai"))
 from core.complete import generate_complete
-from tools.router import run_tool
-from rag.store import search, search_exact_id
+from kernel.access import run_tool, memory_query, memory_search_exact_id
 from prompts.system import SYSTEM_PROMPT
 
 R="\033[0m"; GO="\033[33m"; GR="\033[92m"; BL="\033[94m"; CY="\033[96m"; GY="\033[90m"; YL="\033[93m"
@@ -39,12 +38,12 @@ class SecurityAgent:
         cve_ids = re.findall(r'CVE-\d{4}-\d+', combined, re.IGNORECASE)
         kb_context = ""
         for cid in set(cve_ids[:3]):
-            hits = search_exact_id(cid)
+            hits = memory_search_exact_id(cid)
             if hits:
                 kb_context += f"\n[{hits[0][2]}] {hits[0][1][:300]}"
 
         if not kb_context:
-            hits = search(f"{target} vulnerability risk", top_k=3)
+            hits = memory_query(f"{target} vulnerability risk", top_k=3)
             if hits:
                 kb_context = "\n".join(f"[{s}] {t[:250]}" for _, t, s in hits)
 

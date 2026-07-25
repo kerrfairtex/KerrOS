@@ -35,11 +35,14 @@ class CompletionRuntimeAPI:
     def _load(self):
 
         try:
-            from core.completion_runtime_kernel import kernel
-            self.kernel = kernel
-
+            from core.completion_runtime_coordinator import coordinator
+            self.kernel = coordinator
         except Exception:
-            self.kernel = None
+            try:
+                from core.completion_runtime_kernel import kernel
+                self.kernel = kernel
+            except Exception:
+                self.kernel = None
 
 
 

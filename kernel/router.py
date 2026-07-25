@@ -5,7 +5,23 @@ from tools import fs_tool
 BASE = os.path.expanduser("~/offline_ai")
 
 def cfg():
-    with open(f"{BASE}/config.json") as f: return json.load(f)
+    from kernel.config import load_config
+    return load_config().values
+
+def _audit_verification(tool: str, subject: str) -> None:
+    import hashlib
+    try:
+        from kernel.decision_log import record_decision
+        digest = hashlib.sha256((subject or "").encode()).hexdigest()[:16]
+        record_decision(
+            "router",
+            "verification",
+            f"{tool}:hash:{digest}",
+            "requested",
+            "",
+        )
+    except Exception:
+        pass
 
 def detect_domain(text):
     lower = text.lower()
@@ -656,6 +672,7 @@ def _verify_identity(name):
     for the platforms that actually matter for verifying a business
     contact, not a comprehensive cross-platform person search.
     """
+    _audit_verification("verify_identity", name)
     import urllib.parse
     q = urllib.parse.quote(name) if name else ""
     if not name:
@@ -898,6 +915,7 @@ def _verify_business(name):
     Philippines-focused (SEC/DTI) since that's the primary jurisdiction,
     with generic fallback search links for other countries.
     """
+    _audit_verification("verify_business", name)
     import urllib.parse
     q = urllib.parse.quote(name) if name else ""
     if not name:
@@ -934,6 +952,7 @@ def _verify_business(name):
     Philippines-focused (SEC/DTI) since that's the primary jurisdiction,
     with generic fallback search links for other countries.
     """
+    _audit_verification("verify_business", name)
     import urllib.parse
     q = urllib.parse.quote(name) if name else ""
     if not name:

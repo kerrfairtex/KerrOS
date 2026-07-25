@@ -83,6 +83,12 @@ def _resolve_path(path: str) -> Path:
 
 
 def _load_safe_commands() -> set[str]:
+    try:
+        from kernel.config import load_config
+        cfg = load_config().values
+        return {str(c).strip() for c in cfg.get("safe_commands", []) if str(c).strip()}
+    except Exception:
+        pass
     config_path = get_workspace() / "config.json"
     if not config_path.exists():
         config_path = DEFAULT_WORKSPACE / "config.json"

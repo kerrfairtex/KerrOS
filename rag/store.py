@@ -2,14 +2,20 @@ import os, json, re, sqlite3
 
 BASE = os.path.expanduser("~/offline_ai")
 
-CONFIG = f"{BASE}/config.json"
-if os.path.exists(CONFIG):
-    with open(CONFIG, "r") as f:
-        CFG = json.load(f)
-else:
-    CFG = {}
+def _load_cfg():
+    try:
+        from kernel.config import load_config
+        return load_config().values, str(load_config().base)
+    except Exception:
+        cfg_path = f"{BASE}/config.json"
+        if os.path.exists(cfg_path):
+            with open(cfg_path) as f:
+                return json.load(f), BASE
+        return {}, BASE
 
-DB_PATH = f"{BASE}/data/rag_store.db"
+_CFG, _BASE = _load_cfg()
+CFG = _CFG
+DB_PATH = os.path.join(_BASE, "data", "rag_store.db")
 
 KNOWLEDGE_ROOT = os.path.expanduser(
     CFG.get("knowledge_root", "~/storage/external-1/offline_ai_knowledge")

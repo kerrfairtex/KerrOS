@@ -6,7 +6,7 @@ the knowledge base for each, synthesizes a combined answer.
 import os, sys
 sys.path.insert(0, os.path.expanduser("~/offline_ai"))
 from core.complete import generate_complete
-from rag.store import search
+from kernel.access import memory_query
 from prompts.system import SYSTEM_PROMPT
 
 R="\033[0m"; GO="\033[33m"; GR="\033[92m"; CY="\033[96m"; GY="\033[90m"; YL="\033[93m"
@@ -47,7 +47,7 @@ class ResearchAgent:
         all_chunks = []
         seen = set()
         for q in sub_queries:
-            hits = search(q, top_k=3)
+            hits = memory_query(q, top_k=3)
             for _, text, src in hits:
                 key = text[:50]
                 if key not in seen:
