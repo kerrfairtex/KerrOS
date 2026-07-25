@@ -1,357 +1,133 @@
+# KerrOS × OmniRoute — Single Source of Truth
+Architecture & Build Roadmap — v0.1, July 25, 2026
+
+## 0. Provenance — public vs. private
 
-Educational Purpose
+| 🌐 Public (independently verifiable) | 🔒 Private (your project state only) |
+|---|---|
+| OmniRoute architecture, features, security model — github.com/diegosouzapw/OmniRoute, release v3.8.49, MIT, ⭐26.6k | KerrOS's target AIOS/kernel architecture — from your uploaded README.md |
+| | KerrOS's actual current build state (RAG, agents, scope_gate, DevOps pipeline) — from prior session notes, not yet reflected in the public README |
+
+Left column is checkable against the repo. Right column is accurate only as far as your own build log is — this doc doesn't independently verify KerrOS's code, it reconciles two different framings of the same project that you've given me at different times.
 
-This project is intended solely for educational, research, and software engineering purposes. It exists to explore AI operating system architecture, systems design, automation, and related technologies in a controlled and ethical manner. It is not intended to facilitate unauthorized, harmful, or illegal activities.
-
-«Warning: Users are responsible for complying with all applicable laws, regulations, and organizational policies. Any misuse of this project is the sole responsibility of the user. The authors and contributors assume no liability for improper or unauthorized use.»
-
-
-KerrOS
-
-«A modular AI Operating System (AIOS) built around a deterministic kernel, capability-driven architecture, and local-first intelligence.»
-
----
-
-Vision
-
-KerrOS is an AI Operating System designed to manage intelligent components as operating-system resources rather than isolated application features.
-
-Instead of embedding orchestration logic into individual agents or tools, KerrOS provides a central kernel responsible for lifecycle management, capability discovery, dependency injection, scheduling, security, and state management.
-
-The objective is to create an extensible platform where agents, tools, workflows, providers, models, and knowledge systems can evolve independently while remaining governed by a stable architectural foundation.
-
----
-
-Why KerrOS?
-
-Modern AI systems often accumulate tightly coupled components:
-
-- Agents instantiate tools directly.
-- Providers are hardcoded.
-- Routing logic becomes increasingly complex.
-- Documentation diverges from implementation.
-- Features grow faster than architecture.
-
-KerrOS addresses these problems by treating AI capabilities as managed system resources governed by a kernel rather than application logic.
-
-The project prioritizes long-term maintainability over short-term feature velocity.
-
----
-
-Design Goals
-
-KerrOS is designed to provide:
-
-- Deterministic architecture
-- Stable kernel interfaces
-- Capability discovery
-- Modular services
-- Local-first deployment
-- Multi-provider AI support
-- Knowledge management
-- Long-term memory
-- Event-driven orchestration
-- Production-grade engineering
-
----
-
-Core Principles
-
-Every architectural decision should reinforce these principles.
-
-Principle| Description
-Kernel First| The kernel owns lifecycle, orchestration, permissions, and system state.
-Capability Driven| Every component is a registered capability with explicit metadata.
-Single Source of Truth| Machine-readable manifests generate documentation and discovery.
-Loose Coupling| Components communicate through services and events rather than direct dependencies.
-High Cohesion| Every module has one well-defined responsibility.
-Deterministic Behavior| Configuration and metadata drive behavior instead of implicit logic.
-Least Privilege| Components receive only the permissions they require.
-Documentation as Code| Documentation is generated from structured metadata whenever possible.
-
----
-
-High-Level Architecture
-
-                   User Interfaces
-          CLI • API • Web • Automation
-                    │
-                    ▼
-               KerrOS Kernel
-                    │
-    ┌───────────────┼────────────────┐
-    │               │                │
-    ▼               ▼                ▼
-Registry      Service Manager    Event Bus
-    │               │                │
-    ├───────┬───────┴────────┬───────┤
-    ▼       ▼                ▼       ▼
- Agents   Tools         Workflows  Providers
-    │
-    ▼
-Knowledge • Memory • Models • Storage
-
-The kernel is the only component responsible for coordinating system resources.
-
-Everything else is managed through explicit interfaces.
-
----
-
-System Components
-
-Kernel
-
-The kernel provides:
-
-- Boot sequence
-- Lifecycle management
-- Dependency injection
-- Configuration
-- Scheduling
-- State management
-- Security enforcement
-- Service orchestration
-
----
-
-Capability Registry
-
-The registry is the authoritative source for every system capability.
-
-It describes:
-
-- Agents
-- Tools
-- Providers
-- Models
-- Workflows
-- Services
-- Policies
-- Permissions
-
----
-
-Service Manager
-
-Responsible for:
-
-- Startup
-- Shutdown
-- Restart
-- Health monitoring
-- Dependency ordering
-- Recovery
-
----
-
-Event Bus
-
-Provides asynchronous communication between system components through typed events.
-
-This minimizes coupling while improving extensibility and observability.
-
----
-
-Knowledge System
-
-Supports structured and unstructured knowledge sources including documentation, datasets, security references, and retrieval pipelines.
-
----
-
-Memory System
-
-Supports:
-
-- Working memory
-- Conversation memory
-- Long-term memory
-- Semantic memory
-- Persistent storage
-
----
-
-Repository Structure
-
-core/           Kernel and runtime
-agents/         Autonomous agents
-tools/          System capabilities
-providers/      AI model providers
-registry/       Capability manifests
-knowledge/      Knowledge services
-memory/         Memory subsystem
-workflows/      Execution workflows
-services/       Runtime services
-skills/         Human documentation
-docs/           Architecture and ADRs
-tests/          Automated tests
-scripts/        Build and maintenance tools
-
----
-
-Project Status
-
-KerrOS is currently in its foundational architecture phase.
-
-Phase| Status
-Kernel Contract| In Design
-Capability Registry| Planned
-Service Manager| Planned
-Event Bus| Planned
-Permission System| Planned
-Storage Architecture| Planned
-Runtime Self-Healing| Planned
-
-Expect architectural changes while the kernel foundation is established.
-
----
-
-Roadmap
-
-P0 — Kernel Foundation
-
-- Kernel contract
-- Boot lifecycle
-- Dependency injection
-- Configuration system
-
-P1 — Capability Registry
-
-- Registry schema
-- Validation
-- Discovery
-- Manifest generation
-
-P2 — Runtime
-
-- "kerrd"
-- Service manager
-- IPC
-- Health monitoring
-
-P3 — Event Infrastructure
-
-- Event bus
-- Scheduler
-- Workflow execution
-
-P4 — Security
-
-- Capability permissions
-- Policy engine
-- Access control
-
-P5 — Storage
-
-- Memory hierarchy
-- Vector indexing
-- Knowledge vault
-- Persistent storage
-
-P6 — Autonomous Runtime
-
-- Self-healing
-- Monitoring
-- Telemetry
-- Recovery
-
----
-
-Engineering Standards
-
-KerrOS follows a system-engineering approach.
-
-Every contribution should preserve:
-
-- Stable interfaces
-- Deterministic architecture
-- Clear module boundaries
-- Loose coupling
-- High cohesion
-- Backward-compatible kernel evolution
-- Architecture Decision Records (ADRs) for significant design changes
-
----
-
-Documentation
-
-The repository separates concerns:
-
-- README.md — Project overview
-- ARCHITECTURE.md — System architecture
-- ROADMAP.md — Development milestones
-- CONTRIBUTING.md — Contribution workflow
-- SECURITY.md — Security model
-- docs/adr/ — Architecture Decision Records
-
-Documentation should evolve alongside implementation and, where practical, be generated from registry metadata.
-
----
-
-Contributing
-
-Contributors are encouraged to understand the architectural principles before implementing new features.
-
-Major design changes should be documented through an Architecture Decision Record (ADR) and align with the kernel-first architecture.
-
----
-
-License
-
-License information will be added as the project approaches its first stable release.
-
----
-
-«Current Status: KerrOS is an experimental AI Operating System under active architectural development. Interfaces, schemas, and internal components may change until the kernel contract reaches stability.»
-
-## Grounded facts (verified just now)
-
-**OmniRoute** — real project, MIT-licensed, on GitHub (canonical repo: `diegosouzapw/OmniRoute`, several forks exist since it's open-source). Current release `v3.8.49`. Key facts, not assumptions:
-
-- **Stack: 100% TypeScript / Node.js**, not Python. Deployed as npm global install, Docker (multi-arch AMD64+ARM64), Electron desktop, or Termux (Android, no root). This is the single most important integration fact — it does **not** share a runtime with KerrOS.
-- **What it is architecturally**: an OpenAI-compatible HTTP gateway (`/v1/chat/completions` etc.) that sits in front of ~290 LLM providers, with a "combo" abstraction — chains of models routed via 19 strategies (priority, cost-optimized, headroom, fusion, pipeline, etc.), 4-tier fallback cascade (Subscription → API key → Cheap → Free).
-- **Resilience**: 3 independent layers — provider-level circuit breaker, per-key connection cooldown, per-model lockout. This is a more mature version of what KerrOS's `multi_api.py` fallback chain does manually.
-- **Compression**: a 12-engine stacked pipeline (RTK, Caveman, LLMLingua-2/MobileBERT ONNX, etc.) claiming ~78–95% token savings on tool-heavy sessions, code/JSON always preserved byte-exact.
-- **Security surface** (this matters for your "find vulnerabilities" goal): AES-256-GCM encrypted key storage, prompt-injection guardrails with a red-team eval suite, PII redaction, loopback-only process-spawning routes, and — notably — a **transparent MITM/TPROXY decrypt feature** (per-SNI CA + trust-store installer) for capturing CLI traffic that ignores proxy env vars. That's a legitimate debugging feature but also the kind of component you'd want to audit hardest if you ever expose OmniRoute beyond localhost, since a local MITM CA is a high-value target if compromised.
-- **Extensibility**: exposes itself as an MCP server (104 tools, 3 transports, 31 scopes) and an A2A JSON-RPC agent — meaning other agents (including KerrOS) can drive OmniRoute programmatically, not just call it as an LLM endpoint.
-- **Persistence**: SQLite (`better-sqlite3`, with pure-JS/WASM fallback) for local audit trail, memory (FTS5 + vector), usage/cost logs.
-
-Source: [github.com/diegosouzapw/OmniRoute](https://github.com/diegosouzapw/OmniRoute) (README, `docs/` tree, ⭐26.6k, 500+ contributors, forked from `9router` + a TS port of Go's `CLIProxyAPI`).
-
-## KerrOS architecture (from what you've already built)
-
-Python/Termux, Hexagonal Ports & Adapters (`LLMPort` → `multi_api.py`, `MemoryPort` → RAG store, `ToolPort` → `router.py`), 238K-chunk RAG, ReactAgent ecosystem, scope-gated tool dispatch, event-sourced audit log for offensive tools — this is architecturally *compatible* with OmniRoute in spirit (both converged independently on gateway/adapter + fallback-chain + audit-log patterns) but built in a different language on a different device class.
-
-## Integration analysis — where the seam actually is
-
-The clean integration point is your **`LLMPort`**, not a rewrite. `LLMPort` already abstracts "how KerrOS talks to models" away from the rest of the kernel. Today it wraps `multi_api.py` (Groq, NVIDIA NIM, 8-API fallback). OmniRoute's OpenAI-compatible endpoint can become **one more adapter behind that same port** — or eventually *replace* `multi_api.py`'s fallback logic entirely, since OmniRoute's routing/circuit-breaker/compression stack is strictly more capable than a hand-rolled fallback chain.
-
-Two integration modes, not mutually exclusive:
-1. **KerrOS as OmniRoute client** — phone-side KerrOS (Termux, RAM-constrained) sends chat completions to a server-hosted OmniRoute at `http://<droplet-ip>:20128/v1`, using your existing `LLMPort` interface, just pointed at a new base URL/adapter instead of direct provider APIs.
-2. **KerrOS as OmniRoute-driven agent** — since OmniRoute exposes MCP/A2A, a KerrOS agent (e.g. your Research or Planner agent) can call OmniRoute's own management tools (combo switching, cost checks, provider health) as *tools*, not just as an inference backend. This turns OmniRoute into infrastructure KerrOS actively manages, not just calls.
-
-This also directly resolves your stated long-term infra goal — moving off phone-RAM constraints onto a rented server while staying zero-cost — since OmniRoute's whole reason to exist is squeezing free/cheap tiers with fallback, which is exactly your Phase 2/3 gating logic already.
-
-## Roadmap: foundation → full stack
-
-**Phase 0 — Foundation (now, no cost)**
-- Re-provision the DigitalOcean droplet (Docker + Ubuntu 24.04) you'd already decided on but paused.
-- Deploy OmniRoute via Docker (`docker run … diegosouzapw/omniroute`), bind to `127.0.0.1` initially, front it with a reverse proxy (Caddy, per their own guide) once you need remote access — don't expose the raw port publicly given the MITM/admin surface.
-- Connect 2–3 free providers first (Kiro, OpenCode Free, Pollinations) to validate `auto` routing works before touching KerrOS at all.
-
-**Phase 1 — Adapter integration**
-- Add a new adapter under `LLMPort` (e.g. `omniroute_adapter.py`) implementing the same interface `multi_api.py` does, pointed at your droplet's `/v1`.
-- Keep `multi_api.py` as a local fallback-of-last-resort (offline mode still needs to work without the droplet).
-- Write the ADR for this decision — it's exactly the kind of expensive-to-reverse call your ADR process is meant for (do you route through OmniRoute always, or only online-mode?).
-
-**Phase 2 — Fallback consolidation (trigger: first paying use of the server, per your existing gating)**
-- Let OmniRoute's 4-tier cascade and circuit breakers subsume what `multi_api.py`'s dead-API caching/retry logic does today — reduces code you maintain.
-- Wire OmniRoute's cost/usage headers (`X-OmniRoute-*`) into KerrOS's existing event-sourced audit log so LLM spend joins your scope_gate decision log as one audit trail.
-
-**Phase 3 — Agent-level control (trigger: JOTHAM revenue funds a GPU, per your existing roadmap)**
-- Give a KerrOS agent MCP access to OmniRoute itself (`claude mcp add-server omniroute --type http --url .../api/mcp/stream` pattern, but from KerrOS's own agent framework) so Planner/Reflection agents can adjust combos, check quota, or swap routing strategy autonomously instead of you doing it by hand.
-- At this point OmniRoute effectively becomes KerrOS's remote inference organ, managed the same way `scope_gate.py` manages tool dispatch.
-
-**Security hardening (parallel track, since you flagged vulnerability-finding as a goal)**
-- Audit the MITM/TPROXY feature specifically before ever binding OmniRoute beyond loopback — a locally-trusted CA is the highest-value target in that stack.
-- Verify `AGE-256-GCM`-at-rest key storage config matches your threat model (Termux/Android already has weaker at-rest guarantees than a hardened server).
-- Run their own `promptfoo`/red-team eval suite for prompt-injection guardrails against your own RAG-injected prompts, since KerrOS auto-injects RAG context every turn — a gap in *your* injection surface won't be caught by *their* eval unless you add your own cases.
+## 1. The one decision to make before P0
+
+Your README describes a **general-purpose kernel**: it owns lifecycle management, capability discovery, dependency injection, scheduling, security enforcement, state management, and service orchestration — plus a separate Capability Registry, Service Manager, Event Bus, and Policy Engine.
+
+That's materially bigger than the kernel you already ADR'd. That decision — logged as resolved — explicitly **rejected** a full IPC actor-mesh orchestrator as premature, and defined "kernel" narrowly as `router.py` + 3 Ports (LLM/Memory/Tool) + a minimal watchdog + the scope_gate decision log, with agents staying in userspace and calling the kernel rather than the kernel owning them.
+
+Two different architectures, not two names for one thing. Building toward the README's version without revisiting that ADR is exactly the undocumented drift ADRs exist to catch. Two honest paths:
+
+- **A — Grow into it.** Keep the narrow kernel now (it's sized right for 3.7GB RAM / $0 budget). Treat P0–P6 as target-state you earn into as your existing Phase 2/3 infra triggers hit (rented server, GPU funded) — same milestone-gating you already use. Log an ADR now saying "P0–P6 is target-state, gated the same way as the existing roadmap."
+- **B — Commit now.** If the README is a real decision to rebuild as a formal AIOS starting immediately, that's legitimate — but it reverses the earlier ADR's reasoning, and the reversal deserves its own ADR entry, not a silent supersede.
+
+Everything below works under either path — only the *timing* changes. Given your zero-cost/phone-RAM constraints haven't changed, A is the more grounded default, but that's yours to log, not mine to pick.
+
+## 2. Principle-by-principle reality check
+
+Your README's 8 Core Principles, checked against what's actually built (all 🔒, internal state):
+
+| Principle | Status | Evidence |
+|---|---|---|
+| Least Privilege | ✅ Strong | `scope_gate.py` fail-closed blocking, explicit-command gating, time-limited arm/disarm on deploy tools |
+| Loose Coupling | 🟡 Partial | Ports pattern (LLM/Memory/Tool) achieves this for 3 abstracted surfaces, not system-wide |
+| High Cohesion | 🟡 Likely | Single-responsibility agent split (Knowledge/Security/Code/Research/Planner/Reflection/Document); unverified at code level |
+| Kernel First | 🟡 Partial | True for security/dispatch decisions; explicitly *not* true for agent orchestration — agents stay userspace by design |
+| Capability Driven | ❌ Gap | No formal manifest/metadata per component — `router.py` dispatch isn't a capability registry |
+| Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good), but nothing generates from structured metadata |
+| Deterministic Behavior (config-driven) | ❌ Gap | No centralized config system mentioned; behavior lives in code (`detect_tool()`, explicit-command checks) |
+| Documentation as Code | ❌ Gap | Same root cause — no registry to generate from |
+
+Net: security posture and module boundaries are ahead of what the README's status table implies; the metadata/registry/config layer is behind it. That means **P1 (Capability Registry) is the actual bottleneck, not P0** — P0's substance already mostly exists.
+
+## 3. Unified repo structure
+
+Mapping the README's proposed layout onto what's already built, so nothing gets orphaned:
+
+| README dir | Maps to (already built) | Notes |
+|---|---|---|
+| `core/` | `cli/chat.py`, `tools/router.py`, `core/context.py` | canonical active path; `agents/supervisor/` is confirmed dead code, don't migrate it |
+| `agents/` | Knowledge, Security, Code, Research, Planner, Reflection, Document agents | ReactAgent pattern, from scratch |
+| `tools/` | `tools/router.py` dispatch, `tools/scope_gate.py`, `tools/code_saver.py`, 8 DevOps tools | |
+| `providers/` | `multi_api.py` (Groq primary, NVIDIA NIM, 8-API fallback) | **OmniRoute becomes a new entry here** — §5, P1 |
+| `registry/` | — doesn't exist yet | **this is P1**, the real gap |
+| `knowledge/` | RAG store: 238K chunks, 13 categories (NIST/CWE/CVE/Sigma/YARA/CISA KEV) | |
+| `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation | |
+| `workflows/` | implicit in agent orchestration, not formalized | overlaps P3 gap |
+| `services/` | `run_daemon.py` + watchdog | |
+| `skills/` | — | human-facing docs, if any |
+| `docs/`, `docs/adr/` | 3 ADRs (planned/backfilled): Groq-primary fallback, 120-word/30-overlap RAG chunking, scope_gate fail-closed+arm/disarm | |
+
+## 4. OmniRoute — verified, condensed (🌐)
+
+- Node.js/TypeScript, MIT license, self-hosted, OpenAI-compatible `/v1` endpoint, default port `20128`
+- 290 providers, 90+ free tiers (40+ free forever), 19 routing strategies, 4-tier fallback (Subscription → API key → Cheap → Free)
+- 3-layer resilience: provider circuit breaker, per-key cooldown, per-model lockout
+- 12-engine compression stack (RTK, Caveman, LLMLingua-2, etc.), ~78–95% token savings on tool-heavy sessions, code/JSON always byte-preserved
+- MCP server (104 tools, 31 scopes) + A2A JSON-RPC agent protocol — externally controllable, not just callable
+- Security: AES-256-GCM key encryption at rest, prompt-injection guard with a red-team eval suite, opt-in PII redaction, loopback-only process routes, and a **MITM/TPROXY decrypt feature with a locally-trusted CA** — flagged as the top audit item in §6
+- Deploys via Docker (AMD64+ARM64), npm, Electron, or Termux itself
+
+## 5. Roadmap: P0 → P6
+
+### P0 — Kernel Foundation
+**Status: mostly done, under the ADR's narrower scope.**
+- [x] Kernel contract exists de facto: `router.py` + 3 Ports + watchdog + scope_gate log
+- [ ] Write the ADR that makes this contract explicit as your P0 deliverable — don't treat P0 as not-started
+- [ ] Add a real config module (`core/config.py`) to centralize env/secrets/flags — the one genuine P0 gap
+
+### P1 — Capability Registry
+**Status: the actual bottleneck. Start here, not P0.**
+- [ ] Define a minimal manifest schema (YAML/JSON): name, version, required permissions, dependencies
+- [ ] Write manifests for what already exists first — 7 agents, 8 DevOps tools, LLM providers — before writing new registry code
+- [ ] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
+
+### P2 — Runtime (`kerrd`, service manager, IPC, health)
+**Status: partial.** `run_daemon.py` + watchdog exists; Code Agent → own subprocess + watchdog is already active Phase-1 work.
+- [ ] Generalize the Code-Agent-subprocess pattern into a reusable service-manager primitive instead of one-off code
+- [ ] OmniRoute touchpoint: once deployed, health-check the droplet's `/v1` the same way you'd health-check any managed service — the most natural integration point in the whole roadmap
+
+### P3 — Event Infrastructure
+**Status: narrow, not general.** Event sourcing exists, but scoped only to scope_gate/offensive-tool decisions + identity-verification audit trail.
+- [ ] ADR: generalize the existing audit log into a real pub/sub bus, or keep it audit-only and add a separate lightweight mechanism for non-security events — don't let audit-log scope silently creep
+- [ ] OmniRoute touchpoint: once this exists, its `X-OmniRoute-*` cost/usage headers become event sources; until then, log them straight into the existing scope_gate-style log
+
+### P4 — Security
+**Status: ahead of the README's own status table.** `scope_gate.py` is already a working fail-closed policy engine in substance.
+- [ ] Formalize its rules as declarative data (tool → permission level → confirmation required) instead of inline logic — satisfies "Policy Engine" without a rewrite
+- [ ] Full audit checklist in §6
+
+### P5 — Storage
+**Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, episodic→semantic consolidation.
+- [ ] Confirm whether `store.py` scoring is lexical (phrase-match) or true vector search — the README specifically calls for "vector indexing," worth checking this isn't overstated
+- [ ] Keep OmniRoute's own FTS5+vector memory (its routing/session state) separate from your RAG — different jobs, don't merge
+
+### P6 — Autonomous Runtime
+**Status: earliest-stage, correctly sequenced last.**
+- [ ] Reflection Agent (episode review, lesson logging) is your real seed here
+- [ ] When you get here, imitate OmniRoute's 3-layer resilience model (circuit breaker / cooldown / lockout) rather than reinventing it — it's a working reference you already have access to
+
+## 6. Security audit checklist
+
+**OmniRoute side (once integrated):**
+- [ ] Never bind OmniRoute beyond `127.0.0.1` without a reverse proxy in front — the dashboard and the MITM/TPROXY CA installer are the highest-value targets if this ever faces the public internet
+- [ ] Verify AES-256-GCM key storage config actually matches your threat model — Termux/Android has weaker at-rest guarantees than the droplet will
+- [ ] Run their `promptfoo` red-team suite against your *own* RAG-injected prompts specifically — their eval suite tests their injection surface, not yours
+
+**KerrOS side (independent of OmniRoute):**
+- [ ] `scope_gate.py`'s fail-closed default is good; confirm the arm/disarm window for `DEPLOY_TOOLS` actually expires server-side, not just client-side
+- [ ] `verify_identity`/`verify_business` tools handle third-party data even if publicly-sourced — worth an explicit retention/logging policy now that the event-sourced audit trail records lookups
+- [ ] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) means one compromised credential has a wide blast radius — confirm each token is scoped least-privilege, not one shared key
+
+## 7. Immediate next actions
+1. Decide A vs. B from §1, log it as an ADR
+2. Write the P0 "kernel contract" ADR — documents what already exists, near-zero new work
+3. Start P1 manifests for what's already built — highest-leverage gap
+4. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
+5. Build `omniroute_adapter.py` under `LLMPort` once the droplet is stable
+
+## 8. Open decisions log — don't resolve these silently
+- Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1
+- Event bus: generalize the audit log vs. keep it audit-only — P3
+- Vector vs. lexical RAG scoring — P5
+- LGU/government audit-grade vs. general-purpose scoping — carried over from earlier notes, still unresolved
