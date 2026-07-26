@@ -7,8 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kernel.access import detect_tool, get_dispatch_port, memory_query, run_tool
+from kernel.access import detect_tool, get_dispatch_port, memory_query, memory_upsert, run_tool
 from kernel.boot import boot, shutdown
+from rag import store as rag_store
 from runtime.ipc import JsonLineClient, spawn_worker
 
 
@@ -55,6 +56,23 @@ class PortAccessTest(unittest.TestCase):
     def test_memory_query_returns_list(self):
         hits = memory_query("security", top_k=2)
         self.assertIsInstance(hits, list)
+
+    def test_memory_access_facade_matches_store(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            old_db_path = rag_store.DB_PATH
+            rag_store.DB_PATH = str(Path(tmp) / "rag_store.db")
+            try:
+                rag_store._ensure_schema()
+                memory_upsert(
+                    "Python logging hardening guidance for secure audit trails and incident response.",
+                    "NIST_logging",
+                )
+                self.assertEqual(
+                    memory_query("logging audit trails", top_k=2),
+                    rag_store.search("logging audit trails", top_k=2),
+                )
+            finally:
+                rag_store.DB_PATH = old_db_path
 
 
 class CompletionCoordinatorTest(unittest.TestCase):
