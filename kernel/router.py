@@ -275,7 +275,6 @@ def run_tool(tool, args):
         "fs_move":_fs_move,
         "verify_identity":_verify_identity,
         "verify_business":_verify_business,
-        "verify_business":_verify_business,
         "psyop_guide":lambda _:_psyop_guide(),
         "investigation_template":lambda _:_investigation_template(),
         # Defensive/Diagnostic
@@ -907,43 +906,6 @@ def _self_explain(rel_path):
         return f"__EXPLAIN_REQUEST__{p}__SPLIT__{code}"
     except Exception as e:
         return f"[Error: {e}]"
-
-def _verify_business(name):
-    """
-    Generates links to check if a company is legally registered —
-    business registry, domain WHOIS, and official verification sources.
-    Philippines-focused (SEC/DTI) since that's the primary jurisdiction,
-    with generic fallback search links for other countries.
-    """
-    _audit_verification("verify_business", name)
-    import urllib.parse
-    q = urllib.parse.quote(name) if name else ""
-    if not name:
-        return "[verify_business] Usage: 'verify business Acme Corp' or check company registration"
-
-    out = [f"=== BUSINESS REGISTRATION VERIFICATION: {name} ==="]
-
-    out.append("\n[Philippines — Official Registries]")
-    out.append(f"  SEC Company Registration: https://crs.sec.gov.ph/CRS/#!/company-search (search manually: \"{name}\")")
-    out.append(f"  DTI Business Name Search: https://bnrs.dti.gov.ph/ (search manually: \"{name}\")")
-    out.append(f"  BIR TIN Verification: https://www.bir.gov.ph/index.php/eservices.html (requires business details)")
-
-    out.append("\n[Domain / Online Presence]")
-    out.append(f"  WHOIS lookup: use 'whois <their-domain.com>' command if they gave you a website")
-    out.append(f"  Google (registration/complaints): https://www.google.com/search?q=%22{q}%22+SEC+OR+DTI+OR+registered")
-
-    out.append("\n[Other Countries — Generic]")
-    out.append(f"  US: https://www.sec.gov/cgi-bin/browse-edgar (SEC EDGAR company search)")
-    out.append(f"  UK: https://find-and-update.company-information.service.gov.uk/ (Companies House)")
-    out.append(f"  Generic search: https://www.google.com/search?q=%22{q}%22+company+registration+number")
-
-    out.append("\n[Red Flags to Check]")
-    out.append("  [ ] Domain registered very recently despite claiming to be established? (use whois)")
-    out.append("  [ ] No entry found in SEC/DTI despite claiming to be a registered company?")
-    out.append("  [ ] Business address doesn't exist or matches a residential address only?")
-    out.append("  [ ] Payment requested via personal account instead of business account?")
-
-    return "\n".join(out)
 
 def _verify_business(name):
     """
