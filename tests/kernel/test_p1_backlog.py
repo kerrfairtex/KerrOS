@@ -1,13 +1,12 @@
 """P1 backlog tests: decision log, adapters, watchdog."""
 
-from __future__ import annotations
-
 import os
 import multiprocessing
 import subprocess
 import sys
 import tempfile
 import unittest
+from multiprocessing import Queue
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
@@ -21,7 +20,7 @@ def _decision_log_process_writer(
     db_path: str,
     start: int,
     count: int,
-    error_queue: "multiprocessing.queues.Queue[str]",
+    error_queue: Queue,
 ) -> None:
     try:
         log = DecisionLog(Path(db_path))
