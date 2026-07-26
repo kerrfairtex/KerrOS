@@ -15,7 +15,12 @@ from adapters.tools.router_adapter import RouterAdapter
 from tools.scope_gate import check, arm_deploy, disarm_deploy
 
 
-def _decision_log_process_writer(db_path: str, start: int, count: int, errors) -> None:
+def _decision_log_process_writer(
+    db_path: str,
+    start: int,
+    count: int,
+    errors: "multiprocessing.queues.Queue",
+) -> None:
     try:
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
@@ -58,7 +63,10 @@ class DecisionLogTest(unittest.TestCase):
         p2.join()
         self.assertEqual(p1.exitcode, 0)
         self.assertEqual(p2.exitcode, 0)
-        self.assertTrue(errors.empty(), "process write errors occurred")
+        proc_errors = []
+        while not errors.empty():
+            proc_errors.append(errors.get())
+        self.assertEqual(proc_errors, [], f"process write errors occurred: {proc_errors}")
         self.assertEqual(self.log.count(), per_process * 2)
 
 
