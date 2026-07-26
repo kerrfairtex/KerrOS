@@ -130,4 +130,4 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1
 - Event bus: generalize the audit log vs. keep it audit-only — P3
 - Vector vs. lexical RAG scoring — P5
-- LGU/government audit-grade vs. general-purpose scoping — carried over from earlier notes, still unresolved
+- ~~LGU/government audit-grade vs. general-purpose scoping~~ — **resolved (KOS-013):** general-purpose scope adopted, see [`docs/decisions/scope-lgu-vs-general.md`](docs/decisions/scope-lgu-vs-general.md)

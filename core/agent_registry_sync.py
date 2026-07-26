@@ -26,7 +26,6 @@ class AgentRegistrySync:
         self.discovery = None
         self.registry = None
         self.lifecycle = None
-        self.gateway = None
 
         self._load()
 
@@ -51,13 +50,6 @@ class AgentRegistrySync:
         try:
             from core.agent_lifecycle_manager import lifecycle
             self.lifecycle = lifecycle
-        except Exception:
-            pass
-
-
-        try:
-            from core.agent_gateway import gateway
-            self.gateway = gateway
         except Exception:
             pass
 
@@ -131,14 +123,6 @@ class AgentRegistrySync:
 
                 self.lifecycle.register(
                     name
-                )
-
-
-            if self.gateway:
-
-                self.gateway.register(
-                    name,
-                    capabilities=skills
                 )
 
 
