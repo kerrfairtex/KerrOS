@@ -33,6 +33,10 @@ from kernel.contract import (
     SERVICE_ROUTER,
     SERVICE_SERVICE_MANAGER,
     SERVICE_TOOL_PORT,
+    SERVICE_STORAGE_PORT,
+    SERVICE_DATABASE_PORT,
+    SERVICE_EMBEDDING_PORT,
+    SERVICE_SEARCH_PORT,
 )
 
 
@@ -164,10 +168,35 @@ class Kernel:
         from adapters.tools.claw_adapter import ClawToolAdapter
         from adapters.tools.router_adapter import RouterAdapter
         from adapters.memory.rag_store_adapter import RagStoreAdapter
+        from adapters.storage.local_fs_adapter import LocalFSAdapter
+        from adapters.database.sqlite_adapter import SQLiteAdapter
+        from adapters.embeddings.sentence_transformers_adapter import SentenceTransformersAdapter
+        from adapters.search.duckduckgo_adapter import DuckDuckGoAdapter
 
         self.container.register(SERVICE_TOOL_PORT, ClawToolAdapter, singleton=True)
         self.container.register(SERVICE_DISPATCH_PORT, RouterAdapter, singleton=True)
         self.container.register(SERVICE_MEMORY_PORT, RagStoreAdapter, singleton=True)
+
+        self.container.register(
+            SERVICE_STORAGE_PORT,
+            lambda: LocalFSAdapter(base_dir=self.config.base / "data" / "storage" if self.config else None),
+            singleton=True,
+        )
+        self.container.register(
+            SERVICE_DATABASE_PORT,
+            lambda: SQLiteAdapter(db_path=self.config.base / "data" / "sqlite_db.sqlite" if self.config else None),
+            singleton=True,
+        )
+        self.container.register(
+            SERVICE_EMBEDDING_PORT,
+            lambda: SentenceTransformersAdapter(),
+            singleton=True,
+        )
+        self.container.register(
+            SERVICE_SEARCH_PORT,
+            lambda: DuckDuckGoAdapter(),
+            singleton=True,
+        )
 
         def _llm_port_factory():
             from adapters.llm.composite_adapter import CompositeLLMAdapter
