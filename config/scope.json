@@ -15,5 +15,5 @@
     "10.0.0.0/8"
   ],
   "require_explicit_authorization": true,
-  "deploy_armed_until": 1784409508.3975177
+  "deploy_armed_until": 0
 }
