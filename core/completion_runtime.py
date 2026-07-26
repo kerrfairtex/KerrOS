@@ -30,26 +30,11 @@ class CompletionRuntime:
 
     def __init__(self):
 
-        self.orchestrator = None
-
         self.metrics = {
             "requests": 0,
             "success": 0,
             "failed": 0,
         }
-
-        self._load()
-
-
-    def _load(self):
-
-        try:
-            from core.completion_orchestrator import orchestrator
-            self.orchestrator = orchestrator
-
-        except Exception:
-            self.orchestrator = None
-
 
 
     def run(
@@ -69,41 +54,16 @@ class CompletionRuntime:
         self.metrics["requests"] += 1
 
 
-        runtime_metadata = {
-            "request_id": request_id,
-            "created": started,
-        }
-
-
-        if metadata:
-            runtime_metadata.update(metadata)
-
-
-
         try:
 
-            if self.orchestrator:
-
-                result = self.orchestrator.execute(
-                    engine=engine,
-                    user_message=user_message,
+            result = {
+                "response": engine.generate(
+                    user_message,
                     system=system,
                     history=history,
                     stream=stream,
-                    metadata=runtime_metadata,
                 )
-
-            else:
-
-                result = {
-                    "response": engine.generate(
-                        user_message,
-                        system=system,
-                        history=history,
-                        stream=stream,
-                    )
-                }
-
+            }
 
             result["request_id"] = request_id
             result["runtime"] = round(
@@ -137,9 +97,6 @@ class CompletionRuntime:
         return {
             "status": "online",
             "metrics": self.metrics,
-            "orchestrator": bool(
-                self.orchestrator
-            )
         }
 
 
