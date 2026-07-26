@@ -20,15 +20,19 @@ ACCEPTANCE CRITERIA (Phase 1):
 
 import sys
 import os
-from typing import Optional, List
+from typing import Any, Optional, List
 
-# Ensure core/ is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+# Ensure the project root is importable so sibling packages like core/ and
+# ports/ resolve consistently when this adapter is imported directly.
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from core.multi_api import MultiAPIEngine
+from ports.llm_port import LLMPort
 
 
-class MultiAPIAdapter:
+class MultiAPIAdapter(LLMPort):
     """
     LLMPort implementation wrapping core/multi_api.py.
     
@@ -54,7 +58,7 @@ class MultiAPIAdapter:
         system: Optional[str] = None,
         history: Optional[List[dict]] = None,
         max_tokens: int = 1024,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """
         Generate a completion via multi_api.py's fallback chain.

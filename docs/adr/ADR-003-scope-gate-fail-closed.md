@@ -1,6 +1,6 @@
 # ADR-003: scope_gate — Fail-Closed Default with Time-Limited Arm/Disarm
 
-**Status:** DRAFT — built from your own account of `tools/scope_gate.py`. Verify `arm_deploy()`'s exact default window/behavior against the live code before committing, since the specifics (default minutes, confirmation wording) aren't confirmed here.
+**Status:** Accepted — verified against `tools/scope_gate.py`: `arm_deploy()`'s default window is 5 minutes, matching the CLI's `/scope arm-deploy` and inline deploy-confirmation prompts in `cli/chat.py`. All scope_gate decision points (`scope_check`, `deploy_check`, `deploy_arm`, `scope_add`, `scope_remove`) record every outcome — allow and deny alike — to `kernel/decision_log.py` (KOS-009).
 
 **Date:** 2026-07-20
 

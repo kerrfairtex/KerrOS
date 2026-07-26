@@ -14,9 +14,8 @@ from rag import store as rag_store
 class RagStoreAdapter:
     """MemoryPort implementation over the existing RAG keyword store."""
 
-    def query(self, text: str, *, top_k: int = 5) -> list[tuple[str, str, str]]:
-        hits = rag_store.search(text, top_k=top_k)
-        return [(str(score), chunk, source) for score, chunk, source in hits]
+    def query(self, text: str, *, top_k: int = 5) -> list[tuple[int, str, str]]:
+        return rag_store.search(text, top_k=top_k)
 
     def upsert(
         self,
@@ -31,16 +30,13 @@ class RagStoreAdapter:
 
     def search_by_category(
         self, query: str, category: str | None = None, top_k: int = 4
-    ) -> list[tuple[str, str, str]]:
-        hits = rag_store.search_by_category(query, category, top_k)
-        return [(str(score), chunk, source) for score, chunk, source in hits]
+    ) -> list[tuple[int, str, str]]:
+        return rag_store.search_by_category(query, category, top_k)
 
     def search_multi_category(
         self, query: str, categories: list[str], top_k: int = 4
-    ) -> list[tuple[str, str, str]]:
-        hits = rag_store.search_multi_category(query, categories, top_k)
-        return [(str(score), chunk, source) for score, chunk, source in hits]
+    ) -> list[tuple[int, str, str]]:
+        return rag_store.search_multi_category(query, categories, top_k)
 
-    def search_exact_id(self, query: str) -> list[tuple[str, str, str]]:
-        hits = rag_store.search_exact_id(query)
-        return [(str(score), chunk, source) for score, chunk, source in hits]
+    def search_exact_id(self, query: str) -> list[tuple[int, str, str]]:
+        return rag_store.search_exact_id(query)

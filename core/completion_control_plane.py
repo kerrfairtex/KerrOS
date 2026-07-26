@@ -28,7 +28,6 @@ class CompletionControlPlane:
 
         self.started = time.time()
 
-        self.stack = None
         self.runtime = None
         self.observability = None
         self.recovery = None
@@ -38,13 +37,6 @@ class CompletionControlPlane:
 
 
     def _load(self):
-
-        try:
-            from core.completion_stack import stack
-            self.stack = stack
-        except Exception:
-            pass
-
 
         try:
             from core.completion_runtime import runtime
@@ -79,12 +71,6 @@ class CompletionControlPlane:
                     3
                 ),
 
-            "stack":
-                self.stack.health()
-                if self.stack
-                else {},
-
-
             "runtime":
                 self.runtime.health()
                 if self.runtime
@@ -109,12 +95,6 @@ class CompletionControlPlane:
 
         return {
             "online": True,
-            "components":
-                len(
-                    self.stack.components
-                )
-                if self.stack
-                else 0,
         }
 
 
