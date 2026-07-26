@@ -10,6 +10,7 @@ from multiprocessing import Queue, get_context
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
+from kernel import router as kernel_router
 from kernel.decision_log import DecisionLog
 from adapters.memory.rag_store_adapter import RagStoreAdapter
 from adapters.tools.router_adapter import RouterAdapter
@@ -117,10 +118,36 @@ class RouterAdapterTest(unittest.TestCase):
         tool, args = adapter.dispatch("detect_tool", "run ls")
         self.assertEqual(tool, "bash")
 
+    def test_detect_tool_parity_with_kernel_router(self):
+        adapter = RouterAdapter()
+        cases = [
+            {"text": "run ls", "bypass_gate": False, "expected_tool": "bash"},
+            {"text": "nmap 8.8.8.8", "bypass_gate": True, "expected_tool": "nmap"},
+        ]
+        for payload in cases:
+            with self.subTest(payload=payload):
+                actual = adapter.dispatch("detect_tool", payload)
+                expected = kernel_router.detect_tool(payload["text"], bypass_gate=payload["bypass_gate"])
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual[0], payload["expected_tool"])
+
     def test_run_tool_dispatch(self):
         adapter = RouterAdapter()
         out = adapter.dispatch("run_tool", {"tool": "calc", "args": "2+2"})
         self.assertIn("4", out)
+
+    def test_detect_domain_parity_with_kernel_router(self):
+        adapter = RouterAdapter()
+        cases = [
+            ("run nmap 8.8.8.8", "network"),
+            ("check owasp xss", "web_security"),
+        ]
+        for payload, expected_domain in cases:
+            with self.subTest(payload=payload):
+                actual = adapter.dispatch("detect_domain", payload)
+                expected = kernel_router.detect_domain(payload)
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual, expected_domain)
 
 
 class ScopeGateAuditTest(unittest.TestCase):
