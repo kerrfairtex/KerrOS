@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import os
-import multiprocessing
 import subprocess
 import sys
 import tempfile
 import unittest
+from multiprocessing import Queue, get_context
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
@@ -21,14 +21,14 @@ def _decision_log_process_writer(
     db_path: str,
     start: int,
     count: int,
-    error_queue: multiprocessing.Queue,
+    error_queue: Queue,
 ) -> None:
     try:
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
             log.record("proc", "concurrent", f"item-{i}", "ok", "")
     except Exception as exc:  # pragma: no cover - captured for parent assertion
-        error_queue.put(repr(exc))
+        error_queue.put(str(exc))
 
 
 class DecisionLogTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class DecisionLogTest(unittest.TestCase):
         self.assertEqual(self.log.count(), 1)
 
     def test_concurrent_writes(self):
-        ctx = multiprocessing.get_context("spawn")
+        ctx = get_context("spawn")
         error_queue = ctx.Queue()
         writes_per_process = 25
         p1 = ctx.Process(
