@@ -15,12 +15,17 @@ import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from runtime.event_bus import EventBus
 
+if TYPE_CHECKING:
+    from kernel.capability_registry import CapabilityRegistry
+
 
 StepFn = Callable[[dict[str, Any]], Any]
+WORKFLOW_NAME_RE = re.compile(r"^[a-z0-9_.:-]{2,64}$")
+WORKFLOW_STEP_ID_RE = re.compile(r"^[a-z0-9_.:-]{1,64}$")
 
 
 class WorkflowState(str, Enum):
@@ -61,7 +66,7 @@ class WorkflowRun:
 class WorkflowEngine:
     bus: EventBus | None = None
     catalog_path: Path | None = None
-    capability_registry: Any | None = None
+    capability_registry: "CapabilityRegistry | None" = None
     _definitions: dict[str, WorkflowDefinition] = field(default_factory=dict)
     _runs: dict[str, WorkflowRun] = field(default_factory=dict)
     _catalog: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -208,7 +213,7 @@ class WorkflowEngine:
 
             if not progressed:
                 missing = [s.id for s in definition.steps if s.id not in completed]
-                raise RuntimeError(f"workflow deadlock — unresolved steps: {missing}")
+                raise RuntimeError(f"workflow deadlock - unresolved steps: {missing}")
 
     def _topo_order(self, definition: WorkflowDefinition) -> list[WorkflowStep]:
         """Validate DAG and return topological order (unused at runtime but useful for tests)."""
@@ -221,7 +226,9 @@ class WorkflowEngine:
             if step_id in visited:
                 return
             if step_id in visiting:
-                raise ValueError(f"workflow cycle detected at step {step_id}")
+                raise ValueError(
+                    f"workflow cycle detected in '{definition.name}' at step '{step_id}'"
+                )
             step = steps_by_id[step_id]
             visiting.add(step_id)
             for dep in step.depends_on:
@@ -237,11 +244,11 @@ class WorkflowEngine:
         return order
 
     def _validate_definition(self, definition: WorkflowDefinition) -> None:
-        if not re.match(r"^[a-z0-9_.:-]{2,64}$", definition.name):
-            raise ValueError("workflow name must match ^[a-z0-9_.:-]{2,64}$")
+        if not WORKFLOW_NAME_RE.match(definition.name):
+            raise ValueError(f"workflow name must match {WORKFLOW_NAME_RE.pattern}")
         step_ids = set()
         for step in definition.steps:
-            if not re.match(r"^[a-z0-9_.:-]{1,64}$", step.id):
+            if not WORKFLOW_STEP_ID_RE.match(step.id):
                 raise ValueError(f"invalid workflow step id: {step.id}")
             if step.id in step_ids:
                 raise ValueError(f"duplicate workflow step id: {step.id}")
@@ -268,7 +275,7 @@ class WorkflowEngine:
             return
         self.catalog_path.parent.mkdir(parents=True, exist_ok=True)
         self._load_catalog()
-        self._catalog[definition.name] = {
+        payload = {
             "name": definition.name,
             "description": definition.description,
             "steps": [
@@ -276,11 +283,22 @@ class WorkflowEngine:
                     "id": s.id,
                     "depends_on": list(s.depends_on),
                     "description": s.description,
+                    "action": getattr(s.action, "__name__", repr(s.action)),
                 }
                 for s in definition.steps
             ],
             "updated_at": time.time(),
         }
+        existing = self._catalog.get(definition.name)
+        if existing:
+            unchanged = (
+                existing.get("name") == payload["name"]
+                and existing.get("description") == payload["description"]
+                and existing.get("steps") == payload["steps"]
+            )
+            if unchanged:
+                return
+        self._catalog[definition.name] = payload
         self.catalog_path.write_text(
             json.dumps(self._catalog, indent=2, sort_keys=True),
             encoding="utf-8",

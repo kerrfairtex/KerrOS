@@ -26,6 +26,8 @@ from typing import Any
 
 from tools.claw_tools import ToolResult, get_workspace
 
+SKILL_ID_RE = re.compile(r"^[a-z0-9_][a-z0-9_\-]{1,63}$")
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -264,13 +266,13 @@ def skill_manage(
         name = name.strip().replace(" ", "_").lower()
         if not name:
             return ToolResult(False, "skill_manage", error="name is required")
-        if not re.match(r"^[a-z0-9_][a-z0-9_\-]{1,63}$", name):
-            return ToolResult(False, "skill_manage", error="name must match ^[a-z0-9_][a-z0-9_\\-]{1,63}$")
+        if not SKILL_ID_RE.match(name):
+            return ToolResult(False, "skill_manage", error=f"name must match {SKILL_ID_RE.pattern}")
 
         ws = get_workspace()
         skills_root = _skills_root()
         cat = (category or "custom").strip().replace(" ", "_").lower()
-        if not re.match(r"^[a-z0-9_][a-z0-9_\-]{1,63}$", cat):
+        if not SKILL_ID_RE.match(cat):
             return ToolResult(False, "skill_manage", error="invalid category format")
 
         # Prevent writes into tool_catalog (YAML files are read-only)

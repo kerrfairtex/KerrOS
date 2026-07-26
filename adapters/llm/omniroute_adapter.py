@@ -7,14 +7,11 @@ OmniRoute-compatible LLM adapter over a single OpenAI-compatible endpoint.
 from __future__ import annotations
 
 import os
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from adapters.llm.openai_compat import OpenAICompatClient
+from kernel.flags import is_true
 from kernel.config import load_config
-
-
-def _is_true(value: Any) -> bool:
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 class OmniRouteAdapter:
@@ -23,7 +20,7 @@ class OmniRouteAdapter:
     def __init__(self) -> None:
         cfg = load_config().values
         enabled_cfg = cfg.get("use_omniroute", False)
-        self._enabled = _is_true(os.getenv("KERROS_USE_OMNIROUTE", enabled_cfg))
+        self._enabled = is_true(os.getenv("KERROS_USE_OMNIROUTE", enabled_cfg))
         self._base_url = (
             os.getenv("KERROS_OMNIROUTE_URL")
             or cfg.get("omniroute_url")
@@ -46,7 +43,7 @@ class OmniRouteAdapter:
         self,
         prompt: str,
         system: Optional[str] = None,
-        history: Optional[List[dict]] = None,
+        history: Optional[list[dict]] = None,
         max_tokens: int = 1024,
         **kwargs: Any,
     ) -> str:

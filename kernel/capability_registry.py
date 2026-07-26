@@ -14,7 +14,9 @@ from typing import Any
 import yaml
 
 
-_NAME_RE = re.compile(r"^[a-zA-Z0-9_.:-]{2,80}$")
+# Capability IDs are lowercase namespaced tokens (e.g., tool:exec, workflow:build.docs)
+# constrained to 2..80 chars for stable storage and CLI display.
+_CAPABILITY_NAME_RE = re.compile(r"^[a-z0-9_.:-]{2,80}$")
 
 
 @dataclass
@@ -33,7 +35,7 @@ class CapabilityRegistry:
         self._caps: dict[str, Capability] = {}
 
     def upsert(self, cap: Capability) -> None:
-        if not _NAME_RE.match(cap.name):
+        if not _CAPABILITY_NAME_RE.match(cap.name):
             raise ValueError(f"invalid capability name: {cap.name}")
         self._caps[cap.name] = cap
 
@@ -123,4 +125,3 @@ class CapabilityRegistry:
             )
             loaded += 1
         return loaded
-

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from kernel.config import KernelConfig, load_config
@@ -163,9 +164,17 @@ class Kernel:
 
         bus = EventBus()
         scheduler = Scheduler(bus=bus)
+        workflow_catalog_path = Path(
+            str(
+                self.config.get(
+                    "workflow_catalog_path",
+                    self.config.base / "data" / "workflows" / "catalog.json",
+                )
+            )
+        )
         workflows = WorkflowEngine(
             bus=bus,
-            catalog_path=self.config.base / "data" / "workflows" / "catalog.json",
+            catalog_path=workflow_catalog_path,
             capability_registry=self.container.resolve(SERVICE_CAPABILITY_REGISTRY),
         )
 

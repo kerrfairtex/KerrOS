@@ -13,17 +13,17 @@ from typing import Any
 import requests
 
 from adapters.embeddings.sentence_transformers_adapter import SentenceTransformersAdapter
+from kernel.flags import is_true
 
-
-def _is_true(value: Any) -> bool:
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+CHUNK_PREFIX_LEN = 120
+DIGEST_LEN = 64
 
 
 class QdrantVectorStore:
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         cfg = config or {}
         enabled_cfg = cfg.get("qdrant_enabled", False)
-        self.enabled = _is_true(os.getenv("KERROS_QDRANT_ENABLED", enabled_cfg))
+        self.enabled = is_true(os.getenv("KERROS_QDRANT_ENABLED", enabled_cfg))
         self.url = (
             os.getenv("KERROS_QDRANT_URL")
             or cfg.get("qdrant_url")
@@ -92,10 +92,15 @@ class QdrantVectorStore:
             vectors = self._embedder.embed_documents(chunks)
             points = []
             for idx, (chunk, vec) in enumerate(zip(chunks, vectors)):
-                digest = hashlib.sha256(f"{source}:{idx}:{chunk[:120]}".encode("utf-8")).hexdigest()[:16]
+                digest = hashlib.sha256(
+                    f"{source}:{idx}:{chunk[:CHUNK_PREFIX_LEN]}".encode("utf-8")
+                ).hexdigest()[:DIGEST_LEN]
                 points.append(
                     {
-                        "id": int(digest, 16) & 0x7FFFFFFFFFFFFFFF,
+                        # Deterministic ID ties source+chunk index+content hash to make
+                        # retries idempotent and minimize collision risk across updates.
+                        # Use deterministic string IDs to minimize collision risk.
+                        "id": f"{source}:{idx}:{digest}",
                         "vector": vec,
                         "payload": {
                             "text": chunk,
@@ -151,4 +156,3 @@ class QdrantVectorStore:
             "collection": self.collection,
             "last_error": self.last_error,
         }
-

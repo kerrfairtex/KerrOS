@@ -12,6 +12,8 @@ from kernel.config import load_config
 from rag import store as rag_store
 from adapters.memory.qdrant_vector_store import QdrantVectorStore
 
+VECTOR_SCORE_WEIGHT = 10.0
+
 
 class HybridMemoryAdapter:
     """MemoryPort implementation using deterministic keyword + semantic vector recall."""
@@ -32,7 +34,7 @@ class HybridMemoryAdapter:
             merged[key] = max(merged.get(key, 0.0), float(score))
         for score, chunk, source in vector_hits:
             key = (chunk, source)
-            merged[key] = max(merged.get(key, 0.0), float(score) * 10.0)
+            merged[key] = max(merged.get(key, 0.0), float(score) * VECTOR_SCORE_WEIGHT)
 
         ranked = sorted(
             ((round(score), chunk, source) for (chunk, source), score in merged.items()),
@@ -72,4 +74,3 @@ class HybridMemoryAdapter:
             "keyword_store": "sqlite_rag",
             "vector_store": self._vector.status(),
         }
-

@@ -10,7 +10,7 @@ Provider selection via kwargs provider_hint or KERROS_LLM_PROVIDER env.
 from __future__ import annotations
 
 import os
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from kernel.config import load_config
 
@@ -77,7 +77,7 @@ class CompositeLLMAdapter:
         self,
         prompt: str,
         system: Optional[str] = None,
-        history: Optional[List[dict]] = None,
+        history: Optional[list[dict[str, Any]]] = None,
         max_tokens: int = 1024,
         **kwargs: Any,
     ) -> str:
@@ -106,14 +106,17 @@ class CompositeLLMAdapter:
         raise RuntimeError("no LLM providers configured")
 
     def _build_chain(self, provider: str) -> list[tuple[str, Any]]:
-        if provider in _UNIFIED_PROVIDERS:
+        def _unified_chain() -> list[tuple[str, Any]]:
             return [("omniroute", self._get_omniroute()), ("cloud", self._get_cloud())]
+
+        if provider in _UNIFIED_PROVIDERS:
+            return _unified_chain()
         if provider == "ollama":
             return [("ollama", self._get_ollama()), ("cloud", self._get_cloud())]
         if provider == "vllm":
             return [("vllm", self._get_vllm()), ("cloud", self._get_cloud())]
         if self._unified_first:
-            return [("omniroute", self._get_omniroute()), ("cloud", self._get_cloud())]
+            return _unified_chain()
         if provider in _LOCAL_PROVIDERS or self._local_first:
             return [
                 ("ollama", self._get_ollama()),

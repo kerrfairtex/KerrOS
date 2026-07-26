@@ -16,6 +16,8 @@ def _load_cfg():
 _CFG, _BASE = _load_cfg()
 CFG = _CFG
 DB_PATH = os.path.join(_BASE, "data", "rag_store.db")
+FTS_RANK_SCORE_SCALE = 1000.0
+FTS_RANK_SCORE_OFFSET = 1.0
 
 KNOWLEDGE_ROOT = os.path.expanduser(
     CFG.get("knowledge_root", "~/storage/external-1/offline_ai_knowledge")
@@ -225,7 +227,10 @@ def search_fts(query, top_k=3):
     conn.close()
     out = []
     for text, source, rank in rows:
-        score = max(1, int(round(1000.0 / (1.0 + abs(float(rank))))))
+        # SQLite FTS5 bm25 rank uses lower-is-better values; invert to positive
+        # integer relevance for downstream tuple scoring compatibility.
+        rank_abs = abs(float(rank))
+        score = max(1, int((FTS_RANK_SCORE_SCALE / (FTS_RANK_SCORE_OFFSET + rank_abs)) + 0.5))
         out.append((score, text, source))
     return out
 
