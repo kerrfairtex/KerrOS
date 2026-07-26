@@ -73,7 +73,7 @@ class AdaptiveEngine:
             max_tokens=4096  # online models handle long answers natively, no RAM ceiling like offline
         )
         # Show which API was used
-        last_api = self._multi.last_api_used() if hasattr(self._multi, "last_api_used") else None
+        last_api = self._multi.last_api_used()
         if last_api:
             print(f"  \033[90m[{last_api}]\033[0m", end=" ", flush=True)
         return result
