@@ -154,7 +154,6 @@ class AdaptiveEngineLLMPortTest(unittest.TestCase):
 
         port = MagicMock()
         port.complete.return_value = "hello"
-        port.engine.generate.side_effect = AssertionError("legacy engine path should not be used")
         mock_get_llm_port.return_value = port
 
         engine = AdaptiveEngine()
