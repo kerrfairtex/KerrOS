@@ -6,6 +6,7 @@ Port access facades with kernel-first, direct-import fallback (KOS-014).
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 
@@ -111,36 +112,31 @@ def memory_upsert(text: str, source: str, metadata: dict | None = None) -> None:
     get_memory_port().upsert(text, source, metadata)
 
 
+def memory_ingest_file(path: str) -> None:
+    """Read a file from disk and upsert its contents into the knowledge store."""
+    path = os.path.expanduser(path)
+    if not os.path.exists(path):
+        print(f"[RAG] Not found: {path}")
+        return
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    memory_upsert(text, os.path.basename(path))
+
+
 def memory_list_sources() -> list[str]:
-    port = get_memory_port()
-    if hasattr(port, "list_sources"):
-        return port.list_sources()
-    from rag.store import list_sources
-    return list_sources()
+    return get_memory_port().list_sources()
 
 
 def memory_search_by_category(query: str, category: str | None = None, top_k: int = 4):
-    port = get_memory_port()
-    if hasattr(port, "search_by_category"):
-        return port.search_by_category(query, category, top_k)
-    from rag.store import search_by_category
-    return search_by_category(query, category, top_k)
+    return get_memory_port().search_by_category(query, category, top_k)
 
 
 def memory_search_multi_category(query: str, categories: list[str], top_k: int = 4):
-    port = get_memory_port()
-    if hasattr(port, "search_multi_category"):
-        return port.search_multi_category(query, categories, top_k)
-    from rag.store import search_multi_category
-    return search_multi_category(query, categories, top_k)
+    return get_memory_port().search_multi_category(query, categories, top_k)
 
 
 def memory_search_exact_id(query: str):
-    port = get_memory_port()
-    if hasattr(port, "search_exact_id"):
-        return port.search_exact_id(query)
-    from rag.store import search_exact_id
-    return search_exact_id(query)
+    return get_memory_port().search_exact_id(query)
 
 
 def llm_complete(
