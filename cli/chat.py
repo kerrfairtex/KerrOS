@@ -610,7 +610,7 @@ def main():
                 print(f"  {GY}Available: small · large{R}")
 
         elif user.startswith("/learn "):
-            memory_upsert(user[7:].strip(),"user_knowledge")
+            memory_upsert(user[7:].strip(), "user_knowledge")
             print(f"  {GR}[ ✓ ] Learned and stored{R}")
 
         elif user.startswith("/ingest "):
