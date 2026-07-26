@@ -13,14 +13,14 @@ class AdaptiveEngine:
     def __init__(self):
         self.c = cfg()
         self.mode = "offline"
-        self._multi = None
+        self._llm_port = None
         self._offline = None
 
     def init_online(self):
         try:
             from kernel.access import get_llm_port
-            self._multi = get_llm_port()
-            test = self._multi.complete("hi", max_tokens=5)
+            self._llm_port = get_llm_port()
+            test = self._llm_port.complete("hi", max_tokens=5)
             if not test or "All APIs failed" in test:
                 return False, "All APIs failed"
             self.mode = "online"
@@ -51,8 +51,8 @@ class AdaptiveEngine:
     def _online_generate(self, user_message, system, history, stream):
         from kernel.access import get_llm_port
 
-        if not self._multi:
-            self._multi = get_llm_port()
+        if not self._llm_port:
+            self._llm_port = get_llm_port()
 
         # Filter corrupted history
         bad = ["[Online error","<|im_start|>","[Tool output]",
@@ -66,14 +66,14 @@ class AdaptiveEngine:
             if any(b in content for b in bad): continue
             clean_hist.append({"role": role, "content": content})
 
-        result = self._multi.complete(
+        result = self._llm_port.complete(
             user_message,
             system=system,
             history=clean_hist,
             max_tokens=4096  # online models handle long answers natively, no RAM ceiling like offline
         )
         # Show which API was used
-        last_api = self._multi.last_api_used()
+        last_api = self._llm_port.last_api_used()
         if last_api:
             print(f"  \033[90m[{last_api}]\033[0m", end=" ", flush=True)
         return result
