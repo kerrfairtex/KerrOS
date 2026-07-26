@@ -104,7 +104,7 @@ def detect_domain(text: str):
     return get_dispatch_port().detect_domain(text)
 
 
-def memory_query(text: str, *, top_k: int = 5) -> list[tuple[str, str, str]]:
+def memory_query(text: str, *, top_k: int = 5) -> list[tuple[int, str, str]]:
     return get_memory_port().query(text, top_k=top_k)
 
 
