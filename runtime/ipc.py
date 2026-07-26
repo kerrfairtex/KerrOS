@@ -52,17 +52,30 @@ class JsonLineClient:
     def call(self, method: str, params: dict[str, Any] | None = None, timeout: float = 30) -> Any:
         msg_id = str(uuid.uuid4())
         line = encode_message(msg_id, method, params)
-        self.proc.stdin.write(line)
-        self.proc.stdin.flush()
+        try:
+            self.proc.stdin.write(line)
+            self.proc.stdin.flush()
+        except (OSError, ValueError) as exc:
+            returncode = self.proc.poll()
+            raise IpcError(
+                f"worker unavailable while sending request (code={returncode}): {exc}"
+            ) from exc
 
         if self.proc.poll() is not None:
             raise IpcError(f"worker exited before response (code={self.proc.returncode})")
 
-        response_line = self.proc.stdout.readline()
+        try:
+            response_line = self.proc.stdout.readline()
+        except (OSError, ValueError) as exc:
+            raise IpcError(f"worker unavailable while reading response: {exc}") from exc
         if not response_line:
             raise IpcError("worker closed stdout without response")
 
-        data = decode_message(response_line)
+        try:
+            data = decode_message(response_line)
+        except json.JSONDecodeError as exc:
+            snippet = response_line.strip()[:200]
+            raise IpcError(f"malformed worker response: {exc} (line={snippet!r})") from exc
         if data.get("id") != msg_id:
             raise IpcError(f"response id mismatch: expected {msg_id}, got {data.get('id')}")
         if not data.get("ok"):
