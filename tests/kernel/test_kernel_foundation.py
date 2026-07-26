@@ -67,6 +67,7 @@ class KernelBootTest(unittest.TestCase):
         for svc in (
             "config", "router", "tool_port", "llm_port", "memory_port",
             "dispatch_port", "decision_log", "service_manager", "health_monitor",
+            "capability_registry",
         ):
             self.assertIn(svc, names)
 
@@ -79,6 +80,12 @@ class KernelBootTest(unittest.TestCase):
         boot()
         cfg = resolve("config")
         self.assertIsNotNone(cfg.workspace)
+
+    def test_capability_registry_loaded(self):
+        boot()
+        registry = resolve("capability_registry")
+        tools = registry.list(kind="tool")
+        self.assertTrue(any(c.name == "tool:exec" for c in tools))
 
     def test_shutdown_resets_phase(self):
         k = boot()

@@ -1,6 +1,15 @@
 # KerrOS × OmniRoute — Single Source of Truth
 Architecture & Build Roadmap — v0.1, July 25, 2026
 
+## Product scope (locked)
+
+KerrOS is an **open-source local AI router/proxy gateway**.  
+It is not a governance platform. Its target outcomes are:
+- persistent conversational memory (deterministic keyword + vector recall),
+- one unified local endpoint for provider routing,
+- per-tool setup abstraction through kernel-managed capabilities,
+- self-extensible workflows/skills/tools with auditable guardrails.
+
 ## 0. Provenance — public vs. private
 
 | 🌐 Public (independently verifiable) | 🔒 Private (your project state only) |

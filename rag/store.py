@@ -44,6 +44,43 @@ def _ensure_schema():
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_category ON chunks(category)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON chunks(source)")
+    # Deterministic keyword retrieval acceleration via FTS5.
+    conn.execute(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts
+        USING fts5(text, source, category, content='chunks', content_rowid='id')
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS chunks_ai AFTER INSERT ON chunks BEGIN
+          INSERT INTO chunks_fts(rowid, text, source, category)
+          VALUES (new.id, new.text, new.source, new.category);
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS chunks_ad AFTER DELETE ON chunks BEGIN
+          INSERT INTO chunks_fts(chunks_fts, rowid, text, source, category)
+          VALUES('delete', old.id, old.text, old.source, old.category);
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS chunks_au AFTER UPDATE ON chunks BEGIN
+          INSERT INTO chunks_fts(chunks_fts, rowid, text, source, category)
+          VALUES('delete', old.id, old.text, old.source, old.category);
+          INSERT INTO chunks_fts(rowid, text, source, category)
+          VALUES (new.id, new.text, new.source, new.category);
+        END
+        """
+    )
+    try:
+        conn.execute("INSERT INTO chunks_fts(chunks_fts) VALUES('rebuild')")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -73,6 +110,11 @@ def _chunk(text, size=120, overlap=30):
             out.append(chunk)
         i += size - overlap
     return out
+
+
+def chunk_text(text, size=120, overlap=30):
+    """Public chunk helper for vector backends."""
+    return _chunk(text, size=size, overlap=overlap)
 
 
 def _category_from_source(source):
@@ -157,6 +199,35 @@ def search(query, top_k=3):
 
     results.sort(reverse=True)
     return results[:top_k]
+
+
+def search_fts(query, top_k=3):
+    qk = _keywords(query)
+    if not qk:
+        return []
+    fts_query = " OR ".join(qk)
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            """
+            SELECT c.text, c.source, bm25(chunks_fts) AS rank
+            FROM chunks_fts
+            JOIN chunks c ON c.id = chunks_fts.rowid
+            WHERE chunks_fts MATCH ?
+            ORDER BY rank ASC
+            LIMIT ?
+            """,
+            (fts_query, top_k),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        conn.close()
+        return []
+    conn.close()
+    out = []
+    for text, source, rank in rows:
+        score = max(1, int(round(1000.0 / (1.0 + abs(float(rank))))))
+        out.append((score, text, source))
+    return out
 
 
 def search_by_category(query, category=None, top_k=4):

@@ -2,7 +2,9 @@
 
 import sys
 import time
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from runtime.event_bus import EventBus
@@ -69,17 +71,31 @@ class WorkflowEngineTest(unittest.TestCase):
 
     def test_deadlock_raises(self):
         engine = WorkflowEngine()
-        engine.register(
-            WorkflowDefinition(
-                name="bad",
-                steps=[
-                    WorkflowStep("a", action=lambda ctx: 1, depends_on=["b"]),
-                    WorkflowStep("b", action=lambda ctx: 2, depends_on=["a"]),
-                ],
+        with self.assertRaises(ValueError):
+            engine.register(
+                WorkflowDefinition(
+                    name="bad",
+                    steps=[
+                        WorkflowStep("a", action=lambda ctx: 1, depends_on=["b"]),
+                        WorkflowStep("b", action=lambda ctx: 2, depends_on=["a"]),
+                    ],
+                )
             )
-        )
-        with self.assertRaises(RuntimeError):
-            engine.run("bad")
+
+    def test_register_persists_catalog(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog = Path(tmp) / "catalog.json"
+            engine = WorkflowEngine(catalog_path=catalog)
+            engine.register(
+                WorkflowDefinition(
+                    name="build.docs",
+                    steps=[WorkflowStep("draft", action=lambda ctx: "ok")],
+                    description="Generate docs workflow",
+                )
+            )
+            self.assertTrue(catalog.exists())
+            entries = engine.list_catalog()
+            self.assertTrue(any(e["name"] == "build.docs" for e in entries))
 
 
 class KernelPhase3Test(unittest.TestCase):
@@ -145,6 +161,24 @@ class CompositeLLMTest(unittest.TestCase):
         result = adapter.complete("test", provider_hint="ollama")
         self.assertEqual(result, "local response")
         self.assertEqual(adapter.last_api_used(), "ollama")
+
+    @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_cloud")
+    @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_omniroute")
+    def test_provider_hint_omniroute_falls_back_to_cloud(self, mock_get_omniroute, mock_get_cloud):
+        from adapters.llm.composite_adapter import CompositeLLMAdapter
+
+        omniroute = MagicMock()
+        omniroute.complete.side_effect = RuntimeError("omniroute down")
+        omniroute.status.return_value = {"enabled": True}
+        cloud = MagicMock()
+        cloud.complete.return_value = "cloud fallback"
+        mock_get_omniroute.return_value = omniroute
+        mock_get_cloud.return_value = cloud
+
+        adapter = CompositeLLMAdapter()
+        result = adapter.complete("test", provider_hint="omniroute")
+        self.assertEqual(result, "cloud fallback")
+        self.assertEqual(adapter.last_api_used(), "cloud")
 
 
 class AdaptiveEngineLLMPortTest(unittest.TestCase):

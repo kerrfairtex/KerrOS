@@ -26,6 +26,7 @@ from kernel.contract import (
     SERVICE_SERVICE_MANAGER,
     SERVICE_TOOL_PORT,
     SERVICE_WORKFLOW_ENGINE,
+    SERVICE_CAPABILITY_REGISTRY,
 )
 from kernel.decision_log import DecisionLog, get_decision_log, record_decision
 from kernel.access import (
@@ -39,6 +40,7 @@ from kernel.access import (
     get_memory_port,
     get_scheduler,
     get_workflow_engine,
+    get_capability_registry,
 )
 
 __all__ = [
@@ -61,6 +63,7 @@ __all__ = [
     "SERVICE_SERVICE_MANAGER",
     "SERVICE_TOOL_PORT",
     "SERVICE_WORKFLOW_ENGINE",
+    "SERVICE_CAPABILITY_REGISTRY",
     "boot",
     "get_decision_log",
     "get_kernel",
@@ -79,4 +82,5 @@ __all__ = [
     "get_memory_port",
     "get_scheduler",
     "get_workflow_engine",
+    "get_capability_registry",
 ]

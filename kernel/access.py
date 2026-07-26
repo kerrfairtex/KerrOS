@@ -70,6 +70,17 @@ def get_workflow_engine():
     return WorkflowEngine()
 
 
+def get_capability_registry():
+    if _kernel_ready():
+        try:
+            return _resolve("capability_registry")
+        except Exception:
+            pass
+    from kernel.capability_registry import CapabilityRegistry
+
+    return CapabilityRegistry()
+
+
 def get_dispatch_port():
     if _kernel_ready():
         try:
@@ -87,9 +98,9 @@ def get_memory_port():
             return _resolve("memory_port")
         except Exception:
             pass
-    from adapters.memory.rag_store_adapter import RagStoreAdapter
+    from adapters.memory.hybrid_memory_adapter import HybridMemoryAdapter
 
-    return RagStoreAdapter()
+    return HybridMemoryAdapter()
 
 
 def detect_tool(text: str, bypass_gate: bool = False):

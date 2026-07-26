@@ -92,11 +92,22 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
     if not scope.exists():
         scope = Path(__file__).resolve().parent.parent / "config" / "scope.json"
 
+    defaults = {
+        "llm_route_policy": "legacy_fallback",
+        "llm_provider_default": "cloud",
+        "use_omniroute": False,
+        "omniroute_url": "http://127.0.0.1:20128/v1",
+        "qdrant_enabled": False,
+        "qdrant_url": "http://127.0.0.1:6333",
+        "qdrant_collection": "kerros_memory",
+    }
+    merged = {**defaults, **raw}
+
     return KernelConfig(
         base=root,
         workspace=workspace,
         scope_path=scope.resolve(),
-        values=raw,
+        values=merged,
     )
 
 

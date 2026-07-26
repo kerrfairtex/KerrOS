@@ -13,6 +13,7 @@ from kernel.boot import boot, shutdown
 from kernel import router as kernel_router
 from kernel.decision_log import DecisionLog
 from adapters.memory.rag_store_adapter import RagStoreAdapter
+from adapters.memory.hybrid_memory_adapter import HybridMemoryAdapter
 from adapters.tools.router_adapter import RouterAdapter
 from rag import store as rag_store
 from tools.scope_gate import check, arm_deploy, disarm_deploy
@@ -110,6 +111,37 @@ class RagStoreAdapterTest(unittest.TestCase):
             adapter.search_exact_id("Tell me about CVE-2026-9999"),
             rag_store.search_exact_id("Tell me about CVE-2026-9999"),
         )
+
+    def test_fts_search_returns_matches(self):
+        rag_store.ingest_text(
+            "Kernel routing policy enforces unified endpoint fallbacks with deterministic memory recall.",
+            source="kernel_design",
+        )
+        results = rag_store.search_fts("unified endpoint deterministic memory", top_k=2)
+        self.assertTrue(results)
+        self.assertIn("unified endpoint", results[0][1].lower())
+
+
+class HybridMemoryAdapterTest(unittest.TestCase):
+    def setUp(self):
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._old_db_path = rag_store.DB_PATH
+        rag_store.DB_PATH = str(Path(self._tmpdir.name) / "rag_store.db")
+        rag_store._ensure_schema()
+
+    def tearDown(self):
+        rag_store.DB_PATH = self._old_db_path
+        self._tmpdir.cleanup()
+
+    def test_query_hybrid_returns_keyword_hits_without_qdrant(self):
+        adapter = HybridMemoryAdapter()
+        adapter.upsert(
+            "Qdrant vector recall is optional while SQLite FTS keyword recall remains deterministic.",
+            "memory_design",
+        )
+        hits = adapter.query("sqlite deterministic recall", top_k=2)
+        self.assertTrue(hits)
+        self.assertTrue(any("deterministic" in row[1].lower() for row in hits))
 
 
 class RouterAdapterTest(unittest.TestCase):

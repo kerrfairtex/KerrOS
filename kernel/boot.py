@@ -37,6 +37,7 @@ from kernel.contract import (
     SERVICE_DATABASE_PORT,
     SERVICE_EMBEDDING_PORT,
     SERVICE_SEARCH_PORT,
+    SERVICE_CAPABILITY_REGISTRY,
 )
 
 
@@ -139,15 +140,21 @@ class Kernel:
         from runtime.service_bus import ServiceBus
         from runtime.services import ServiceManager, default_services
         from runtime.health import HealthMonitor
+        from kernel.capability_registry import CapabilityRegistry
+        from tools.registry import TOOL_DEFINITIONS
 
         bus = ServiceBus()
         manager = ServiceManager(bus)
         for spec in default_services():
             manager.register(spec)
         health = HealthMonitor()
+        capability_registry = CapabilityRegistry()
+        capability_registry.load_manifest_dir(self.config.base / "config" / "capabilities")
+        capability_registry.bootstrap_from_tool_definitions(TOOL_DEFINITIONS)
 
         self.container.register(SERVICE_SERVICE_MANAGER, manager, singleton=True)
         self.container.register(SERVICE_HEALTH_MONITOR, health, singleton=True)
+        self.container.register(SERVICE_CAPABILITY_REGISTRY, capability_registry, singleton=True)
 
     def _register_event_infrastructure(self) -> None:
         from runtime.event_bus import EventBus
@@ -156,7 +163,11 @@ class Kernel:
 
         bus = EventBus()
         scheduler = Scheduler(bus=bus)
-        workflows = WorkflowEngine(bus=bus)
+        workflows = WorkflowEngine(
+            bus=bus,
+            catalog_path=self.config.base / "data" / "workflows" / "catalog.json",
+            capability_registry=self.container.resolve(SERVICE_CAPABILITY_REGISTRY),
+        )
 
         self.container.register(SERVICE_EVENT_BUS, bus, singleton=True)
         self.container.register(SERVICE_SCHEDULER, scheduler, singleton=True)
@@ -167,7 +178,7 @@ class Kernel:
     def _register_default_ports(self) -> None:
         from adapters.tools.claw_adapter import ClawToolAdapter
         from adapters.tools.router_adapter import RouterAdapter
-        from adapters.memory.rag_store_adapter import RagStoreAdapter
+        from adapters.memory.hybrid_memory_adapter import HybridMemoryAdapter
         from adapters.storage.local_fs_adapter import LocalFSAdapter
         from adapters.database.sqlite_adapter import SQLiteAdapter
         from adapters.embeddings.sentence_transformers_adapter import SentenceTransformersAdapter
@@ -175,7 +186,7 @@ class Kernel:
 
         self.container.register(SERVICE_TOOL_PORT, ClawToolAdapter, singleton=True)
         self.container.register(SERVICE_DISPATCH_PORT, RouterAdapter, singleton=True)
-        self.container.register(SERVICE_MEMORY_PORT, RagStoreAdapter, singleton=True)
+        self.container.register(SERVICE_MEMORY_PORT, HybridMemoryAdapter, singleton=True)
 
         self.container.register(
             SERVICE_STORAGE_PORT,
