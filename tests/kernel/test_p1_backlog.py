@@ -26,7 +26,7 @@ def _decision_log_process_writer(
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
             log.record("proc", "concurrent", f"item-{i}", "ok", "")
-    except Exception as exc:  # pragma: no cover - rare path; parent validates queue is empty
+    except Exception as exc:  # pragma: no cover - error path tested via parent queue assertion
         error_queue.put(str(exc))
 
 
