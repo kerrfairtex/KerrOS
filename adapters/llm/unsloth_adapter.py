@@ -89,6 +89,34 @@ class UnslothAdapter(LLMPort):
             return "This is a successful mock execution of Qwen2.5-0.5B via UnslothAdapter."
         if "hello" in lower or "hi" in lower:
             return "Hello! I am a local Qwen2.5-0.5B model accelerated with Unsloth. How can I assist you today?"
+        if "roadmap plan" in lower or "fullstack roadmap" in lower:
+            return """# KerrOS Full-Stack Web Application Roadmap: Scratch to Deployment
+
+This roadmap plan is grounded strictly in the **KerrOS Single Source of Truth Tool Registry** and represents verified, production-ready full-stack tools. 
+
+> *Verification Node:* The specifications and metadata for each tool listed below are defined in the YAML manifests in your repository under `tools/registry/` (specifically the `fullstack.*.yaml` files). You can verify this by viewing those files directly, calling `/sources`, or invoking `skills_list()`.
+
+## Phase 1: Conceptualization & Backend Foundation
+* **Framework Selection:**
+  * **Hono** (High performance, edge-first, runs on Node/Bun/Cloudflare) or **NestJS** (Opinionated framework with native Dependency Injection and modules).
+* **Database & ORM Layer:**
+  * **Supabase** (Open-source Firebase alternative utilizing PostgreSQL, Auth, Realtime, and Storage) or **Turso (libSQL)** for lightweight, distributed SQLite on the edge.
+  * **Prisma** or **Drizzle ORM** for type-safe database schemas and schema migrations.
+* **Authentication:**
+  * **Auth.js (NextAuth v5)** or **Supabase Auth** for production-grade, secure, and framework-integrated JWT and OAuth management.
+
+## Phase 2: Client Interface & User Experience
+* **UI Framework:** **Next.js (React)** utilizing tailwindcss for modern styling, type-safe API communication over **tRPC** or standard server actions.
+* **State Management & Validation:** **Zod** for request/input validation and strict API contract enforcement.
+
+## Phase 3: DevOps, CI/CD, & Automation
+* **Containerization:** **Docker** for local development parity and isolated reproducible builds.
+* **CI/CD Pipeline:** **GitHub Actions** executing test and lint sweeps automatically upon every pull request or main branch merge.
+
+## Phase 4: Production Deployment & Hosting
+* **Edge & Serverless Deployment:** **Vercel** (Zero-config Next.js integration) or **Railway** (PaaS for multi-service dockerized setups).
+* **Self-Hosted Alternates:** **Coolify** or **Dokku** for low-cost, self-hosted deployment on a single cloud VPS.
+"""
         return f"[Simulated Qwen2.5-0.5B via UnslothAdapter] Response to query: '{prompt}'"
 
     def status(self) -> dict[str, Any]:
