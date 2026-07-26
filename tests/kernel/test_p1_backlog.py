@@ -1,5 +1,6 @@
 """P1 backlog tests: decision log, adapters, watchdog."""
 
+import copy
 import os
 import subprocess
 import sys
@@ -79,8 +80,6 @@ class ScopeGateAuditTest(unittest.TestCase):
         # since scope_gate persists to the repository base's
         # config/scope.json (resolved via kernel.config.load_config().scope_path),
         # and KERROS_WORKSPACE only isolates the workspace, not scope storage.
-        import copy
-
         from tools.scope_gate import _load_scope
 
         self._scope_snapshot = copy.deepcopy(_load_scope())
