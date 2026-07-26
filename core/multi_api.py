@@ -15,10 +15,15 @@ Routing:
 """
 
 import os, requests
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency
+    load_dotenv = None
 
 BASE = os.path.expanduser("~/offline_ai")
-load_dotenv(f"{BASE}/.env")
+if load_dotenv is not None:
+    load_dotenv(f"{BASE}/.env")
 
 GROQ_KEY       = os.getenv("GROQ_API_KEY", "")
 ANTHROPIC_KEY  = os.getenv("ANTHROPIC_API_KEY", "")

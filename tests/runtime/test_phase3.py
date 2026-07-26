@@ -147,5 +147,57 @@ class CompositeLLMTest(unittest.TestCase):
         self.assertEqual(adapter.last_api_used(), "ollama")
 
 
+class AdaptiveEngineLLMPortTest(unittest.TestCase):
+    @patch("kernel.access.get_llm_port")
+    def test_init_online_uses_llm_port_complete(self, mock_get_llm_port):
+        from core.adaptive_engine import AdaptiveEngine
+
+        port = MagicMock()
+        port.complete.return_value = "hello"
+        port.engine.generate.side_effect = AssertionError("legacy engine path should not be used")
+        mock_get_llm_port.return_value = port
+
+        engine = AdaptiveEngine()
+        ok, mode = engine.init_online()
+
+        self.assertTrue(ok)
+        self.assertEqual(mode, "online")
+        port.complete.assert_called_once_with("hi", max_tokens=5)
+
+    @patch("builtins.print")
+    def test_online_generate_uses_port_complete_and_filters_history(self, mock_print):
+        from core.adaptive_engine import AdaptiveEngine
+
+        port = MagicMock()
+        port.complete.return_value = "done"
+        port.last_api_used.return_value = "cloud"
+
+        engine = AdaptiveEngine()
+        engine.mode = "online"
+        engine._llm_port = port
+
+        history = [
+            {"role": "user", "content": "keep this"},
+            {"role": "assistant", "content": "[Tool output] drop this"},
+            {"role": "system", "content": "drop role"},
+            {"role": "assistant", "content": "ok reply"},
+        ]
+
+        result = engine._online_generate("solve this", "sys", history, stream=False)
+
+        self.assertEqual(result, "done")
+        port.complete.assert_called_once_with(
+            "solve this",
+            system="sys",
+            history=[
+                {"role": "user", "content": "keep this"},
+                {"role": "assistant", "content": "ok reply"},
+            ],
+            max_tokens=4096,
+        )
+        port.last_api_used.assert_called_once_with()
+        mock_print.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
