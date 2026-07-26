@@ -22,8 +22,11 @@ import sys
 import os
 from typing import Any, Optional, List
 
-# Ensure core/ is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+# Ensure the project root is importable so sibling packages like core/ and
+# ports/ resolve consistently when this adapter is imported directly.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from core.multi_api import MultiAPIEngine
 from ports.llm_port import LLMPort
