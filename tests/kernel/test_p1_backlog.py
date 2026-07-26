@@ -94,6 +94,38 @@ class ScopeGateAuditTest(unittest.TestCase):
         self.assertIn("deploy_arm", types)
 
 
+class VerifyAuditTest(unittest.TestCase):
+    def setUp(self):
+        shutdown()
+        os.environ["KERROS_WORKSPACE"] = tempfile.mkdtemp()
+        boot()
+
+    def tearDown(self):
+        shutdown()
+
+    def test_verify_identity_creates_log_entry_without_raw_pii(self):
+        from kernel.router import _verify_identity
+
+        _verify_identity("Jane Doe")
+        log = boot().container.resolve("decision_log")
+        rows = log.read_recent(10)
+        verification_rows = [r for r in rows if r.decision_type == "verification"]
+        self.assertTrue(verification_rows)
+        self.assertTrue(verification_rows[0].input_summary.startswith("verify_identity:hash:"))
+        self.assertNotIn("Jane Doe", verification_rows[0].input_summary)
+
+    def test_verify_business_creates_log_entry_without_raw_pii(self):
+        from kernel.router import _verify_business
+
+        _verify_business("Acme Corp")
+        log = boot().container.resolve("decision_log")
+        rows = log.read_recent(10)
+        verification_rows = [r for r in rows if r.decision_type == "verification"]
+        self.assertTrue(verification_rows)
+        self.assertTrue(verification_rows[0].input_summary.startswith("verify_business:hash:"))
+        self.assertNotIn("Acme Corp", verification_rows[0].input_summary)
+
+
 class WatchdogTest(unittest.TestCase):
     def test_watchdog_restarts_failing_command(self):
         from kernel.watchdog import Watchdog, WatchdogConfig
