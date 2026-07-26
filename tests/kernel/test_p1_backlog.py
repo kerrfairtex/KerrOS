@@ -65,7 +65,7 @@ class RouterAdapterTest(unittest.TestCase):
         tool, args = adapter.dispatch("detect_tool", "run ls")
         self.assertEqual(tool, "bash")
 
-    def test_detect_tool_dispatch_matches_kernel_router(self):
+    def test_detect_tool_parity_with_kernel_router(self):
         adapter = RouterAdapter()
         payload = {"text": "run ls", "bypass_gate": False}
         self.assertEqual(
@@ -78,7 +78,7 @@ class RouterAdapterTest(unittest.TestCase):
         out = adapter.dispatch("run_tool", {"tool": "calc", "args": "2+2"})
         self.assertIn("4", out)
 
-    def test_detect_domain_dispatch_matches_kernel_router(self):
+    def test_detect_domain_parity_with_kernel_router(self):
         adapter = RouterAdapter()
         payload = "run nmap 8.8.8.8"
         self.assertEqual(
