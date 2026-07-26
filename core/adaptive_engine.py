@@ -19,9 +19,8 @@ class AdaptiveEngine:
     def init_online(self):
         try:
             from kernel.access import get_llm_port
-            port = get_llm_port()
-            self._multi = port.engine if hasattr(port, "engine") else port
-            test = self._multi.generate("hi", max_tokens=5) if hasattr(self._multi, "generate") else port.complete("hi", max_tokens=5)
+            self._multi = get_llm_port()
+            test = self._multi.complete("hi", max_tokens=5)
             if not test or "All APIs failed" in test:
                 return False, "All APIs failed"
             self.mode = "online"
@@ -53,10 +52,7 @@ class AdaptiveEngine:
         from kernel.access import get_llm_port
 
         if not self._multi:
-            self._multi = get_llm_port().engine if hasattr(get_llm_port(), "engine") else None
-        if not self._multi:
-            from core.multi_api import MultiAPIEngine
-            self._multi = MultiAPIEngine()
+            self._multi = get_llm_port()
 
         # Filter corrupted history
         bad = ["[Online error","<|im_start|>","[Tool output]",
@@ -70,15 +66,16 @@ class AdaptiveEngine:
             if any(b in content for b in bad): continue
             clean_hist.append({"role": role, "content": content})
 
-        result = self._multi.generate(
-            user_message=user_message,
+        result = self._multi.complete(
+            user_message,
             system=system,
             history=clean_hist,
             max_tokens=4096  # online models handle long answers natively, no RAM ceiling like offline
         )
         # Show which API was used
-        if self._multi.last_api:
-            print(f"  \033[90m[{self._multi.last_api}]\033[0m", end=" ", flush=True)
+        last_api = self._multi.last_api_used() if hasattr(self._multi, "last_api_used") else None
+        if last_api:
+            print(f"  \033[90m[{last_api}]\033[0m", end=" ", flush=True)
         return result
 
     def _offline_generate(self, user_message, system, history, stream):
