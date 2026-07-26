@@ -1,7 +1,7 @@
 """
 adapters/tools/router_adapter.py
 ================================
-DispatchPort adapter wrapping kernel/router.py (KOS-007).
+Tool dispatch adapter wrapping kernel/router.py (KOS-007).
 """
 
 from __future__ import annotations

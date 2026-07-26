@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
+from kernel import router as kernel_router
 from kernel.decision_log import DecisionLog
 from adapters.memory.rag_store_adapter import RagStoreAdapter
 from adapters.tools.router_adapter import RouterAdapter
@@ -64,10 +65,26 @@ class RouterAdapterTest(unittest.TestCase):
         tool, args = adapter.dispatch("detect_tool", "run ls")
         self.assertEqual(tool, "bash")
 
+    def test_detect_tool_dispatch_matches_kernel_router(self):
+        adapter = RouterAdapter()
+        payload = {"text": "run ls", "bypass_gate": False}
+        self.assertEqual(
+            adapter.dispatch("detect_tool", payload),
+            kernel_router.detect_tool(payload["text"], bypass_gate=payload["bypass_gate"]),
+        )
+
     def test_run_tool_dispatch(self):
         adapter = RouterAdapter()
         out = adapter.dispatch("run_tool", {"tool": "calc", "args": "2+2"})
         self.assertIn("4", out)
+
+    def test_detect_domain_dispatch_matches_kernel_router(self):
+        adapter = RouterAdapter()
+        payload = "run nmap 8.8.8.8"
+        self.assertEqual(
+            adapter.dispatch("detect_domain", payload),
+            kernel_router.detect_domain(payload),
+        )
 
 
 class ScopeGateAuditTest(unittest.TestCase):

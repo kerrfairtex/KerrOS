@@ -1,15 +1,26 @@
 """
 ports/tool_port.py
 ==================
-ToolPort — stable interface for agent filesystem and execution tools.
-
-Phase 1: implemented by adapters/tools/claw_adapter.py over tools/registry.py.
+ToolPort — stable interface for tool-related adapters.
 """
 
 from typing import Any, Protocol
 
 
 class ToolPort(Protocol):
+    def dispatch(self, intent: str, payload: Any = None) -> Any:
+        """Route kernel tool intents via adapter dispatch."""
+        ...
+
+    def detect_tool(self, text: str, *, bypass_gate: bool = False):
+        ...
+
+    def run_tool(self, tool: str, args: Any):
+        ...
+
+    def detect_domain(self, text: str):
+        ...
+
     def list_tools(self) -> list[dict[str, Any]]:
         """Return tool schemas for LLM function calling."""
         ...
