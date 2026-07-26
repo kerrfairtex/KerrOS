@@ -15,7 +15,13 @@ Routing:
 """
 
 import os, requests
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency
+    def _noop_load_dotenv(*args, **kwargs):
+        return False
+    load_dotenv = _noop_load_dotenv
 
 BASE = os.path.expanduser("~/offline_ai")
 load_dotenv(f"{BASE}/.env")

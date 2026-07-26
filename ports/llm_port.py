@@ -79,3 +79,7 @@ class LLMPort(Protocol):
           - Offline mode (local llama.cpp) treated as just another provider
         """
         ...
+
+    def last_api_used(self) -> Optional[str]:
+        """Return the last provider that satisfied a completion request."""
+        ...
