@@ -19,14 +19,14 @@ def _decision_log_process_writer(
     db_path: str,
     start: int,
     count: int,
-    errors: "multiprocessing.queues.Queue",
+    error_queue: "multiprocessing.queues.Queue",
 ) -> None:
     try:
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
             log.record("proc", "concurrent", f"item-{i}", "ok", "")
     except Exception as exc:  # pragma: no cover - captured for parent assertion
-        errors.put(repr(exc))
+        error_queue.put(repr(exc))
 
 
 class DecisionLogTest(unittest.TestCase):
@@ -47,15 +47,15 @@ class DecisionLogTest(unittest.TestCase):
 
     def test_concurrent_writes(self):
         ctx = multiprocessing.get_context("spawn")
-        errors = ctx.Queue()
-        per_process = 25
+        error_queue = ctx.Queue()
+        writes_per_process = 25
         p1 = ctx.Process(
             target=_decision_log_process_writer,
-            args=(str(self.db), 0, per_process, errors),
+            args=(str(self.db), 0, writes_per_process, error_queue),
         )
         p2 = ctx.Process(
             target=_decision_log_process_writer,
-            args=(str(self.db), per_process, per_process, errors),
+            args=(str(self.db), writes_per_process, writes_per_process, error_queue),
         )
         p1.start()
         p2.start()
@@ -64,10 +64,10 @@ class DecisionLogTest(unittest.TestCase):
         self.assertEqual(p1.exitcode, 0)
         self.assertEqual(p2.exitcode, 0)
         proc_errors = []
-        while not errors.empty():
-            proc_errors.append(errors.get())
+        while not error_queue.empty():
+            proc_errors.append(error_queue.get())
         self.assertEqual(proc_errors, [], f"process write errors occurred: {proc_errors}")
-        self.assertEqual(self.log.count(), per_process * 2)
+        self.assertEqual(self.log.count(), writes_per_process * 2)
 
 
 class RagStoreAdapterTest(unittest.TestCase):
