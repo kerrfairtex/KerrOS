@@ -1,0 +1,67 @@
+version: 1
+collection: kerros-fullstack-deploy
+last_updated: 2026-07-25
+tools:
+  - name: Vercel
+    repo: https://github.com/vercel/vercel
+    category: hosting
+    stack: [typescript, nextjs, nodejs]
+    status: adopt
+    notes: "Zero-config PaaS optimized for Next.js; global edge network, preview deployments."
+    last_reviewed: 2026-07-25
+
+  - name: Railway
+    repo: https://github.com/railwayapp/cli
+    category: hosting
+    stack: [typescript, nodejs, docker]
+    status: adopt
+    notes: "Simple PaaS for any Dockerfile or Nixpacks-compatible app; great DX and pricing."
+    last_reviewed: 2026-07-25
+
+  - name: Fly.io
+    repo: https://github.com/superfly/fly-dist
+    category: hosting
+    stack: [typescript, nodejs, docker]
+    status: adopt
+    notes: "Global anycast routing with Firecracker VMs; strong choice for latency-sensitive APIs."
+    last_reviewed: 2026-07-25
+
+  - name: Cloudflare Workers
+    repo: https://github.com/cloudflare/workers-sdk
+    category: edge-hosting
+    stack: [typescript, edge]
+    status: watch
+    notes: "V8-isolate edge runtime; use with Hono for globally distributed APIs."
+    last_reviewed: 2026-07-25
+
+  - name: Docker
+    repo: https://github.com/docker/cli
+    category: containerization
+    stack: [all]
+    status: adopt
+    notes: "Container standard; required for reproducible builds and self-hosted deployments."
+    last_reviewed: 2026-07-25
+
+  - name: GitHub Actions
+    repo: https://github.com/actions/toolkit
+    category: ci-cd
+    stack: [all]
+    status: adopt
+    notes: "Native CI/CD in GitHub; use for lint, test, build, and deploy pipelines."
+    last_reviewed: 2026-07-25
+
+  - name: Coolify
+    repo: https://github.com/coollabsio/coolify
+    category: self-hosted-paas
+    stack: [docker, nodejs]
+    status: watch
+    notes: "Open-source Heroku/Netlify alternative; self-host on your own VPS."
+    last_reviewed: 2026-07-25
+
+  - name: Dokku
+    repo: https://github.com/dokku/dokku
+    category: self-hosted-paas
+    stack: [docker, nodejs]
+    status: watch
+    notes: "Smallest PaaS; Heroku-style git push deploys on a single server."
+    last_reviewed: 2026-07-25

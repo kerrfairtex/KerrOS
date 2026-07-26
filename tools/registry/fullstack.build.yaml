@@ -1,0 +1,67 @@
+version: 1
+collection: kerros-fullstack-build
+last_updated: 2026-07-25
+tools:
+  - name: Vite
+    repo: https://github.com/vitejs/vite
+    category: bundler
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Fast ESM-based dev server and bundler; default choice for React/Vue SPA builds."
+    last_reviewed: 2026-07-25
+
+  - name: Turbopack
+    repo: https://github.com/vercel/turborepo
+    category: bundler
+    stack: [typescript, nextjs]
+    status: watch
+    notes: "Rust-based incremental bundler integrated into Next.js; replaces Webpack for Next apps."
+    last_reviewed: 2026-07-25
+
+  - name: esbuild
+    repo: https://github.com/evanw/esbuild
+    category: bundler
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Extremely fast Go-based bundler/transpiler; great as a library or standalone CLI."
+    last_reviewed: 2026-07-25
+
+  - name: tsup
+    repo: https://github.com/egoist/tsup
+    category: bundler
+    stack: [typescript]
+    status: adopt
+    notes: "Zero-config TypeScript library bundler powered by esbuild; ideal for npm package builds."
+    last_reviewed: 2026-07-25
+
+  - name: Turborepo
+    repo: https://github.com/vercel/turborepo
+    category: monorepo
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "High-performance monorepo build system with remote caching and task pipelines."
+    last_reviewed: 2026-07-25
+
+  - name: PNPM Workspaces
+    repo: https://github.com/pnpm/pnpm
+    category: package-manager
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Disk-efficient package manager with built-in workspace support; prefer over npm/yarn."
+    last_reviewed: 2026-07-25
+
+  - name: Nx
+    repo: https://github.com/nrwl/nx
+    category: monorepo
+    stack: [typescript, javascript]
+    status: watch
+    notes: "Extensible monorepo toolkit with code-gen, task scheduling, and smart rebuilds."
+    last_reviewed: 2026-07-25
+
+  - name: Bun
+    repo: https://github.com/oven-sh/bun
+    category: runtime
+    stack: [typescript, javascript]
+    status: watch
+    notes: "All-in-one JS runtime with built-in bundler, test runner, and package manager."
+    last_reviewed: 2026-07-25

@@ -1,0 +1,67 @@
+version: 1
+collection: kerros-fullstack-ui
+last_updated: 2026-07-25
+tools:
+  - name: shadcn/ui
+    repo: https://github.com/shadcn-ui/ui
+    category: component-library
+    stack: [typescript, react, tailwindcss]
+    status: adopt
+    notes: "Copy-paste component system built on Radix UI + Tailwind; fully ownable and customizable."
+    last_reviewed: 2026-07-25
+
+  - name: Radix UI
+    repo: https://github.com/radix-ui/primitives
+    category: component-library
+    stack: [typescript, react]
+    status: adopt
+    notes: "Unstyled, accessible primitives; the foundation of shadcn/ui."
+    last_reviewed: 2026-07-25
+
+  - name: Tailwind CSS
+    repo: https://github.com/tailwindlabs/tailwindcss
+    category: styling
+    stack: [typescript, javascript]
+    status: adopt
+    notes: "Utility-first CSS framework; standard styling layer for the KerrOS stack."
+    last_reviewed: 2026-07-25
+
+  - name: Framer Motion
+    repo: https://github.com/framer/motion
+    category: animation
+    stack: [typescript, react]
+    status: adopt
+    notes: "Production-ready animation library for React; declarative spring physics."
+    last_reviewed: 2026-07-25
+
+  - name: React Hook Form
+    repo: https://github.com/react-hook-form/react-hook-form
+    category: forms
+    stack: [typescript, react]
+    status: adopt
+    notes: "Performant, flexible forms with minimal re-renders; pairs well with Zod resolvers."
+    last_reviewed: 2026-07-25
+
+  - name: TanStack Query (React Query)
+    repo: https://github.com/TanStack/query
+    category: data-fetching
+    stack: [typescript, react]
+    status: adopt
+    notes: "Async state manager for server data; caching, background refetch, and optimistic updates."
+    last_reviewed: 2026-07-25
+
+  - name: Zustand
+    repo: https://github.com/pmndrs/zustand
+    category: state-management
+    stack: [typescript, react]
+    status: adopt
+    notes: "Minimal client-side state manager; prefer over Redux for most use cases."
+    last_reviewed: 2026-07-25
+
+  - name: Storybook
+    repo: https://github.com/storybookjs/storybook
+    category: component-dev
+    stack: [typescript, react]
+    status: watch
+    notes: "Component workshop for isolated UI development and visual testing."
+    last_reviewed: 2026-07-25

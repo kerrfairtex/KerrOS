@@ -1,0 +1,51 @@
+version: 1
+collection: kerros-fullstack-auth
+last_updated: 2026-07-25
+tools:
+  - name: Auth.js (NextAuth v5)
+    repo: https://github.com/nextauthjs/next-auth
+    category: auth
+    stack: [typescript, nextjs, nodejs]
+    status: adopt
+    notes: "Flexible open-source auth for Next.js and other frameworks; supports 50+ OAuth providers."
+    last_reviewed: 2026-07-25
+
+  - name: Clerk
+    repo: https://github.com/clerkinc/javascript
+    category: auth
+    stack: [typescript, nextjs, react]
+    status: adopt
+    notes: "Fully-managed auth with pre-built UI components; fastest path to production auth."
+    last_reviewed: 2026-07-25
+
+  - name: Lucia
+    repo: https://github.com/lucia-auth/lucia
+    category: auth
+    stack: [typescript, nodejs]
+    status: watch
+    notes: "Framework-agnostic auth library giving full control over sessions and credentials."
+    last_reviewed: 2026-07-25
+
+  - name: Better Auth
+    repo: https://github.com/better-auth/better-auth
+    category: auth
+    stack: [typescript, nodejs]
+    status: watch
+    notes: "Modern TypeScript auth library with plugin system; growing ecosystem."
+    last_reviewed: 2026-07-25
+
+  - name: Jose (JWT)
+    repo: https://github.com/panva/jose
+    category: auth
+    stack: [typescript, nodejs, edge]
+    status: adopt
+    notes: "Universal JWT/JWE/JWS library; use for manual token signing in edge runtimes."
+    last_reviewed: 2026-07-25
+
+  - name: Supabase Auth
+    repo: https://github.com/supabase/auth
+    category: auth
+    stack: [typescript, postgres]
+    status: adopt
+    notes: "Standalone auth service built into Supabase; supports email, OAuth, MFA."
+    last_reviewed: 2026-07-25

@@ -1,0 +1,67 @@
+version: 1
+collection: kerros-fullstack-database
+last_updated: 2026-07-25
+tools:
+  - name: Prisma
+    repo: https://github.com/prisma/prisma
+    category: orm
+    stack: [typescript, nodejs, postgres, mysql, sqlite]
+    status: adopt
+    notes: "Type-safe ORM with auto-generated client; excellent DX and migration tooling."
+    last_reviewed: 2026-07-25
+
+  - name: Drizzle ORM
+    repo: https://github.com/drizzle-team/drizzle-orm
+    category: orm
+    stack: [typescript, nodejs, postgres, mysql, sqlite]
+    status: adopt
+    notes: "Lightweight SQL-first ORM; great for edge runtimes and fine-grained query control."
+    last_reviewed: 2026-07-25
+
+  - name: Supabase
+    repo: https://github.com/supabase/supabase
+    category: backend-as-a-service
+    stack: [typescript, postgres]
+    status: adopt
+    notes: "Open-source Firebase alternative with Postgres, Auth, Storage, and Realtime."
+    last_reviewed: 2026-07-25
+
+  - name: PlanetScale (Vitess)
+    repo: https://github.com/planetscale/vitess-operator
+    category: database
+    stack: [mysql]
+    status: watch
+    notes: "Serverless MySQL with branching workflow; evaluate against Supabase per project needs."
+    last_reviewed: 2026-07-25
+
+  - name: Turso (libSQL)
+    repo: https://github.com/tursodatabase/libsql
+    category: database
+    stack: [typescript, sqlite, edge]
+    status: watch
+    notes: "Edge-distributed SQLite fork; pairs well with Drizzle for low-latency reads."
+    last_reviewed: 2026-07-25
+
+  - name: Redis (ioredis)
+    repo: https://github.com/redis/ioredis
+    category: cache
+    stack: [typescript, nodejs]
+    status: adopt
+    notes: "Battle-tested Redis client; use for caching, sessions, and pub/sub."
+    last_reviewed: 2026-07-25
+
+  - name: Upstash Redis
+    repo: https://github.com/upstash/upstash-redis
+    category: cache
+    stack: [typescript, edge]
+    status: watch
+    notes: "Serverless Redis over HTTP; ideal for edge/serverless environments."
+    last_reviewed: 2026-07-25
+
+  - name: Mongoose
+    repo: https://github.com/Automattic/mongoose
+    category: orm
+    stack: [typescript, nodejs, mongodb]
+    status: watch
+    notes: "Mature MongoDB ODM; prefer Prisma+Postgres for new projects unless NoSQL is required."
+    last_reviewed: 2026-07-25
