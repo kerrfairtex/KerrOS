@@ -7,8 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kernel.access import detect_tool, get_dispatch_port, memory_query, run_tool
+from kernel.access import detect_tool, get_dispatch_port, memory_query, memory_upsert, run_tool
 from kernel.boot import boot, shutdown
+from rag import store as rag_store
 from runtime.ipc import JsonLineClient, spawn_worker
 
 
@@ -125,6 +126,23 @@ class PortAccessTest(unittest.TestCase):
         hits = memory_query("security", top_k=2)
         self.assertIsInstance(hits, list)
 
+    def test_memory_access_facade_matches_store(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            old_db_path = rag_store.DB_PATH
+            rag_store.DB_PATH = str(Path(tmp) / "rag_store.db")
+            try:
+                rag_store._ensure_schema()
+                memory_upsert(
+                    "Python logging hardening guidance for secure audit trails and incident response.",
+                    "NIST_logging",
+                )
+                self.assertEqual(
+                    memory_query("logging audit trails", top_k=2),
+                    rag_store.search("logging audit trails", top_k=2),
+                )
+            finally:
+                rag_store.DB_PATH = old_db_path
+
 
 class CompletionCoordinatorTest(unittest.TestCase):
     def test_coordinator_import(self):
@@ -143,6 +161,58 @@ class CompletionCoordinatorTest(unittest.TestCase):
         self.assertTrue(len(w) >= 1)
         self.assertTrue(hasattr(kernel, "execute"))
         self.assertIs(CompletionRuntimeKernel, CompletionRuntimeCoordinator)
+
+
+class OrphanedCoreClusterTest(unittest.TestCase):
+    """KOS-015: Verify the orphaned core/ orchestration cluster has been removed."""
+
+    REMOVED_MODULES = [
+        "core.agent_gateway",
+        "core.agent_router",
+        "core.unified_agent_gateway",
+        "core.completion_activation",
+        "core.completion_orchestrator",
+        "core.completion_stack",
+    ]
+
+    def test_orphaned_modules_are_not_importable(self):
+        for module in self.REMOVED_MODULES:
+            with self.subTest(module=module):
+                with self.assertRaises(ImportError, msg=f"{module} should not exist"):
+                    __import__(module)
+
+    def test_orphaned_files_do_not_exist(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        for module in self.REMOVED_MODULES:
+            rel_path = module.replace(".", "/") + ".py"
+            full_path = repo_root / rel_path
+            self.assertFalse(
+                full_path.exists(),
+                msg=f"{rel_path} still present on disk",
+            )
+
+    def test_control_plane_loads_without_stack(self):
+        from core.completion_control_plane import CompletionControlPlane
+
+        cp = CompletionControlPlane()
+        status = cp.status()
+        self.assertIn("uptime", status)
+        self.assertNotIn("stack", status)
+
+    def test_agent_registry_sync_loads_without_gateway(self):
+        from core.agent_registry_sync import AgentRegistrySync
+
+        sync = AgentRegistrySync()
+        self.assertFalse(hasattr(sync, "gateway"))
+
+    def test_completion_runtime_loads_without_orchestrator(self):
+        from core.completion_runtime import CompletionRuntime
+
+        rt = CompletionRuntime()
+        self.assertFalse(hasattr(rt, "orchestrator"))
+        health = rt.health()
+        self.assertEqual(health["status"], "online")
+        self.assertNotIn("orchestrator", health)
 
 
 if __name__ == "__main__":

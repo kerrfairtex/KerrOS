@@ -12,6 +12,7 @@ from kernel.boot import boot, shutdown
 from kernel.decision_log import DecisionLog
 from adapters.memory.rag_store_adapter import RagStoreAdapter
 from adapters.tools.router_adapter import RouterAdapter
+from rag import store as rag_store
 from tools.scope_gate import check, arm_deploy, disarm_deploy
 
 
@@ -50,12 +51,41 @@ class DecisionLogTest(unittest.TestCase):
 
 
 class RagStoreAdapterTest(unittest.TestCase):
-    def test_query_returns_tuples(self):
+    def setUp(self):
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._old_db_path = rag_store.DB_PATH
+        rag_store.DB_PATH = str(Path(self._tmpdir.name) / "rag_store.db")
+        rag_store._ensure_schema()
+
+    def tearDown(self):
+        rag_store.DB_PATH = self._old_db_path
+        self._tmpdir.cleanup()
+
+    def test_query_matches_store_search(self):
+        rag_store.ingest_text(
+            "Security hardening guidance for SQL injection prevention and safe query handling.",
+            source="OWASP_Cheat_Sheet",
+        )
         adapter = RagStoreAdapter()
-        result = adapter.query("security", top_k=2)
-        self.assertIsInstance(result, list)
-        if result:
-            self.assertEqual(len(result[0]), 3)
+        self.assertEqual(
+            adapter.query("security query handling", top_k=2),
+            rag_store.search("security query handling", top_k=2),
+        )
+
+    def test_category_and_exact_id_queries_match_store(self):
+        rag_store.ingest_text(
+            "CVE-2026-9999 remote code execution vulnerability with kernel memory corruption details.",
+            source="CVE_feed",
+        )
+        adapter = RagStoreAdapter()
+        self.assertEqual(
+            adapter.search_by_category("remote code execution", "cve", top_k=2),
+            rag_store.search_by_category("remote code execution", "cve", top_k=2),
+        )
+        self.assertEqual(
+            adapter.search_exact_id("Tell me about CVE-2026-9999"),
+            rag_store.search_exact_id("Tell me about CVE-2026-9999"),
+        )
 
 
 class RouterAdapterTest(unittest.TestCase):

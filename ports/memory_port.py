@@ -10,7 +10,7 @@ from typing import Any, Protocol
 
 
 class MemoryPort(Protocol):
-    def query(self, text: str, *, top_k: int = 5) -> list[tuple[str, str, str]]:
+    def query(self, text: str, *, top_k: int = 5) -> list[tuple[int, str, str]]:
         """Search knowledge store. Returns (score, text, source) tuples."""
         ...
 
