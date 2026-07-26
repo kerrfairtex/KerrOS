@@ -1,0 +1,31 @@
+version: 1
+capabilities:
+  - name: "tool:exec"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["safe_commands"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      notes: "Shell execution requires safe_commands configuration."
+
+  - name: "tool:skills_list"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+
+  - name: "tool:skill_view"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+
+  - name: "tool:skill_manage"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: ["skills_workspace"]
+    setup_required: false
+    setup_state: "ready"

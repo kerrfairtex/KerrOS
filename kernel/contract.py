@@ -41,6 +41,7 @@ SERVICE_STORAGE_PORT = "storage_port"
 SERVICE_DATABASE_PORT = "database_port"
 SERVICE_SEARCH_PORT = "search_port"
 SERVICE_EMBEDDING_PORT = "embedding_port"
+SERVICE_CAPABILITY_REGISTRY = "capability_registry"
 
 # Port registration keys used during boot.
 PORT_LLM = SERVICE_LLM_PORT

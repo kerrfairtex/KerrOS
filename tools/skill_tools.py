@@ -19,11 +19,14 @@ under the synthetic category "tool_catalog".
 from __future__ import annotations
 
 import os
+import re
 import textwrap
 from pathlib import Path
 from typing import Any
 
 from tools.claw_tools import ToolResult, get_workspace
+
+SKILL_ID_RE = re.compile(r"^[a-z0-9_][a-z0-9_\-]{1,63}$")
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -138,6 +141,21 @@ def _find_skill(name: str) -> dict[str, str] | None:
     return None
 
 
+def _audit_skill(action: str, name: str, category: str) -> None:
+    try:
+        from kernel.decision_log import record_decision
+
+        record_decision(
+            "skill_manage",
+            "skill_change",
+            f"{category}/{name}",
+            action,
+            "",
+        )
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Public API — called by tools/registry.py dispatch
 # ---------------------------------------------------------------------------
@@ -248,10 +266,14 @@ def skill_manage(
         name = name.strip().replace(" ", "_").lower()
         if not name:
             return ToolResult(False, "skill_manage", error="name is required")
+        if not SKILL_ID_RE.match(name):
+            return ToolResult(False, "skill_manage", error=f"name must match {SKILL_ID_RE.pattern}")
 
         ws = get_workspace()
         skills_root = _skills_root()
         cat = (category or "custom").strip().replace(" ", "_").lower()
+        if not SKILL_ID_RE.match(cat):
+            return ToolResult(False, "skill_manage", error="invalid category format")
 
         # Prevent writes into tool_catalog (YAML files are read-only)
         if cat == "tool_catalog":
@@ -280,6 +302,7 @@ def skill_manage(
             is_new = not skill_path.exists()
             skill_path.write_text(body + "\n", encoding="utf-8")
             verb = "created" if is_new else "updated"
+            _audit_skill("save", name, cat)
             return ToolResult(
                 True,
                 "skill_manage",
@@ -301,6 +324,7 @@ def skill_manage(
                 return ToolResult(False, "skill_manage", error="tool_catalog skills are read-only.")
 
             target.unlink()
+            _audit_skill("delete", name, cat)
             return ToolResult(
                 True,
                 "skill_manage",

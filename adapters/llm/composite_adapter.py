@@ -10,25 +10,38 @@ Provider selection via kwargs provider_hint or KERROS_LLM_PROVIDER env.
 from __future__ import annotations
 
 import os
-from typing import Any, List, Optional
+from typing import Any, Optional
+
+from kernel.config import load_config
 
 
 _LOCAL_PROVIDERS = ("ollama", "vllm", "local")
+_UNIFIED_PROVIDERS = ("omniroute", "gateway", "unified")
 
 
 class CompositeLLMAdapter:
     """Routes completions to local or cloud adapters."""
 
     def __init__(self) -> None:
+        cfg = load_config().values
         self._cloud = None
+        self._omniroute = None
         self._ollama = None
         self._vllm = None
         self._last_api: str | None = None
-        self._default_provider = os.getenv("KERROS_LLM_PROVIDER", "cloud").lower()
+        self._default_provider = os.getenv(
+            "KERROS_LLM_PROVIDER",
+            str(cfg.get("llm_provider_default", "cloud")),
+        ).lower()
         self._local_first = os.getenv("KERROS_LOCAL_LLM", "").lower() in (
             "1",
             "true",
             "yes",
+        )
+        route_policy = str(cfg.get("llm_route_policy", "legacy_fallback")).strip().lower()
+        self._unified_first = (
+            os.getenv("KERROS_UNIFIED_FIRST", "").lower() in ("1", "true", "yes")
+            or route_policy == "unified_first"
         )
 
     def _get_cloud(self):
@@ -42,6 +55,12 @@ class CompositeLLMAdapter:
             from adapters.llm.ollama_adapter import OllamaAdapter
             self._ollama = OllamaAdapter()
         return self._ollama
+
+    def _get_omniroute(self):
+        if self._omniroute is None:
+            from adapters.llm.omniroute_adapter import OmniRouteAdapter
+            self._omniroute = OmniRouteAdapter()
+        return self._omniroute
 
     def _get_vllm(self):
         if self._vllm is None:
@@ -58,7 +77,7 @@ class CompositeLLMAdapter:
         self,
         prompt: str,
         system: Optional[str] = None,
-        history: Optional[List[dict]] = None,
+        history: Optional[list[dict[str, Any]]] = None,
         max_tokens: int = 1024,
         **kwargs: Any,
     ) -> str:
@@ -87,10 +106,17 @@ class CompositeLLMAdapter:
         raise RuntimeError("no LLM providers configured")
 
     def _build_chain(self, provider: str) -> list[tuple[str, Any]]:
+        def _unified_chain() -> list[tuple[str, Any]]:
+            return [("omniroute", self._get_omniroute()), ("cloud", self._get_cloud())]
+
+        if provider in _UNIFIED_PROVIDERS:
+            return _unified_chain()
         if provider == "ollama":
             return [("ollama", self._get_ollama()), ("cloud", self._get_cloud())]
         if provider == "vllm":
             return [("vllm", self._get_vllm()), ("cloud", self._get_cloud())]
+        if self._unified_first:
+            return _unified_chain()
         if provider in _LOCAL_PROVIDERS or self._local_first:
             return [
                 ("ollama", self._get_ollama()),
@@ -108,7 +134,9 @@ class CompositeLLMAdapter:
         return {
             "default_provider": self._default_provider,
             "local_first": self._local_first,
+            "unified_first": self._unified_first,
             "last_api": self._last_api,
+            "omniroute": self._get_omniroute().status(),
             "ollama": self._get_ollama().status(),
             "vllm": self._get_vllm().status(),
             "cloud": cloud_status,
