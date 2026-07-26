@@ -1,5 +1,7 @@
 """P1 backlog tests: decision log, adapters, watchdog."""
 
+from __future__ import annotations
+
 import os
 import multiprocessing
 import subprocess
@@ -19,7 +21,7 @@ def _decision_log_process_writer(
     db_path: str,
     start: int,
     count: int,
-    error_queue: "multiprocessing.queues.Queue",
+    error_queue: multiprocessing.Queue,
 ) -> None:
     try:
         log = DecisionLog(Path(db_path))
@@ -66,7 +68,7 @@ class DecisionLogTest(unittest.TestCase):
         proc_errors = []
         while not error_queue.empty():
             proc_errors.append(error_queue.get())
-        self.assertEqual(proc_errors, [], f"process write errors occurred: {proc_errors}")
+        self.assertEqual(proc_errors, [])
         self.assertEqual(self.log.count(), writes_per_process * 2)
 
 
