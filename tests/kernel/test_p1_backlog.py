@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from multiprocessing import Queue, get_context
+from multiprocessing import get_context
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
@@ -21,7 +21,7 @@ def _decision_log_process_writer(
     db_path: str,
     start: int,
     count: int,
-    error_queue: Queue,
+    error_queue: object,
 ) -> None:
     try:
         log = DecisionLog(Path(db_path))
