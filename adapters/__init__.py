@@ -1,11 +1,11 @@
 """Adapters package."""
 
 from importlib import import_module
-from threading import Lock
+from threading import RLock
 
 __all__ = ["llm"]
 
-_IMPORT_LOCK = Lock()
+_IMPORT_LOCK = RLock()
 
 
 def __getattr__(name):
