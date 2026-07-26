@@ -68,10 +68,10 @@ class RouterAdapterTest(unittest.TestCase):
     def test_detect_tool_parity_with_kernel_router(self):
         adapter = RouterAdapter()
         payload = {"text": "run ls", "bypass_gate": False}
-        self.assertEqual(
-            adapter.dispatch("detect_tool", payload),
-            kernel_router.detect_tool(payload["text"], bypass_gate=payload["bypass_gate"]),
-        )
+        actual = adapter.dispatch("detect_tool", payload)
+        expected = kernel_router.detect_tool(payload["text"], bypass_gate=payload["bypass_gate"])
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual[0], "bash")
 
     def test_run_tool_dispatch(self):
         adapter = RouterAdapter()
@@ -81,10 +81,10 @@ class RouterAdapterTest(unittest.TestCase):
     def test_detect_domain_parity_with_kernel_router(self):
         adapter = RouterAdapter()
         payload = "run nmap 8.8.8.8"
-        self.assertEqual(
-            adapter.dispatch("detect_domain", payload),
-            kernel_router.detect_domain(payload),
-        )
+        actual = adapter.dispatch("detect_domain", payload)
+        expected = kernel_router.detect_domain(payload)
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual, "network")
 
 
 class ScopeGateAuditTest(unittest.TestCase):
