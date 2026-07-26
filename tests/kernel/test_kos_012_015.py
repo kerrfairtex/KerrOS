@@ -36,6 +36,75 @@ class IsolatedExecutorTest(unittest.TestCase):
         client2.close()
 
 
+class IsolatedCodeExecutorRestartTest(unittest.TestCase):
+    """End-to-end: IsolatedCodeExecutor recovers from a worker crash and
+    the crash+restart is recorded in decision_log (KOS-012 DoD)."""
+
+    def setUp(self):
+        import kernel.decision_log as decision_log_module
+
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._orig_log = decision_log_module._log
+        decision_log_module._log = decision_log_module.DecisionLog(
+            Path(self._tmpdir.name) / "decisions.db"
+        )
+
+    def tearDown(self):
+        import kernel.decision_log as decision_log_module
+
+        decision_log_module._log = self._orig_log
+        self._tmpdir.cleanup()
+
+    def test_executor_restarts_after_crash_and_logs_decision(self):
+        from agents.code.isolated_executor import IsolatedCodeExecutor
+        from kernel.decision_log import get_decision_log
+        from runtime.ipc import IpcError
+
+        executor = IsolatedCodeExecutor()
+        try:
+            with tempfile.TemporaryDirectory() as workdir:
+                script = Path(workdir) / "ok.py"
+                script.write_text("print('hi')\n")
+
+                result = executor.run_and_verify(str(script))
+                self.assertTrue(result.get("ran"))
+                self.assertTrue(result.get("ok"))
+
+                pre_restart_ids = {
+                    r.id
+                    for r in get_decision_log().read_recent(limit=100)
+                }
+
+                # Simulate a crash inside the worker subprocess. IsolatedCodeExecutor
+                # has no public "send arbitrary method" API (by design — only
+                # run_and_verify is exposed), so this reaches into the internal
+                # client to trigger the same worker-death path run_and_verify hits.
+                with self.assertRaises(IpcError):
+                    executor._client.call("crash")
+
+                # The parent process must survive and transparently recover.
+                result2 = executor.run_and_verify(str(script))
+                self.assertTrue(result2.get("ran"))
+                self.assertTrue(result2.get("ok"))
+
+            records = get_decision_log().read_recent(limit=100)
+            new_records = [r for r in records if r.id not in pre_restart_ids]
+            restart_records = [
+                r for r in new_records
+                if r.actor == "code_executor" and r.decision_type == "worker_restart"
+            ]
+            self.assertEqual(
+                len(restart_records), 1,
+                "expected exactly one worker_restart decision to be logged",
+            )
+            self.assertEqual(restart_records[0].outcome, "restarted")
+            self.assertIn(
+                "agents.code.subprocess_runner", restart_records[0].input_summary
+            )
+        finally:
+            executor.close()
+
+
 class PortAccessTest(unittest.TestCase):
     def setUp(self):
         shutdown()
