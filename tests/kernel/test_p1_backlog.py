@@ -1,12 +1,11 @@
 """P1 backlog tests: decision log, adapters, watchdog."""
 
 import os
-import multiprocessing
 import subprocess
 import sys
 import tempfile
 import unittest
-from multiprocessing import Queue
+from multiprocessing import Queue, get_context
 from pathlib import Path
 
 from kernel.boot import boot, shutdown
@@ -27,7 +26,7 @@ def _decision_log_process_writer(
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
             log.record("proc", "concurrent", f"item-{i}", "ok", "")
-    except Exception as exc:  # pragma: no cover - error path tested via parent queue assertion
+    except Exception as exc:  # pragma: no cover - unexpected failure condition
         error_queue.put(str(exc))
 
 
@@ -48,7 +47,7 @@ class DecisionLogTest(unittest.TestCase):
         self.assertEqual(self.log.count(), 1)
 
     def test_concurrent_writes(self):
-        ctx = multiprocessing.get_context("spawn")
+        ctx = get_context("spawn")
         error_queue = ctx.Queue()
         writes_per_process = 25
         p1 = ctx.Process(
