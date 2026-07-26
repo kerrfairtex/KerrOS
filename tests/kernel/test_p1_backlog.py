@@ -1,10 +1,10 @@
 """P1 backlog tests: decision log, adapters, watchdog."""
 
 import os
+import multiprocessing
 import subprocess
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 
@@ -13,6 +13,15 @@ from kernel.decision_log import DecisionLog
 from adapters.memory.rag_store_adapter import RagStoreAdapter
 from adapters.tools.router_adapter import RouterAdapter
 from tools.scope_gate import check, arm_deploy, disarm_deploy
+
+
+def _decision_log_process_writer(db_path: str, start: int, count: int, errors) -> None:
+    try:
+        log = DecisionLog(Path(db_path))
+        for i in range(start, start + count):
+            log.record("proc", "concurrent", f"item-{i}", "ok", "")
+    except Exception as exc:  # pragma: no cover - captured for parent assertion
+        errors.put(repr(exc))
 
 
 class DecisionLogTest(unittest.TestCase):
@@ -32,21 +41,25 @@ class DecisionLogTest(unittest.TestCase):
         self.assertEqual(self.log.count(), 1)
 
     def test_concurrent_writes(self):
-        errors = []
-
-        def writer(i):
-            try:
-                self.log.record("t", "concurrent", f"item-{i}", "ok", "")
-            except Exception as e:
-                errors.append(e)
-
-        threads = [threading.Thread(target=writer, args=(i,)) for i in range(20)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        self.assertEqual(errors, [])
-        self.assertEqual(self.log.count(), 20)
+        ctx = multiprocessing.get_context("spawn")
+        errors = ctx.Queue()
+        per_process = 25
+        p1 = ctx.Process(
+            target=_decision_log_process_writer,
+            args=(str(self.db), 0, per_process, errors),
+        )
+        p2 = ctx.Process(
+            target=_decision_log_process_writer,
+            args=(str(self.db), per_process, per_process, errors),
+        )
+        p1.start()
+        p2.start()
+        p1.join()
+        p2.join()
+        self.assertEqual(p1.exitcode, 0)
+        self.assertEqual(p2.exitcode, 0)
+        self.assertTrue(errors.empty(), "process write errors occurred")
+        self.assertEqual(self.log.count(), per_process * 2)
 
 
 class RagStoreAdapterTest(unittest.TestCase):
