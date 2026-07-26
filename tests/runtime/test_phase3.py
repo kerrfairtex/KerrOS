@@ -164,7 +164,7 @@ class AdaptiveEngineLLMPortTest(unittest.TestCase):
         port.complete.assert_called_once_with("hi", max_tokens=5)
 
     @patch("builtins.print")
-    def test_online_generate_uses_port_complete_and_filters_history(self, mock_print):
+    def test_online_generate_filters_history(self, mock_print):
         from core.adaptive_engine import AdaptiveEngine
 
         port = MagicMock()
