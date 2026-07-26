@@ -9,6 +9,7 @@ _IMPORT_LOCK = Lock()
 
 
 def __getattr__(name):
+    """Lazily import adapter subpackages with a lock for safe concurrent access."""
     if name not in __all__:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     with _IMPORT_LOCK:
