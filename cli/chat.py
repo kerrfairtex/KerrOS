@@ -9,13 +9,14 @@ from core.thinking import needs_thinking
 from core.complete import generate_complete
 from memory.manager import (add_message, clear_session, init_session,
     get_history, get_recent, extract_and_learn, get_profile, update_profile)
-from rag.store import ingest_file, ingest_text
 from kernel.access import (
     detect_tool,
     run_tool,
     detect_domain,
     memory_query,
     memory_list_sources,
+    memory_upsert,
+    memory_ingest_file,
 )
 from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
@@ -609,11 +610,11 @@ def main():
                 print(f"  {GY}Available: small · large{R}")
 
         elif user.startswith("/learn "):
-            ingest_text(user[7:].strip(),"user_knowledge")
+            memory_upsert(user[7:].strip(), "user_knowledge")
             print(f"  {GR}[ ✓ ] Learned and stored{R}")
 
         elif user.startswith("/ingest "):
-            ingest_file(user[8:].strip())
+            memory_ingest_file(user[8:].strip())
 
         elif user=="/sources":
             srcs=memory_list_sources()
