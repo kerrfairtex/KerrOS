@@ -22,6 +22,7 @@ def _decision_log_process_writer(
     count: int,
     error_queue: Queue,
 ) -> None:
+    """Write a range of records from a child process and report failures to parent."""
     try:
         log = DecisionLog(Path(db_path))
         for i in range(start, start + count):
