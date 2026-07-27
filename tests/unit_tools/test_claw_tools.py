@@ -58,6 +58,11 @@ class ClawToolsTest(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertIn("hello", result.output)
 
+    def test_exec_rejects_shell_metacharacters(self):
+        result = call_tool("exec", {"command": "echo hello; whoami"})
+        self.assertFalse(result.ok)
+        self.assertIn("metacharacters", result.error)
+
     def test_path_traversal_blocked(self):
         result = call_tool("read", {"path": "../../../etc/passwd"})
         self.assertFalse(result.ok)

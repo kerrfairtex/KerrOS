@@ -1,6 +1,16 @@
 import re, subprocess, os, json, math, shutil
-from tools.command_gate import is_explicit_command
+
 from tools import fs_tool
+from tools.command_gate import is_explicit_command
+from tools.shell_utils import (
+    ShellCommandError,
+    grep_lines,
+    head_lines,
+    run_argv,
+    sanitize_target,
+    sanitize_token,
+    split_command,
+)
 
 BASE = os.path.expanduser("~/offline_ai")
 
@@ -303,61 +313,118 @@ def run_tool(tool, args):
     fn = dispatch.get(tool)
     return fn(args) if fn else "[Unknown tool]"
 
+def _run_argv(argv, timeout=15):
+    return run_argv(argv, timeout=timeout)
+
+
 def _run(cmd, timeout=15):
+    """Parse a simple command string and run without a shell."""
     try:
-        r = subprocess.run(cmd,shell=True,capture_output=True,text=True,timeout=timeout)
-        return (r.stdout or r.stderr or "[No output]").strip()[:2000]
-    except subprocess.TimeoutExpired: return "[Timeout]"
-    except Exception as e: return f"[Error: {e}]"
+        return _run_argv(split_command(cmd), timeout=timeout)
+    except ShellCommandError as exc:
+        return f"[Error: {exc}]"
+
+
+def _curl_headers(target: str, timeout: int = 8) -> str:
+    host = sanitize_target(target)
+    out = _run_argv(["curl", "-sI", f"https://{host}"], timeout=timeout)
+    if not out.strip() or out.startswith("[Error") or out.startswith("[Timeout"):
+        out = _run_argv(["curl", "-sI", f"http://{host}"], timeout=timeout)
+    return out
+
+
+def _openssl_cert_info(domain: str, timeout: int = 10, *, full: bool = False) -> str:
+    host = sanitize_target(domain, label="domain")
+    try:
+        proc = subprocess.run(
+            ["openssl", "s_client", "-connect", f"{host}:443"],
+            input="",
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        args = ["openssl", "x509", "-noout", "-text"] if full else [
+            "openssl", "x509", "-noout", "-subject", "-issuer", "-dates"
+        ]
+        cert = subprocess.run(
+            args,
+            input=proc.stdout or "",
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        return (cert.stdout or cert.stderr or "[No output]").strip()[:2000]
+    except subprocess.TimeoutExpired:
+        return "[Timeout]"
+    except Exception as exc:
+        return f"[Error: {exc}]"
 
 # ── Network ──────────────────────────────────────────────
 def _bash(cmd):
     base = cmd.strip().split()[0] if cmd.strip() else ""
     if base not in cfg().get("safe_commands",[]):
         return f"[BLOCKED] '{base}' not in safe list"
-    return _run(cmd)
+    try:
+        return _run_argv(split_command(cmd))
+    except ShellCommandError as exc:
+        return f"[Error: {exc}]"
 
-def _nmap(t): return _run(f"nmap -sV -T4 --top-ports 100 {t}",60) if shutil.which("nmap") else "[nmap: pkg install nmap]"
+def _nmap(t):
+    if not shutil.which("nmap"):
+        return "[nmap: pkg install nmap]"
+    return _run_argv(["nmap", "-sV", "-T4", "--top-ports", "100", sanitize_target(t)], 60)
 def _nmap_help(): return "[nmap] Usage: 'scan 192.168.1.1'\n⚠️ Only scan networks you own."
-def _ping(t): return _run(f"ping -c 4 {t}",10)
-def _traceroute(t): return _run(f"traceroute {t}",20) if shutil.which("traceroute") else "[pkg install traceroute]"
-def _nikto(t): return _run(f"nikto -h {t} -maxtime 60",90) if shutil.which("nikto") else "[nikto: pkg install nikto]"
-def _whois(d): return _run(f"whois {d}",10)
-def _dig(d): return _run(f"dig {d} +short",10)
+def _ping(t): return _run_argv(["ping", "-c", "4", sanitize_target(t)], 10)
+def _traceroute(t):
+    if not shutil.which("traceroute"):
+        return "[pkg install traceroute]"
+    return _run_argv(["traceroute", sanitize_target(t)], 20)
+def _nikto(t):
+    if not shutil.which("nikto"):
+        return "[nikto: pkg install nikto]"
+    return _run_argv(["nikto", "-h", sanitize_target(t), "-maxtime", "60"], 90)
+def _whois(d): return _run_argv(["whois", sanitize_target(d, label="domain")], 10)
+def _dig(d): return _run_argv(["dig", sanitize_target(d, label="domain"), "+short"], 10)
 
 # ── OSINT & Investigation ─────────────────────────────────
 def _osint(target):
     """Full OSINT profile: WHOIS + DNS + GeoIP + Headers + Cert"""
-    out = [f"=== OSINT REPORT: {target} ==="]
+    host = sanitize_target(target)
+    out = [f"=== OSINT REPORT: {host} ==="]
     out.append("--- WHOIS ---")
-    out.append(_run(f"whois {target}", 10))
+    out.append(_run_argv(["whois", host], 10))
     out.append("--- DNS RECORDS ---")
-    out.append(_run(f"dig {target} ANY +short", 10))
+    out.append(_run_argv(["dig", host, "ANY", "+short"], 10))
     out.append("--- IP GEOLOCATION ---")
-    out.append(_run(f"curl -s 'http://ip-api.com/json/{target}'", 8))
+    out.append(_run_argv(["curl", "-s", f"http://ip-api.com/json/{host}"], 8))
     out.append("--- HTTP HEADERS ---")
-    out.append(_run(f"curl -sI https://{target} 2>/dev/null || curl -sI http://{target}", 8))
+    out.append(_curl_headers(host, 8))
     out.append("--- SSL CERTIFICATE ---")
-    out.append(_run(f"echo | openssl s_client -connect {target}:443 2>/dev/null | openssl x509 -noout -subject -issuer -dates 2>/dev/null", 8))
+    out.append(_openssl_cert_info(host, 8))
     return "\n".join(out)[:2000]
 
 def _recon(target):
     """Quick recon: ping + DNS + WHOIS"""
-    out = [f"=== RECON: {target} ==="]
-    out.append(_run(f"ping -c 2 {target}", 8))
-    out.append(_run(f"dig {target} +short", 8))
-    out.append(_run(f"whois {target} | head -20", 8))
+    host = sanitize_target(target)
+    out = [f"=== RECON: {host} ==="]
+    out.append(_run_argv(["ping", "-c", "2", host], 8))
+    out.append(_run_argv(["dig", host, "+short"], 8))
+    out.append(head_lines(_run_argv(["whois", host], 8), 20))
     return "\n".join(out)[:2000]
 
 def _geoip(ip):
     """Geolocate an IP address"""
-    return _run(f"curl -s 'http://ip-api.com/json/{ip}'", 8)
+    return _run_argv(["curl", "-s", f"http://ip-api.com/json/{sanitize_target(ip, label='ip')}"], 8)
 
 def _geoint(target):
     """GEOINT: IP geolocation + ASN + network info"""
-    out = [f"=== GEOINT: {target} ==="]
-    out.append(_run(f"curl -s 'http://ip-api.com/json/{target}?fields=status,country,regionName,city,isp,org,as,lat,lon,query'", 8))
-    out.append(_run(f"curl -s 'https://ipapi.co/{target}/json/' 2>/dev/null | head -20", 8))
+    host = sanitize_target(target)
+    out = [f"=== GEOINT: {host} ==="]
+    out.append(_run_argv([
+        "curl", "-s",
+        f"http://ip-api.com/json/{host}?fields=status,country,regionName,city,isp,org,as,lat,lon,query",
+    ], 8))
+    out.append(head_lines(_run_argv(["curl", "-s", f"https://ipapi.co/{host}/json/"], 8), 20))
     return "\n".join(out)[:2000]
 
 def _metadata(filepath):
@@ -366,14 +433,14 @@ def _metadata(filepath):
     if not os.path.exists(filepath):
         return f"[File not found: {filepath}]"
     out = [f"=== METADATA: {filepath} ==="]
-    out.append(_run(f"file '{filepath}'"))
-    out.append(_run(f"ls -lah '{filepath}'"))
+    out.append(_run_argv(["file", filepath]))
+    out.append(_run_argv(["ls", "-lah", filepath]))
     out.append("--- STRINGS (first 30) ---")
-    out.append(_run(f"strings '{filepath}' | head -30"))
+    out.append(head_lines(_run_argv(["strings", filepath]), 30))
     if filepath.lower().endswith(('.jpg','.jpeg','.png','.tiff')):
         if shutil.which("exiftool"):
             out.append("--- EXIF ---")
-            out.append(_run(f"exiftool '{filepath}'", 10))
+            out.append(_run_argv(["exiftool", filepath], 10))
         else:
             out.append("[exiftool not installed: pkg install exiftool]")
     return "\n".join(out)[:2000]
@@ -381,9 +448,9 @@ def _metadata(filepath):
 def _headers(url):
     """Analyze HTTP response headers"""
     out = [f"=== HTTP HEADERS: {url} ==="]
-    out.append(_run(f"curl -sI '{url}'", 10))
+    result = _run_argv(["curl", "-sI", url], 10)
+    out.append(result)
     out.append("--- Security Headers Check ---")
-    result = _run(f"curl -sI '{url}'", 10)
     checks = ["Strict-Transport-Security","X-Frame-Options","X-Content-Type-Options",
               "Content-Security-Policy","X-XSS-Protection","Referrer-Policy"]
     for h in checks:
@@ -394,48 +461,52 @@ def _headers(url):
 def _cert(domain):
     """SSL certificate analysis"""
     domain = re.sub(r'https?://', '', domain).split('/')[0]
-    out = [f"=== SSL CERT: {domain} ==="]
-    out.append(_run(f"echo | openssl s_client -connect {domain}:443 2>/dev/null | openssl x509 -noout -text 2>/dev/null | head -40", 10))
+    host = sanitize_target(domain, label="domain")
+    out = [f"=== SSL CERT: {host} ==="]
+    out.append(head_lines(_openssl_cert_info(host, 10, full=True), 40))
     return "\n".join(out)[:2000]
 
 def _dnsenum(domain):
     """DNS enumeration: A, MX, NS, TXT, CNAME records"""
-    out = [f"=== DNS ENUM: {domain} ==="]
+    host = sanitize_target(domain, label="domain")
+    out = [f"=== DNS ENUM: {host} ==="]
     for rtype in ["A","MX","NS","TXT","CNAME","AAAA"]:
-        result = _run(f"dig {domain} {rtype} +short", 8)
+        result = _run_argv(["dig", host, rtype, "+short"], 8)
         if result and result != "[No output]":
             out.append(f"--- {rtype} ---\n{result}")
     return "\n".join(out)[:2000]
 
 def _reversedns(target):
     """Reverse DNS lookup"""
-    out = [f"=== REVERSE DNS: {target} ==="]
-    out.append(_run(f"dig -x {target} +short", 8))
-    out.append(_run(f"host {target}", 8))
+    host = sanitize_target(target)
+    out = [f"=== REVERSE DNS: {host} ==="]
+    out.append(_run_argv(["dig", "-x", host, "+short"], 8))
+    out.append(_run_argv(["host", host], 8))
     return "\n".join(out)[:2000]
 
 def _email_osint(email):
     """Email OSINT: domain analysis + MX records"""
     domain = email.split("@")[-1] if "@" in email else email
+    host = sanitize_target(domain, label="domain")
     out = [f"=== EMAIL OSINT: {email} ==="]
-    out.append(f"Domain: {domain}")
+    out.append(f"Domain: {host}")
     out.append("--- MX Records ---")
-    out.append(_run(f"dig {domain} MX +short", 8))
+    out.append(_run_argv(["dig", host, "MX", "+short"], 8))
     out.append("--- Domain WHOIS ---")
-    out.append(_run(f"whois {domain} | head -20", 8))
+    out.append(head_lines(_run_argv(["whois", host], 8), 20))
     out.append("--- SPF/DMARC Records ---")
-    out.append(_run(f"dig {domain} TXT +short", 8))
+    out.append(_run_argv(["dig", host, "TXT", "+short"], 8))
     return "\n".join(out)[:2000]
 
 def _sigint(target):
     """SIGINT: network traffic analysis on interface or host"""
     out = [f"=== SIGINT: {target} ==="]
     out.append("--- Active Connections ---")
-    out.append(_run("ss -tunap | head -20", 8))
+    out.append(head_lines(_run_argv(["ss", "-tunap"], 8), 20))
     out.append("--- ARP Table ---")
-    out.append(_run("arp -a", 8))
+    out.append(_run_argv(["arp", "-a"], 8))
     out.append("--- Network Interfaces ---")
-    out.append(_run("ip addr show", 8))
+    out.append(_run_argv(["ip", "addr", "show"], 8))
     return "\n".join(out)[:2000]
 
 def _sigint_help():
@@ -483,13 +554,16 @@ def _fake_detect(target):
     if target.startswith("http"):
         out.append("--- Domain Age & Registration ---")
         domain = re.sub(r'https?://', '', target).split('/')[0]
-        out.append(_run(f"whois {domain} | grep -i 'creation\\|created\\|registered\\|expir'", 8))
+        host = sanitize_target(domain, label="domain")
+        whois_out = _run_argv(["whois", host], 8)
+        out.append(grep_lines(whois_out, r"creation|created|registered|expir"))
         out.append("--- SSL Certificate ---")
-        out.append(_run(f"echo | openssl s_client -connect {domain}:443 2>/dev/null | openssl x509 -noout -subject -issuer 2>/dev/null", 8))
+        out.append(_openssl_cert_info(host, 8))
         out.append("--- DNS Records ---")
-        out.append(_run(f"dig {domain} +short", 8))
+        out.append(_run_argv(["dig", host, "+short"], 8))
         out.append("--- Redirects ---")
-        out.append(_run(f"curl -sI '{target}' | grep -i 'location\\|server'", 8))
+        headers = _run_argv(["curl", "-sI", target], 8)
+        out.append(grep_lines(headers, r"location|server"))
     else:
         out.append("Tip: provide a URL for full fake site analysis")
         out.append("Manual checks: domain age, SSL issuer, WHOIS privacy, typosquatting")
@@ -498,13 +572,15 @@ def _fake_detect(target):
 def _verify_source(url):
     """Verify credibility of a news source or website"""
     domain = re.sub(r'https?://', '', url).split('/')[0]
+    host = sanitize_target(domain, label="domain")
     out = [f"=== SOURCE VERIFICATION: {url} ==="]
     out.append("--- Domain Info ---")
-    out.append(_run(f"whois {domain} | grep -i 'creation\\|registrar\\|country\\|name'", 8))
+    whois_out = _run_argv(["whois", host], 8)
+    out.append(grep_lines(whois_out, r"creation|registrar|country|name"))
     out.append("--- DNS ---")
-    out.append(_run(f"dig {domain} +short", 8))
+    out.append(_run_argv(["dig", host, "+short"], 8))
     out.append("--- HTTP Headers ---")
-    out.append(_run(f"curl -sI '{url}' | head -15", 8))
+    out.append(head_lines(_run_argv(["curl", "-sI", url], 8), 15))
     out.append("""--- Manual Verification Checklist ---
 ✅ Check domain age (older = more credible)
 ✅ Look for About/Contact page
@@ -706,18 +782,42 @@ def _verify_identity(name):
 
 # ── Defensive/Diagnostic ──────────────────────────────────
 def _netstat():
-    return _run("ss -tunap 2>/dev/null || netstat -tunap 2>/dev/null | head -30", 10)
+    out = _run_argv(["ss", "-tunap"], 10)
+    if not out.strip() or out.startswith("[Error") or out.startswith("[Timeout"):
+        out = _run_argv(["netstat", "-tunap"], 10)
+    return head_lines(out, 30)
 
 def _speedtest():
-    return _run("curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 - --simple 2>/dev/null || curl -s 'https://speed.cloudflare.com/__down?bytes=1000000' -o /dev/null -w 'Download: %{speed_download} bytes/sec\nTime: %{time_total}s\n'", 30)
+    out = _run_argv([
+        "curl", "-s",
+        "https://speed.cloudflare.com/__down?bytes=1000000",
+        "-o", "/dev/null",
+        "-w", "Download: %{speed_download} bytes/sec\nTime: %{time_total}s\n",
+    ], 30)
+    return out or "[speedtest unavailable]"
 
 # ── Hardware ──────────────────────────────────────────────
 def _esptool_help(): return "ESPTool:\n  pip install esptool\n  esptool.py --port /dev/ttyUSB0 flash_id\n  esptool.py --port /dev/ttyUSB0 read_flash 0 ALL backup.bin"
 def _mikrotik_help(): return "MikroTik:\n  SSH: run ssh admin@192.168.88.1\n  API: pip install librouteros\n  Routersploit: git clone https://github.com/threat9/routersploit"
-def _modem(q): return _run('curl -s "http://192.168.254.254/goform/goform_get_cmd_process?cmd=modem_main_state,sim_lock_status"',5)
+def _modem(q):
+    return _run_argv([
+        "curl", "-s",
+        "http://192.168.254.254/goform/goform_get_cmd_process?cmd=modem_main_state,sim_lock_status",
+    ], 5)
 
 # ── System ────────────────────────────────────────────────
-def _sysinfo(): return _run("free -m | grep Mem && df -h /data | tail -1 && ip addr | grep 'inet ' | head -3")
+def _sysinfo():
+    lines = []
+    mem = _run_argv(["free", "-m"], 10)
+    mem_line = next((l for l in mem.splitlines() if l.startswith("Mem") or "Mem:" in l), "")
+    if mem_line:
+        lines.append(mem_line)
+    df = _run_argv(["df", "-h", "/data"], 10)
+    if df.splitlines():
+        lines.append(df.splitlines()[-1])
+    ip_out = _run_argv(["ip", "addr", "show"], 10)
+    lines.extend([l for l in ip_out.splitlines() if "inet " in l][:3])
+    return "\n".join(lines) if lines else "[No output]"
 def _calc(e):
     try: return f"= {eval(e.replace('^','**'),{'__builtins__':{}},{'math':math})}"
     except: return "[Invalid expression]"
@@ -946,39 +1046,43 @@ def _verify_business(name):
 
 # ── DevOps / Deploy pipeline ─────────────────────────────
 def _github_create_repo(args):
-    reponame = args.strip()
+    reponame = sanitize_token(args.strip(), label="repo name")
     if not reponame: return "[Usage: create repo <name>]"
     if not shutil.which("gh"): return "[gh CLI not installed: pkg install gh]"
-    return _run(f"gh repo create {reponame} --private --source=. --push", 30)
+    return _run_argv(["gh", "repo", "create", reponame, "--private", "--source=.", "--push"], 30)
 
 def _github_push(args):
-    branch = args.strip() or "main"
-    return _run(f"git push origin {branch}", 30)
+    branch = sanitize_token((args.strip() or "main"), label="branch")
+    return _run_argv(["git", "push", "origin", branch], 30)
 
 def _supabase_migrate(args):
     if not shutil.which("supabase"): return "[supabase CLI not installed]"
-    return _run("supabase db push", 30)
+    return _run_argv(["supabase", "db", "push"], 30)
 
 def _vercel_deploy(args):
     if not shutil.which("vercel"): return "[vercel CLI not installed]"
-    flag = "--prod" if "prod" in args.lower() else ""
-    return _run(f"vercel deploy {flag} --yes", 90)
+    argv = ["vercel", "deploy", "--yes"]
+    if "prod" in args.lower():
+        argv.insert(2, "--prod")
+    return _run_argv(argv, 90)
 
 def _netlify_deploy(args):
     if not shutil.which("netlify"): return "[netlify CLI not installed]"
-    flag = "--prod" if "prod" in args.lower() else ""
-    return _run(f"netlify deploy {flag}", 90)
+    argv = ["netlify", "deploy"]
+    if "prod" in args.lower():
+        argv.append("--prod")
+    return _run_argv(argv, 90)
 
 def _railway_deploy(args):
     if not shutil.which("railway"): return "[railway CLI not installed]"
-    return _run("railway up", 90)
+    return _run_argv(["railway", "up"], 90)
 
 def _cloudflare_deploy(args):
     if not shutil.which("wrangler"): return "[wrangler CLI not installed]"
-    return _run("wrangler deploy", 60)
+    return _run_argv(["wrangler", "deploy"], 60)
 
 def _stripe_trigger(args):
-    event = args.strip()
+    event = sanitize_token(args.strip(), label="event")
     if not event: return "[Usage: stripe trigger <event_name>]"
     if not shutil.which("stripe"): return "[stripe CLI not installed]"
-    return _run(f"stripe trigger {event}", 20)
+    return _run_argv(["stripe", "trigger", event], 20)
