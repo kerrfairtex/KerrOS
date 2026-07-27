@@ -3,15 +3,20 @@ import logging
 core/multi_api.py
 =================
 E.U.T Multi-API Engine — KerrOS v2.0
-Smart routing across 8 APIs with fallback chain.
+Smart routing across APIs with fallback chain.
 
 Routing:
-  coding/math  → DeepSeek → NVIDIA → Groq
-  research     → NVIDIA Llama-405B → OpenRouter → Groq
-  reasoning    → Cohere → OpenRouter → Groq
+  coding/math  → DeepSeek → Kimi → NVIDIA → Groq
+  research     → NVIDIA Llama-405B → Hunyuan → OpenRouter → Groq
+  reasoning    → Anthropic → Kimi → Cohere → OpenRouter → Groq
   teaching     → HuggingFace → Groq
-  chat         → Groq (fastest)
+  chat         → Groq → LiteLLM → OpenRouter
   offline      → Local Qwen
+
+Provider tiers (Sol/Terra/Luna routing aliases):
+  Sol  (fast)     → Groq, Cerebras
+  Terra (balanced) → DeepSeek, Kimi, OpenRouter, LiteLLM
+  Luna (heavy)    → Anthropic, Hunyuan, NVIDIA
 """
 
 import os, requests
@@ -34,6 +39,10 @@ OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY", "")
 NVIDIA_KEY     = os.getenv("NVIDIA_API_KEY", "")
 HF_KEY         = os.getenv("HUGGINGFACE_API_KEY", "")
 COHERE_KEY     = os.getenv("COHERE_API_KEY", "")
+KIMI_KEY       = os.getenv("KIMI_API_KEY", "")
+HUNYUAN_KEY    = os.getenv("HUNYUAN_API_KEY", "")
+LITELLM_URL    = os.getenv("LITELLM_ENDPOINT", "")
+LITELLM_KEY    = os.getenv("LITELLM_API_KEY", "")
 
 # ── Task Detection ────────────────────────────────────────
 def detect_task(text):
@@ -175,6 +184,53 @@ def call_gemini(messages, max_tokens=1024):
         return data["candidates"][0]["content"]["parts"][0]["text"], None
     except Exception as e: return None, str(e)
 
+def call_kimi(messages, model="moonshot-v1-32k", max_tokens=1024):
+    """Moonshot AI (Kimi) — strong at coding, long-context reasoning."""
+    if not KIMI_KEY: return None, "No key"
+    try:
+        url = "https://api.moonshot.cn/v1/chat/completions"
+        headers = {"Authorization": f"******",
+                   "Content-Type": "application/json"}
+        body = {"model": model, "messages": messages,
+                "max_tokens": max_tokens, "stream": False}
+        r = requests.post(url, headers=headers, json=body, timeout=60)
+        data = r.json()
+        if "choices" not in data: return None, str(data)
+        return data["choices"][0]["message"]["content"], None
+    except Exception as e: return None, str(e)
+
+def call_hunyuan(messages, model="hunyuan-turbos", max_tokens=1024):
+    """Tencent Hunyuan — strong at research and multilingual tasks."""
+    if not HUNYUAN_KEY: return None, "No key"
+    try:
+        url = "https://api.hunyuan.cloud.tencent.com/v1/chat/completions"
+        headers = {"Authorization": f"******",
+                   "Content-Type": "application/json"}
+        body = {"model": model, "messages": messages,
+                "max_tokens": max_tokens, "stream": False}
+        r = requests.post(url, headers=headers, json=body, timeout=60)
+        data = r.json()
+        if "choices" not in data: return None, str(data)
+        return data["choices"][0]["message"]["content"], None
+    except Exception as e: return None, str(e)
+
+def call_litellm(messages, model=None, max_tokens=1024):
+    """LiteLLM local proxy — routes to 100+ providers via OpenAI-compat API."""
+    if not LITELLM_URL: return None, "No endpoint"
+    try:
+        url = f"{LITELLM_URL.rstrip('/')}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if LITELLM_KEY:
+            headers["Authorization"] = f"******"
+        body = {"messages": messages, "max_tokens": max_tokens, "stream": False}
+        if model:
+            body["model"] = model
+        r = requests.post(url, headers=headers, json=body, timeout=120)
+        data = r.json()
+        if "choices" not in data: return None, str(data)
+        return data["choices"][0]["message"]["content"], None
+    except Exception as e: return None, str(e)
+
 # ── Main Engine ───────────────────────────────────────────
 
 class MultiAPIEngine:
@@ -188,10 +244,13 @@ class MultiAPIEngine:
         ("Anthropic",        lambda messages, mt: call_anthropic(messages, max_tokens=mt)),
         ("NVIDIA-Llama405B", lambda messages, mt: call_nvidia(messages, max_tokens=mt)),
         ("DeepSeek",         lambda messages, mt: call_deepseek(messages, mt)),
+        ("Kimi",             lambda messages, mt: call_kimi(messages, max_tokens=mt)),
+        ("Hunyuan",          lambda messages, mt: call_hunyuan(messages, max_tokens=mt)),
         ("Cohere",           lambda messages, mt: call_cohere(messages, mt)),
         ("OpenRouter",       lambda messages, mt: call_openrouter(messages, max_tokens=mt)),
         ("HuggingFace",      lambda messages, mt: call_huggingface(messages, max_tokens=mt)),
         ("Gemini",           lambda messages, mt: call_gemini(messages, mt)),
+        ("LiteLLM",          lambda messages, mt: call_litellm(messages, max_tokens=mt)),
     ]
 
     def _is_permanent_error(self, err):
@@ -243,12 +302,14 @@ class MultiAPIEngine:
         if task in ("coding", "math"):
             chain = [
                 ("DeepSeek",         lambda: call_deepseek(messages, max_tokens)),
+                ("Kimi",             lambda: call_kimi(messages, max_tokens=max_tokens)),
                 ("NVIDIA-Llama405B", lambda: call_nvidia(messages, max_tokens=max_tokens)),
                 ("Groq",             lambda: call_groq(messages, max_tokens=max_tokens)),
             ]
         elif task == "research":
             chain = [
                 ("NVIDIA-Llama405B", lambda: call_nvidia(messages, max_tokens=max_tokens)),
+                ("Hunyuan",          lambda: call_hunyuan(messages, max_tokens=max_tokens)),
                 ("OpenRouter",       lambda: call_openrouter(messages, max_tokens=max_tokens)),
                 ("Groq",             lambda: call_groq(messages, max_tokens=max_tokens)),
             ]
@@ -260,6 +321,7 @@ class MultiAPIEngine:
         elif task == "reasoning":
             chain = [
                 ("Anthropic",        lambda: call_anthropic(messages, max_tokens=max_tokens)),
+                ("Kimi",             lambda: call_kimi(messages, max_tokens=max_tokens)),
                 ("Cohere",           lambda: call_cohere(messages, max_tokens)),
                 ("OpenRouter",       lambda: call_openrouter(messages, max_tokens=max_tokens)),
                 ("Groq",             lambda: call_groq(messages, max_tokens=max_tokens)),
@@ -267,6 +329,7 @@ class MultiAPIEngine:
         else:  # chat
             chain = [
                 ("Groq",             lambda: call_groq(messages, max_tokens=max_tokens)),
+                ("LiteLLM",          lambda: call_litellm(messages, max_tokens=max_tokens)),
                 ("OpenRouter",       lambda: call_openrouter(messages, max_tokens=max_tokens)),
             ]
 
@@ -307,9 +370,12 @@ class MultiAPIEngine:
             "groq":       bool(GROQ_KEY),
             "nvidia":     bool(NVIDIA_KEY),
             "deepseek":   bool(DEEPSEEK_KEY),
+            "kimi":       bool(KIMI_KEY),
+            "hunyuan":    bool(HUNYUAN_KEY),
             "cohere":     bool(COHERE_KEY),
             "huggingface":bool(HF_KEY),
             "openrouter": bool(OPENROUTER_KEY),
             "anthropic":  bool(ANTHROPIC_KEY),
             "gemini":     bool(GEMINI_KEY),
+            "litellm":    bool(LITELLM_URL),
         }

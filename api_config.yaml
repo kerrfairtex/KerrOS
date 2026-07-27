@@ -13,18 +13,35 @@ llm_cloud:
   openrouter:  { env: OPENROUTER_API_KEY,  base_url: "https://openrouter.ai/api/v1", model: "auto" }
   huggingface: { env: HUGGINGFACE_API_KEY, base_url: "https://api-inference.huggingface.co" }
   # cerebras/sambanova model catalogs rotate often — verify before relying on a
-  # hardcoded id: curl $base_url/models -H "Authorization: Bearer $KEY"
+  # hardcoded id: curl $base_url/models -H "Authorization: ******"
   cerebras:    { env: CEREBRAS_API_KEY,    base_url: "https://api.cerebras.ai/v1", model: "REPLACE_ME" }
   sambanova:   { env: SAMBANOVA_API_KEY,   base_url: "https://api.sambanova.ai/v1", model: "REPLACE_ME" }
   asi_one:     { env: ASI_ONE_KEY,         base_url: "https://api.asi1.ai/v1" }
+  # Kimi (Moonshot AI) — strong at coding, long-context, and reasoning tasks
+  kimi:        { env: KIMI_API_KEY,        base_url: "https://api.moonshot.cn/v1", model: "moonshot-v1-32k" }
+  # Tencent Hunyuan — research, multilingual, and long-context tasks
+  hunyuan:     { env: HUNYUAN_API_KEY,     base_url: "https://api.hunyuan.cloud.tencent.com/v1", model: "hunyuan-turbos" }
+  # Dyad AI
+  dyad:        { env: DYAD_API_KEY,        base_url: "https://api.dyad.sh/v1", model: "dyad-1" }
+  # Verge AI
+  verge_ai:    { env: VERGE_AI_KEY,        base_url: "https://api.verge.ai/v1", model: "verge-1" }
+  # CodX AI coding assistant
+  codx:        { env: CODX_API_KEY,        base_url: "https://api.codx.ai/v1", model: "codx-pro" }
 
 llm_local:
-  ollama:      { env: OLLAMA_ENDPOINT,          default: "http://localhost:11434/v1" }
-  lm_studio:   { env: LM_STUDIO_ENDPOINT,       default: "http://localhost:1234/v1" }
-  vllm:        { env: VLLM_ENDPOINT,            default: "http://localhost:8000/v1" }
+  ollama:      { env: OLLAMA_ENDPOINT,           default: "http://localhost:11434/v1" }
+  lm_studio:   { env: LM_STUDIO_ENDPOINT,        default: "http://localhost:1234/v1" }
+  vllm:        { env: VLLM_ENDPOINT,             default: "http://localhost:8000/v1" }
   llama_cpp:   { env: LLAMA_CPP_SERVER_ENDPOINT, default: "http://localhost:8080/v1" }
-  kobold_cpp:  { env: KOBOLD_CPP_ENDPOINT,      default: "http://localhost:5001/v1" }
-  local_ai:    { env: LOCAL_AI_ENDPOINT,        default: "http://localhost:8080/v1" }
+  kobold_cpp:  { env: KOBOLD_CPP_ENDPOINT,       default: "http://localhost:5001/v1" }
+  local_ai:    { env: LOCAL_AI_ENDPOINT,         default: "http://localhost:8080/v1" }
+  # LiteLLM proxy — OpenAI-compatible gateway to 100+ providers
+  # Run: litellm --model gpt-4o  (or any supported model string)
+  litellm:     { env: LITELLM_ENDPOINT,          default: "http://localhost:4000/v1" }
+  # Quantized model server (llama.cpp / GGUF models)
+  quant:       { env: QUANT_ENDPOINT,            default: "http://localhost:8081/v1" }
+  # NousResearch Hermes models via Ollama (pull: ollama pull hermes3)
+  hermes:      { env: HERMES_ENDPOINT,           default: "http://localhost:11434/v1", model: "hermes3" }
 
 # Priority order for engine.py fallback chain (edit freely)
 fallback_chain:
@@ -32,12 +49,15 @@ fallback_chain:
   - nvidia_nim
   - cerebras
   - sambanova
-  - openrouter
+  - kimi
   - deepseek
+  - hunyuan
+  - openrouter
   - gemini
   - cohere
   - anthropic
   - openai
+  - litellm
   - ollama
   - lm_studio
   - vllm
@@ -45,13 +65,32 @@ fallback_chain:
   - kobold_cpp
   - local_ai
 
+# Sol / Terra / Luna — KerrOS routing tier aliases
+# Reference these in routing config to target a capability tier rather than a
+# specific provider.  The engine resolves the tier to its member providers in
+# priority order and applies the normal fallback logic within the tier.
+routing_tiers:
+  sol:
+    description: "Fast / lightweight tier — lowest latency, cost-efficient"
+    providers:   [groq, cerebras, litellm]
+  terra:
+    description: "Balanced tier — capability + speed tradeoff"
+    providers:   [deepseek, kimi, openrouter, litellm]
+  luna:
+    description: "Heavy / capable tier — maximum quality for complex tasks"
+    providers:   [anthropic, hunyuan, nvidia_nim]
+
 vector_db:
-  milvus:  { env: MILVUS_ENDPOINT,  default: "http://localhost:19530" }
-  qdrant:  { env: QDRANT_ENDPOINT,  default: "http://localhost:6333" }
-  chroma:  { env: CHROMA_DB_ENDPOINT, default: "http://localhost:8000" }
+  milvus:   { env: MILVUS_ENDPOINT,    default: "http://localhost:19530" }
+  qdrant:   { env: QDRANT_ENDPOINT,    default: "http://localhost:6333" }
+  chroma:   { env: CHROMA_DB_ENDPOINT, default: "http://localhost:8000" }
+  # pgvector — PostgreSQL with the pgvector extension
+  # Install: CREATE EXTENSION IF NOT EXISTS vector;
+  pgvector: { env: PGVECTOR_DB_URL,    default: "******localhost:5432/vectordb",
+              notes: "Requires pgvector extension installed in PostgreSQL" }
 
 database:
-  postgresql: { env: LOCAL_POSTGRESQL, default: "postgresql://postgres:postgres@localhost:5432/barmm_db" }
+  postgresql: { env: LOCAL_POSTGRESQL, default: "******localhost:5432/barmm_db" }
   snowflake:
     pat_env: SNOWFLAKE_PAT_KEY
     endpoint_env: SNOWFLAKE_PAT_ENDPOINT
@@ -75,6 +114,68 @@ search_and_research:
     graph:           { env: SEMANTIC_SCHOLAR_GRAPH,           default: "https://api.semanticscholar.org/graph/v1" }
     recommendations: { env: SEMANTIC_SCHOLAR_RECOMMENDATIONS, default: "https://api.semanticscholar.org/recommendations/v1" }
     datasets:        { env: SEMANTIC_SCHOLAR_DATASETS,        default: "https://api.semanticscholar.org/datasets/v1" }
+
+image_generation:
+  stable_diffusion:
+    # Automatic1111 WebUI — most widely deployed SD frontend
+    automatic1111: { env: SD_A1111_ENDPOINT,   default: "http://localhost:7860",
+                     api_path: "/sdapi/v1/txt2img" }
+    # ComfyUI — node-based workflow engine for SD
+    comfyui:       { env: SD_COMFYUI_ENDPOINT, default: "http://localhost:8188",
+                     api_path: "/prompt" }
+    # Switch between backends: SD_BACKEND=automatic1111 (default) | comfyui
+    backend_env: SD_BACKEND
+
+tts:
+  # Chatterbox — Resemble AI open-source TTS (local inference)
+  # Repo: https://github.com/resemble-ai/chatterbox
+  # Run:  python -m chatterbox.server --port 8055
+  chatterbox: { env: CHATTERBOX_ENDPOINT, default: "http://localhost:8055",
+                api_key_env: CHATTERBOX_API_KEY }
+
+# Coding agents / AI pair programmers (CLI tools, not API services)
+# These tools consume LLM provider keys configured elsewhere in this file.
+coding_agents:
+  aider:
+    notes: "AI pair programmer in your terminal. pip install aider-chat"
+    model_env: AIDER_MODEL
+    docs: "https://aider.chat"
+  cline:
+    notes: "VS Code extension — AI coding agent. Configures its own LLM backend."
+    docs: "https://github.com/cline/cline"
+  goose:
+    notes: "Block's open-source AI agent. pip install goose-ai"
+    model_env: GOOSE_MODEL
+    docs: "https://github.com/block/goose"
+  opencode:
+    notes: "Terminal AI coding assistant. npm install -g opencode-ai"
+    model_env: OPENCODE_MODEL
+    docs: "https://opencode.ai"
+  codex_cli:
+    notes: "OpenAI Codex CLI. npm install -g @openai/codex. Uses OPENAI_API_KEY."
+    docs: "https://github.com/openai/codex"
+
+# Browser automation
+browser_automation:
+  # Chromium via Chrome DevTools Protocol (CDP)
+  # Launch: chromium --remote-debugging-port=9222 --headless
+  chromium: { env: CHROMIUM_CDP_URL, default: "http://localhost:9222",
+              notes: "CDP endpoint for Playwright / Puppeteer browser automation" }
+
+# Apache ecosystem services (data / workflow infrastructure)
+apache_services:
+  kafka:
+    bootstrap_servers_env: KAFKA_BOOTSTRAP_SERVERS
+    default: "localhost:9092"
+    notes: "Apache Kafka — event streaming / message bus"
+  spark:
+    master_url_env: SPARK_MASTER_URL
+    default: "spark://localhost:7077"
+    notes: "Apache Spark — distributed data processing"
+  airflow:
+    api_url_env: AIRFLOW_API_URL
+    default: "http://localhost:8080/api/v1"
+    notes: "Apache Airflow — workflow orchestration"
 
 utility_services:
   deepl:      { env: DEEPL_API_KEY,     base_url: "https://api-free.deepl.com/v2" }
