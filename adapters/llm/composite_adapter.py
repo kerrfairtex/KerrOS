@@ -15,7 +15,7 @@ from typing import Any, Optional
 from kernel.config import load_config
 
 
-_LOCAL_PROVIDERS = ("ollama", "vllm", "local")
+_LOCAL_PROVIDERS = ("ollama", "vllm", "local", "litellm")
 _UNIFIED_PROVIDERS = ("omniroute", "gateway", "unified")
 
 
@@ -28,6 +28,7 @@ class CompositeLLMAdapter:
         self._omniroute = None
         self._ollama = None
         self._vllm = None
+        self._litellm = None
         self._last_api: str | None = None
         self._default_provider = os.getenv(
             "KERROS_LLM_PROVIDER",
@@ -67,6 +68,12 @@ class CompositeLLMAdapter:
             from adapters.llm.vllm_adapter import VLLMAdapter
             self._vllm = VLLMAdapter()
         return self._vllm
+
+    def _get_litellm(self):
+        if self._litellm is None:
+            from adapters.llm.litellm_adapter import LiteLLMAdapter
+            self._litellm = LiteLLMAdapter()
+        return self._litellm
 
     @property
     def engine(self):
@@ -115,11 +122,14 @@ class CompositeLLMAdapter:
             return [("ollama", self._get_ollama()), ("cloud", self._get_cloud())]
         if provider == "vllm":
             return [("vllm", self._get_vllm()), ("cloud", self._get_cloud())]
+        if provider == "litellm":
+            return [("litellm", self._get_litellm()), ("cloud", self._get_cloud())]
         if self._unified_first:
             return _unified_chain()
         if provider in _LOCAL_PROVIDERS or self._local_first:
             return [
                 ("ollama", self._get_ollama()),
+                ("litellm", self._get_litellm()),
                 ("vllm", self._get_vllm()),
                 ("cloud", self._get_cloud()),
             ]
@@ -139,6 +149,7 @@ class CompositeLLMAdapter:
             "omniroute": self._get_omniroute().status(),
             "ollama": self._get_ollama().status(),
             "vllm": self._get_vllm().status(),
+            "litellm": self._get_litellm().status(),
             "cloud": cloud_status,
         }
 
