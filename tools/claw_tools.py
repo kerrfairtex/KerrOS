@@ -20,10 +20,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from tools.shell_utils import ShellCommandError, run_argv, split_command
 
 DEFAULT_WORKSPACE = Path(__file__).resolve().parent.parent
 WORKSPACE = Path(
@@ -278,9 +281,14 @@ def exec_cmd(
             run_env.update({str(k): str(v) for k, v in env.items()})
 
         secs = DEFAULT_EXEC_TIMEOUT if timeout is None else max(1, int(timeout))
+        try:
+            argv = split_command(command)
+        except ShellCommandError as exc:
+            return ToolResult(False, "exec", error=str(exc))
+
         proc = subprocess.run(
-            command,
-            shell=True,
+            argv,
+            shell=False,
             cwd=str(workdir),
             capture_output=True,
             text=True,
