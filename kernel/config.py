@@ -114,13 +114,17 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "lockout_opens": 3,
             "lockout_s": 300,
         },
-        # P3/C-16 event mesh foundation — off by default; full multi-node broker deferred.
+        # P3/C-16 event mesh — off by default; nng/Docker multi-node still deferred.
         "event_mesh": {
             "enabled": False,
             "node_id": "local",
-            "transport": "null",
+            "transport": "null",  # null | file | http | durable
             "file_dir": "data/event_mesh",
             "http_peers": [],
+            "broker_db": "data/event_mesh/broker.db",
+            "discovery": None,  # None=auto for durable; file | none
+            "discovery_dir": "data/event_mesh/peers",
+            "discovery_ttl_s": 60,
         },
     }
     merged = {**defaults, **raw}

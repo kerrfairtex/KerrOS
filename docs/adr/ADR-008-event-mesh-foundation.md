@@ -29,8 +29,9 @@ changes.
 **Positive:** Later NATS/nng/Redis transports can implement the Protocol without
 rewriting scheduler/workflows/OmniRoute telemetry.
 
-**Negative / still deferred:** Multi-node discovery, membership, at-least-once
-delivery, backpressure, Docker mesh (C-17), and nng actor IPC.
+**Negative / still deferred (partially addressed by ADR-009):** Docker mesh
+(C-17), nng actor IPC, backpressure. Discovery + durable same-host broker
+landed in ADR-009.
 
 ## Alternatives considered
 

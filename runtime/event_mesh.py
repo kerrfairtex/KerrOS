@@ -1,12 +1,13 @@
 """
 runtime/event_mesh.py
 =====================
-Event mesh foundation (P3 / C-16 seam).
+Event mesh foundation + transport layer (P3 / C-16 seam).
 
 Joins local EventBuses and optionally forwards serialized Events through a
-pluggable transport. Full multi-node discovery, durable brokers, and nng/socket
-actor meshes remain deferred — this ships the Protocol + LocalEventMesh so
-later transports plug in without changing EventBus callers.
+pluggable transport. ADR-008: Protocol + LocalEventMesh + null/file/http stubs.
+ADR-009: durable SQLite broker + file/SQL peer discovery.
+
+nng/socket actor meshes and Docker multi-node deploy (C-17) remain deferred.
 """
 
 from __future__ import annotations
@@ -20,6 +21,12 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, runtime_checkable
 
 from runtime.event_bus import Event, EventBus, Handler
+from runtime.event_mesh_broker import (
+    DurableEventBroker,
+    DurableEventMeshTransport,
+    FilePeerRegistry,
+    MeshPeer,
+)
 
 
 @runtime_checkable
@@ -138,6 +145,7 @@ class LocalEventMesh:
     node_id: str
     buses: list[EventBus] = field(default_factory=list)
     transport: EventMeshTransport | None = None
+    discovery: FilePeerRegistry | None = None
     _seen: set[str] = field(default_factory=set)
     _handlers: dict[int, Handler] = field(default_factory=dict)
     _attached: bool = False
@@ -158,6 +166,7 @@ class LocalEventMesh:
             self._handlers[id(bus)] = handler
             bus.subscribe("*", handler)
         self._attached = True
+        self.heartbeat()
 
     def detach(self) -> None:
         for bus in self.buses:
@@ -168,11 +177,43 @@ class LocalEventMesh:
                 except Exception:
                     pass
         self._attached = False
+        if self.discovery is not None:
+            try:
+                self.discovery.close()
+            except Exception:
+                pass
         if self.transport is not None:
             try:
                 self.transport.close()
             except Exception:
                 pass
+
+    def heartbeat(self, meta: Optional[dict[str, Any]] = None) -> None:
+        """Refresh peer membership (file registry and/or durable broker)."""
+        info = dict(meta or {})
+        info.setdefault("node_id", self.node_id)
+        if self.discovery is not None:
+            try:
+                self.discovery.announce(info)
+            except Exception:
+                pass
+        transport = self.transport
+        if isinstance(transport, DurableEventMeshTransport):
+            try:
+                transport.heartbeat(info)
+            except Exception:
+                pass
+
+    def peers(self) -> list[MeshPeer]:
+        transport = self.transport
+        if isinstance(transport, DurableEventMeshTransport):
+            try:
+                return transport.peers()
+            except Exception:
+                pass
+        if self.discovery is not None:
+            return self.discovery.peers()
+        return []
 
     def _make_forwarder(self, origin_bus: EventBus) -> Handler:
         def _forward(event: Event) -> None:
@@ -248,7 +289,37 @@ class LocalEventMesh:
             count += 1
         return count
 
+    def poll_durable_transport(self, *, limit: int = 100) -> int:
+        """Drain + ack DurableEventMeshTransport pending events. Returns count."""
+        transport = self.transport
+        if not isinstance(transport, DurableEventMeshTransport):
+            return 0
+        self.heartbeat()
+        count = 0
+        for origin, event in transport.drain(limit=limit):
+            self.ingest(event, from_node=origin)
+            try:
+                transport.ack(event.id)
+            except Exception:
+                pass
+            count += 1
+        return count
+
+    def poll(self, *, limit: int = 100) -> int:
+        """Poll whichever transport supports inbound drain."""
+        n = self.poll_durable_transport(limit=limit)
+        if n:
+            return n
+        return self.poll_file_transport()
+
     def stats(self) -> dict[str, Any]:
+        pending = None
+        transport = self.transport
+        if isinstance(transport, DurableEventMeshTransport):
+            try:
+                pending = transport.broker.pending_count()
+            except Exception:
+                pending = None
         return {
             "node_id": self.node_id,
             "attached": self._attached,
@@ -256,8 +327,18 @@ class LocalEventMesh:
             "forwarded": self._forwarded,
             "ingested": self._ingested,
             "seen": len(self._seen),
+            "peers": len(self.peers()),
+            "pending": pending,
             "transport": type(self.transport).__name__ if self.transport else None,
+            "discovery": type(self.discovery).__name__ if self.discovery else None,
         }
+
+
+def _resolve_under(root: Path, value: Any, default: Path) -> Path:
+    path = Path(value) if value else default
+    if not path.is_absolute():
+        path = root / path
+    return path
 
 
 def build_event_mesh(
@@ -277,26 +358,64 @@ def build_event_mesh(
     if not enabled:
         return None
 
+    root = Path(base or Path.home() / "offline_ai")
     node_id = (
         os.environ.get("KERROS_NODE_ID")
         or str(data.get("node_id") or "local")
     ).strip() or "local"
     transport_name = str(data.get("transport") or "null").strip().lower()
+    ttl_s = float(data.get("discovery_ttl_s") or 60)
+
+    discovery_raw = data.get("discovery", None)
+    if discovery_raw is None:
+        discovery_mode = "auto" if transport_name == "durable" else "none"
+    else:
+        discovery_mode = str(discovery_raw).strip().lower() or "none"
+
+    discovery: FilePeerRegistry | None = None
+    if discovery_mode in ("file", "1", "true", "yes", "auto"):
+        # "auto" only creates a file registry when durable (or explicit file).
+        if discovery_mode != "auto" or transport_name == "durable":
+            discovery_dir = _resolve_under(
+                root,
+                data.get("discovery_dir"),
+                root / "data" / "event_mesh" / "peers",
+            )
+            discovery = FilePeerRegistry(
+                directory=discovery_dir, node_id=node_id, ttl_s=ttl_s
+            )
+
     transport: EventMeshTransport
     if transport_name == "file":
-        root = Path(base or Path.home() / "offline_ai")
-        directory = Path(
-            data.get("file_dir") or (root / "data" / "event_mesh")
+        directory = _resolve_under(
+            root,
+            data.get("file_dir"),
+            root / "data" / "event_mesh",
         )
-        if not directory.is_absolute():
-            directory = root / directory
         transport = FileEventMeshTransport(directory=directory, node_id=node_id)
     elif transport_name == "http":
         peers = list(data.get("http_peers") or [])
         transport = HttpEventMeshTransport(peers=peers)
+    elif transport_name == "durable":
+        broker_db = _resolve_under(
+            root,
+            data.get("broker_db"),
+            root / "data" / "event_mesh" / "broker.db",
+        )
+        broker = DurableEventBroker(
+            db_path=broker_db, node_id=node_id, peer_ttl_s=ttl_s
+        )
+        transport = DurableEventMeshTransport(
+            broker=broker, discovery=discovery
+        )
     else:
         transport = NullEventMeshTransport()
 
-    mesh = LocalEventMesh(node_id=node_id, buses=[bus], transport=transport)
+    mesh = LocalEventMesh(
+        node_id=node_id,
+        buses=[bus],
+        transport=transport,
+        discovery=discovery,
+    )
     mesh.attach()
     return mesh

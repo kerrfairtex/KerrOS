@@ -16,7 +16,8 @@
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
 | **Composite LLM** | `adapters/llm/composite_adapter.py` | Local-first with cloud fallback |
 | **OmniRoute telemetry** | `adapters/llm/omniroute_telemetry.py` | Parse `X-OmniRoute-*` cost/usage headers → `omniroute.usage` EventBus events |
-| **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP transport stubs (ADR-008) |
+| **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP stubs (ADR-008) |
+| **Mesh broker** | `runtime/event_mesh_broker.py` | Durable SQLite broker + file/SQL peer discovery (ADR-009) |
 
 ## Usage
 
@@ -113,19 +114,27 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- Multi-node discovery / durable event broker / nng actor mesh (C-16 full, C-17)
+- nng actor mesh / Docker multi-node deploy (C-16 full, C-17)
 - Workflow YAML definitions
 
 ## Event mesh foundation
 
 `LocalEventMesh` bridges in-process buses and optionally forwards via a
-`EventMeshTransport` (null / file JSONL / HTTP stub). Enable with:
+`EventMeshTransport` (null / file JSONL / HTTP stub / durable SQLite). Enable with:
 
 ```json
-"event_mesh": { "enabled": true, "node_id": "node-a", "transport": "file" }
+"event_mesh": {
+  "enabled": true,
+  "node_id": "node-a",
+  "transport": "durable",
+  "broker_db": "data/event_mesh/broker.db"
+}
 ```
 
-or `KERROS_EVENT_MESH=1`. See [`ADR-008`](adr/ADR-008-event-mesh-foundation.md).
+or `KERROS_EVENT_MESH=1`. Peer discovery: file heartbeats under `discovery_dir`
+(auto-on for durable) + `mesh_peers` in the broker DB. Ingest remote events with
+`mesh.poll()`. See [`ADR-008`](adr/ADR-008-event-mesh-foundation.md) and
+[`ADR-009`](adr/ADR-009-event-mesh-transport.md).
 
 ## Cron scheduling
 
