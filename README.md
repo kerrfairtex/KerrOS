@@ -128,6 +128,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
 - [x] Lexical phrase-match scoring in `rag/store.py`; hybrid/vector path via adapters
 - [x] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md) (`rag/path_guard.py`)
+- [x] Optional Qdrant sidecar (C-18) — `deploy/qdrant/`, migrate script, health probe ([`ADR-015`](docs/adr/ADR-015-qdrant-optional-vector-store.md))
 
 ### P6 — Autonomous Runtime
 **Status: seed started (Reflection Agent + LLM resilience).**

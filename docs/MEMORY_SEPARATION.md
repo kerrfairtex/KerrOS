@@ -29,4 +29,5 @@ It is **not** a MemoryPort backend and must not share SQLite/FTS/Qdrant with Ker
 ## Related
 
 - Deploy kit: [`deploy/omniroute/`](../deploy/omniroute/)
+- Qdrant sidecar (C-18): [`deploy/qdrant/`](../deploy/qdrant/) ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md))
 - Security audit (AES keys ≠ KerrOS `ENCRYPTION_KEY`): [`OMNIROUTE_SECURITY_AUDIT.md`](OMNIROUTE_SECURITY_AUDIT.md)

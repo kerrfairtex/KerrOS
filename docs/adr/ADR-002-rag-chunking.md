@@ -23,5 +23,5 @@ Hybrid recall (`adapters/memory/hybrid_memory_adapter.py`) and optional Qdrant (
 Smaller chunks at this scale (238K) mean more vectors to store and search — a real memory/index cost on constrained hardware, which is exactly why deduplication and keyword filtering exist alongside the chunking itself. The 30-word overlap trades some storage/index redundancy for preserving context across chunk boundaries.
 
 ## Revisit when
-- RAG scale demands a full pgvector→Qdrant migration as the primary store — re-evaluate chunking alongside any storage backend change
+- RAG scale demands Qdrant as the **primary** store (beyond ADR-015 optional sidecar) — re-evaluate chunking alongside any storage backend change
 - Retrieval precision/recall becomes a measured problem in practice, not just a theoretical one

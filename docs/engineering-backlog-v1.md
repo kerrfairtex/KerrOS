@@ -24,7 +24,7 @@
 | C-15 | LGU/audit-grade scope decision | Governance artifact | §5 | New — decision record, not code |
 | C-16 | IPC actor-mesh (nng/socket) | Runtime | §1 Phase 2 | Foundation — ADR-012 (`runtime/actor_mesh.py`) |
 | C-17 | Docker (server-side) | Deployment | §1 Phase 2 | Foundation — ADR-011 (`deploy/event_mesh/`) |
-| C-18 | pgvector → Qdrant migration | Storage | §3, §6 Phase 2 | Deferred, conditional |
+| C-18 | pgvector → Qdrant migration | Storage | §3, §6 Phase 2 | Foundation — ADR-015 (`deploy/qdrant/`, optional hybrid sidecar) |
 | C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Deferred |
 
 **Missing specifications flagged:** exact current path of `scope_gate.py`, `store.py`, and `multi_api.py` were not confirmed in prior repo scans — each Phase-1 issue below that touches these must begin with a path-confirmation step before editing.

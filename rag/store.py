@@ -349,3 +349,50 @@ def list_sources():
     rows = conn.execute("SELECT DISTINCT source FROM chunks").fetchall()
     conn.close()
     return [r[0] for r in rows]
+
+
+def iter_chunks(
+    *,
+    source: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+):
+    """Yield ``(id, text, source, category)`` rows for export / Qdrant migration."""
+    _ensure_schema()
+    conn = _conn()
+    sql = "SELECT id, text, source, category FROM chunks"
+    params: list = []
+    if source:
+        sql += " WHERE source = ?"
+        params.append(source)
+    sql += " ORDER BY id ASC"
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(int(limit))
+        if offset:
+            sql += " OFFSET ?"
+            params.append(int(offset))
+    elif offset:
+        sql += " LIMIT -1 OFFSET ?"
+        params.append(int(offset))
+    try:
+        rows = conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+    for row in rows:
+        yield int(row[0]), str(row[1]), str(row[2]), str(row[3] or "")
+
+
+def count_chunks(*, source: str | None = None) -> int:
+    _ensure_schema()
+    conn = _conn()
+    try:
+        if source:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM chunks WHERE source = ?", (source,)
+            ).fetchone()
+        else:
+            row = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()
+        return int(row[0] if row else 0)
+    finally:
+        conn.close()

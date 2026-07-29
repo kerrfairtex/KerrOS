@@ -1,0 +1,29 @@
+# KerrOS optional Qdrant vector sidecar (C-18 / ADR-015 / P5).
+#
+# Host ports bind to 127.0.0.1 only. Collection for KerrOS hybrid recall is
+# `kerros_memory` — never reuse OmniRoute vector namespaces
+# (docs/MEMORY_SEPARATION.md).
+#
+# Usage (from repo root):
+#   ./scripts/qdrant_docker.sh up
+#   ./scripts/qdrant_docker.sh probe
+#   KERROS_QDRANT_ENABLED=1 python3 scripts/migrate_sqlite_rag_to_qdrant.py --dry-run
+
+services:
+  qdrant:
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.13.2}
+    container_name: kerros-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${QDRANT_HOST_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_HOST_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+    # Probe from the host via scripts/qdrant_docker.sh probe (image may lack curl).
+
+volumes:
+  qdrant-data:
+    name: kerros-qdrant-data

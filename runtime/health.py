@@ -127,6 +127,27 @@ class HealthMonitor:
             }
             self.record("omniroute", "error", str(exc))
 
+        try:
+            from adapters.memory.qdrant_vector_store import probe_qdrant
+
+            qdrant = probe_qdrant()
+            report["components"]["qdrant"] = qdrant
+            self.record(
+                "qdrant",
+                qdrant.get("status", "unknown"),
+                qdrant.get("base_url", ""),
+            )
+            # Optional vector sidecar: only fail overall when enabled but down.
+            if qdrant.get("enabled") and qdrant.get("status") != "ok":
+                report["healthy"] = False
+        except Exception as exc:
+            report["components"]["qdrant"] = {
+                "status": "error",
+                "component": "qdrant",
+                "error": str(exc),
+            }
+            self.record("qdrant", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:
