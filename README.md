@@ -99,7 +99,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] `kerrd` + `ServiceManager` + `HealthMonitor` + in-process service bus
 - [x] Code Agent IPC worker (`runtime/ipc.py`, `agents/code/subprocess_runner.py`)
 - [ ] Multi-node IPC mesh / Docker server deploy — deferred (C-16, C-17)
-- [ ] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service
+- [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
 
 ### P3 — Event Infrastructure
 **Status: foundation implemented** (`docs/PHASE3.md`, ADR-006).
@@ -141,10 +141,11 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 
 ## 7. Immediate next actions
 1. Confirm DevOps tokens are scoped least-privilege per service (P4 leftover)
-2. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
-3. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
+2. Re-provision the DigitalOcean droplet; run the loopback Docker kit — [`deploy/omniroute/`](deploy/omniroute/) + `scripts/omniroute_droplet.sh` (host bind `127.0.0.1:20128` only)
+3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
 4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
 5. Complete remaining §6 security audit checklist items
+6. P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources
 
 ## 8. Open decisions log — don't resolve these silently
 - Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)

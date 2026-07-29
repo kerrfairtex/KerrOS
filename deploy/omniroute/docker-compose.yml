@@ -1,0 +1,36 @@
+# KerrOS × OmniRoute — loopback-only Docker deploy (README §7 #2 / §6)
+#
+# Host ports bind to 127.0.0.1 only. Never publish 0.0.0.0 without a reverse
+# proxy in front (dashboard + MITM/TPROXY CA installer are high-value targets).
+#
+# Usage (from this directory):
+#   cp .env.example .env   # optional overrides
+#   ../../scripts/omniroute_droplet.sh up
+#   ../../scripts/omniroute_droplet.sh probe
+
+services:
+  omniroute:
+    image: ${OMNIROUTE_IMAGE:-diegosouzapw/omniroute:3.8.49}
+    container_name: kerros-omniroute
+    restart: unless-stopped
+    stop_grace_period: 40s
+    ports:
+      # Loopback publish — do not change to "20128:20128" on a public droplet.
+      - "127.0.0.1:${OMNIROUTE_HOST_PORT:-20128}:20128"
+    volumes:
+      - omniroute-data:/app/data
+    environment:
+      DATA_DIR: /app/data
+      PORT: "20128"
+      # Bind all interfaces *inside* the container; host mapping stays loopback.
+      OMNIROUTE_SERVER_HOST: "0.0.0.0"
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.mjs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  omniroute-data:
+    name: kerros-omniroute-data
