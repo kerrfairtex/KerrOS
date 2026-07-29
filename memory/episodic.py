@@ -10,13 +10,18 @@ import json, os, datetime
 BASE = os.path.expanduser("~/offline_ai")
 EPISODIC_PATH = f"{BASE}/data/episodic.json"
 
+def _episodic_path() -> str:
+    return os.environ.get("KERROS_EPISODIC_PATH") or EPISODIC_PATH
+
 def _load():
-    if not os.path.exists(EPISODIC_PATH): return []
-    with open(EPISODIC_PATH) as f: return json.load(f)
+    path = _episodic_path()
+    if not os.path.exists(path): return []
+    with open(path) as f: return json.load(f)
 
 def _save(data):
-    os.makedirs(os.path.dirname(EPISODIC_PATH), exist_ok=True)
-    with open(EPISODIC_PATH, "w") as f: json.dump(data, f, indent=2)
+    path = _episodic_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f: json.dump(data, f, indent=2)
 
 def save_session(summary: str, tags: list = None):
     """Save a session summary to episodic memory."""

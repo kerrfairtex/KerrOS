@@ -322,6 +322,8 @@ def main():
                 ("/events [n]",        "Show recent event bus events"),
                 ("/schedule",          "List scheduled jobs"),
                 ("/workflows",         "List workflows; runs [n]; resume <id>"),
+                ("/reflect",           "Review episodes → lessons (Reflection Agent)"),
+                ("/reflections",       "Show saved reflection lessons"),
                 ("/llm",               "Show LLM provider status"),
                 ("/capabilities [kind]", "List capability registry entries"),
                 ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),

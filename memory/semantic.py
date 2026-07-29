@@ -10,13 +10,18 @@ import json, os, datetime, re
 BASE = os.path.expanduser("~/offline_ai")
 SEMANTIC_PATH = f"{BASE}/data/semantic.json"
 
+def _semantic_path() -> str:
+    return os.environ.get("KERROS_SEMANTIC_PATH") or SEMANTIC_PATH
+
 def _load():
-    if not os.path.exists(SEMANTIC_PATH): return {}
-    with open(SEMANTIC_PATH) as f: return json.load(f)
+    path = _semantic_path()
+    if not os.path.exists(path): return {}
+    with open(path) as f: return json.load(f)
 
 def _save(data):
-    os.makedirs(os.path.dirname(SEMANTIC_PATH), exist_ok=True)
-    with open(SEMANTIC_PATH, "w") as f: json.dump(data, f, indent=2)
+    path = _semantic_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f: json.dump(data, f, indent=2)
 
 def store(key: str, value: str, category: str = "general"):
     """Store a semantic fact."""
@@ -114,5 +119,19 @@ def build_context_string():
     if tech.get("project"): parts.append(f"Current project: {tech['project']['value']}")
     if tech.get("learning"): parts.append(f"Learning: {tech['learning']['value']}")
     if tech.get("goal"): parts.append(f"Goal: {tech['goal']['value']}")
+
+    # P6: high-confidence Reflection Agent lessons (category lessons_learned).
+    lessons = data.get("lessons_learned") or {}
+    if lessons:
+        # Prefer most recently updated entries.
+        ranked = sorted(
+            lessons.items(),
+            key=lambda kv: kv[1].get("updated", ""),
+            reverse=True,
+        )
+        for _, meta in ranked[:3]:
+            value = (meta or {}).get("value") or ""
+            if value:
+                parts.append(f"Lesson learned: {value}")
 
     return "\n".join(parts) if parts else ""

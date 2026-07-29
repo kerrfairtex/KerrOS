@@ -61,6 +61,8 @@ capabilities:
     metadata:
       module: "agents.reflection"
       role: "Episode review and lesson logging"
+      loop: "episodes + decision_log → reflections.json → semantic lessons_learned"
+      cli: ["/reflect", "/reflections"]
 
   - name: "agent:document"
     kind: "agent"
