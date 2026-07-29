@@ -201,15 +201,39 @@ def main():
                 else:
                     print(f"  {GY}Cancelled.{R}")
 
-        elif user == "/scope policy":
-            from tools.scope_gate import policy_summary
-            summary = policy_summary()
-            divider()
-            print(f"  {BL}Source:{R} {summary.get('source')}")
-            print(f"  {BL}Offensive ({len(summary['offensive_tools'])}):{R} {', '.join(summary['offensive_tools'])}")
-            print(f"  {BL}Deploy ({len(summary['deploy_tools'])}):{R} {', '.join(summary['deploy_tools'])}")
-            print(f"  {BL}Defaults:{R} {summary.get('defaults')}")
-            divider()
+        elif user.startswith("/scope policy"):
+            parts = user.split()
+            if len(parts) >= 3 and parts[2] in ("export", "docs", "render"):
+                divider()
+                try:
+                    import subprocess
+                    import sys
+                    from pathlib import Path
+                    script = Path(__file__).resolve().parent.parent / "scripts" / "render_scope_policy.py"
+                    result = subprocess.run(
+                        [sys.executable, str(script)],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    out = (result.stdout or result.stderr or "").strip()
+                    if result.returncode == 0:
+                        print(f"  {GR}[ ✓ ]{R} {out or 'docs/SCOPE_POLICY.md regenerated'}")
+                    else:
+                        print(f"  {RE}Export failed:{R} {out}")
+                except Exception as e:
+                    print(f"  {RE}Export failed: {e}{R}")
+                divider()
+            else:
+                from tools.scope_gate import policy_summary
+                summary = policy_summary()
+                divider()
+                print(f"  {BL}Source:{R} {summary.get('source')}")
+                print(f"  {BL}Offensive ({len(summary['offensive_tools'])}):{R} {', '.join(summary['offensive_tools'])}")
+                print(f"  {BL}Deploy ({len(summary['deploy_tools'])}):{R} {', '.join(summary['deploy_tools'])}")
+                print(f"  {BL}Defaults:{R} {summary.get('defaults')}")
+                print(f"  {GY}Tip: /scope policy export → docs/SCOPE_POLICY.md{R}")
+                divider()
 
         elif user=="/scope":
             from tools.scope_gate import list_scope, policy_summary
@@ -276,6 +300,7 @@ def main():
                 ("/scope remove <t>",  "Remove a target from scope"),
                 ("/scope arm-deploy",  "Arm deploy tools for N minutes"),
                 ("/scope policy",      "Show declarative scope_policy.yaml"),
+                ("/scope policy export","Regenerate docs/SCOPE_POLICY.md"),
                 ("/apistatus",         "Show online API health/dead status"),
                 ("/setkey groq <key>", "Set Groq API key"),
                 ("/switch small|large","Switch local model"),

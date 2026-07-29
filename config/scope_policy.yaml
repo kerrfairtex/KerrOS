@@ -1,6 +1,10 @@
 # KerrOS scope_gate policy — declarative allow/deny rules (README P4).
 # Loaded by tools/scope_gate.py at import/check time.
 # Fail-closed: unknown tools are not gated as offensive/deploy unless listed here.
+#
+# Docs: python3 scripts/render_scope_policy.py → docs/SCOPE_POLICY.md
+#       python3 scripts/render_scope_policy.py --check
+# CLI:  /scope policy · /scope policy export
 
 version: 1
 

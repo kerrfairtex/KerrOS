@@ -25,3 +25,6 @@ jobs:
 
       - name: Check capability docs are current
         run: python scripts/render_capabilities.py --check
+
+      - name: Check scope policy docs are current
+        run: python scripts/render_scope_policy.py --check

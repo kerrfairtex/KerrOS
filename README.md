@@ -45,7 +45,7 @@ Checked against what's actually built on `main` (July 2026):
 | Capability Driven | 🟡 Partial | `kernel/capability_registry.py` + `config/capabilities/*.yaml` bootstrapped (~10 tool capabilities); manifests for agents/providers still thin |
 | Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good); docs are not yet generated from capability manifests |
 | Deterministic Behavior (config-driven) | 🟡 Partial | `kernel/config.py` + `config.json` / env; tool detection still largely code-driven |
-| Documentation as Code | 🟡 Partial | `scripts/render_capabilities.py` generates [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) from YAML; ADRs remain hand-written |
+| Documentation as Code | 🟡 Partial | Capability + scope policy docs generated (`docs/CAPABILITIES.md`, `docs/SCOPE_POLICY.md`); ADRs remain hand-written |
 
 Net: P0 kernel, P2 runtime, and P3 event infrastructure foundations are in place. **P1 Capability Registry is started but incomplete** (schema + claw tool bootstrap exist; broader agent/provider manifests and doc generation remain).
 
@@ -112,6 +112,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 ### P4 — Security
 **Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
 - [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
+- [x] Generate scope policy docs — `scripts/render_scope_policy.py` → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md)
 - [ ] Full audit checklist in §6
 - [ ] Confirm DevOps tokens are scoped least-privilege per service
 
@@ -143,7 +144,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 2. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
 3. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
 4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
-5. Extend Documentation as Code beyond capabilities (e.g. scope_policy → docs table)
+5. Complete remaining §6 security audit checklist items
 
 ## 8. Open decisions log — don't resolve these silently
 - Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)
