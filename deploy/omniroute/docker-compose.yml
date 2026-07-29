@@ -2,9 +2,10 @@
 #
 # Host ports bind to 127.0.0.1 only. Never publish 0.0.0.0 without a reverse
 # proxy in front (dashboard + MITM/TPROXY CA installer are high-value targets).
+# Full checklist: docs/OMNIROUTE_SECURITY_AUDIT.md
 #
 # Usage (from this directory):
-#   cp .env.example .env   # optional overrides
+#   cp .env.example .env   # set STORAGE_ENCRYPTION_KEY / JWT_SECRET / API_KEY_SECRET
 #   ../../scripts/omniroute_droplet.sh up
 #   ../../scripts/omniroute_droplet.sh probe
 
@@ -24,6 +25,12 @@ services:
       PORT: "20128"
       # Bind all interfaces *inside* the container; host mapping stays loopback.
       OMNIROUTE_SERVER_HOST: "0.0.0.0"
+      # AES-256-GCM at-rest (empty = plaintext). See docs/OMNIROUTE_SECURITY_AUDIT.md
+      # Values substituted from deploy/omniroute/.env (Compose auto-loads it).
+      STORAGE_ENCRYPTION_KEY: ${STORAGE_ENCRYPTION_KEY:-}
+      STORAGE_ENCRYPTION_KEY_VERSION: ${STORAGE_ENCRYPTION_KEY_VERSION:-1}
+      JWT_SECRET: ${JWT_SECRET:-}
+      API_KEY_SECRET: ${API_KEY_SECRET:-}
     healthcheck:
       test: ["CMD", "node", "healthcheck.mjs"]
       interval: 30s

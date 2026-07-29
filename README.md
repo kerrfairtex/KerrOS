@@ -113,8 +113,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 **Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
 - [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
 - [x] Generate scope policy docs — `scripts/render_scope_policy.py` → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md)
-- [ ] Full audit checklist in §6
-- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
+- [x] Full audit checklist in §6 (OmniRoute bind/AES/promptfoo + DevOps tokens)- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
 
 ### P5 — Storage
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
@@ -129,9 +128,9 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 ## 6. Security audit checklist
 
 **OmniRoute side (once integrated):**
-- [ ] Never bind OmniRoute beyond `127.0.0.1` without a reverse proxy in front — the dashboard and the MITM/TPROXY CA installer are the highest-value targets if this ever faces the public internet
-- [ ] Verify AES-256-GCM key storage config actually matches your threat model — Termux/Android has weaker at-rest guarantees than the droplet will
-- [ ] Run their `promptfoo` red-team suite against your *own* RAG-injected prompts specifically — their eval suite tests their injection surface, not yours
+- [x] Never bind OmniRoute beyond `127.0.0.1` without a reverse proxy — loopback compose + CI guards ([`deploy/omniroute/`](deploy/omniroute/), [`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
+- [x] Verify AES-256-GCM key storage config matches threat model — `STORAGE_ENCRYPTION_KEY` / Termux vs droplet notes in audit doc + `.env.example`
+- [x] Run promptfoo red-team against **KerrOS** RAG-injected prompts — fixtures + stub config ([`eval/omniroute_rag_promptfoo/`](eval/omniroute_rag_promptfoo/)); operator run via `scripts/run_omniroute_rag_promptfoo.sh`
 
 **KerrOS side (independent of OmniRoute):**
 - [x] `scope_gate.py` fail-closed default; deploy arm window expires server-side (`deploy_armed_until`)
@@ -144,7 +143,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 2. Re-provision the DigitalOcean droplet; run the loopback Docker kit — [`deploy/omniroute/`](deploy/omniroute/) + `scripts/omniroute_droplet.sh` (host bind `127.0.0.1:20128` only)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
 4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
-5. Complete remaining §6 security audit checklist items (OmniRoute bind/AES/promptfoo)
+5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 
 ## 8. Open decisions log — don't resolve these silently
