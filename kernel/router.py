@@ -1,7 +1,8 @@
-import re, subprocess, os, json, math, shutil
+import re, subprocess, os, json, shutil
 
 from tools import fs_tool
 from tools.command_gate import is_explicit_command
+from tools.safe_math import SafeMathError, safe_eval
 from tools.shell_utils import (
     ShellCommandError,
     grep_lines,
@@ -819,8 +820,10 @@ def _sysinfo():
     lines.extend([l for l in ip_out.splitlines() if "inet " in l][:3])
     return "\n".join(lines) if lines else "[No output]"
 def _calc(e):
-    try: return f"= {eval(e.replace('^','**'),{'__builtins__':{}},{'math':math})}"
-    except: return "[Invalid expression]"
+    try:
+        return f"= {safe_eval(e)}"
+    except (SafeMathError, ZeroDivisionError, OverflowError, ValueError, TypeError):
+        return "[Invalid expression]"
 def _file_read(p):
     p = os.path.expanduser(p)
     if not os.path.exists(p): return f"[Not found: {p}]"
