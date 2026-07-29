@@ -49,6 +49,7 @@ class OpenAICompatClient:
         self.timeout = timeout
         self.provider_name = provider_name
         self.last_error = ""
+        self.last_usage: dict[str, Any] = {}
 
     def available(self) -> bool:
         try:
@@ -88,10 +89,41 @@ class OpenAICompatClient:
                 raise RuntimeError(f"{self.provider_name} HTTP {r.status_code}: {data}")
             content = data["choices"][0]["message"]["content"]
             self.last_error = ""
+            self._capture_omniroute_usage(r.headers, requested_model=str(model))
             return content
         except Exception as exc:
             self.last_error = str(exc)
             raise
+
+    def _capture_omniroute_usage(
+        self,
+        response_headers: Any,
+        *,
+        requested_model: str,
+    ) -> None:
+        """Publish OmniRoute cost/usage headers to the kernel EventBus when present."""
+        try:
+            from adapters.llm.omniroute_telemetry import (
+                has_omniroute_headers,
+                publish_omniroute_usage,
+            )
+        except Exception:
+            return
+
+        try:
+            headers = dict(response_headers or {})
+        except Exception:
+            return
+
+        if self.provider_name != "omniroute" and not has_omniroute_headers(headers):
+            return
+
+        payload = publish_omniroute_usage(
+            headers,
+            source=self.provider_name or "omniroute",
+            extras={"requested_model": requested_model, "base_url": self.base_url},
+        )
+        self.last_usage = payload or {}
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -106,6 +138,7 @@ class OpenAICompatClient:
             "model": self.model,
             "available": self.available(),
             "last_error": self.last_error,
+            "last_usage": dict(self.last_usage),
         }
 
 

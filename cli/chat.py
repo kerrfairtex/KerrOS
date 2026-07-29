@@ -477,11 +477,26 @@ def main():
                 if not events:
                     print(f"  {GY}No events yet.{R}")
                 for ev in events:
-                    print(
-                        f"  {GO}{ev['topic']}{R} "
-                        f"{GY}{ev.get('source', '')}{R} "
-                        f"{str(ev.get('payload', {}))[:80]}"
-                    )
+                    payload = ev.get("payload", {}) or {}
+                    if ev.get("topic") == "omniroute.usage":
+                        summary = (
+                            f"cost={payload.get('cost_usd', '?')} "
+                            f"in={payload.get('tokens_in', '?')} "
+                            f"out={payload.get('tokens_out', '?')} "
+                            f"model={payload.get('model', payload.get('requested_model', '?'))} "
+                            f"provider={payload.get('upstream_provider', '?')}"
+                        )
+                        print(
+                            f"  {GO}{ev['topic']}{R} "
+                            f"{GY}{ev.get('source', '')}{R} "
+                            f"{summary}"
+                        )
+                    else:
+                        print(
+                            f"  {GO}{ev['topic']}{R} "
+                            f"{GY}{ev.get('source', '')}{R} "
+                            f"{str(payload)[:80]}"
+                        )
                 stats = bus.stats()
                 print(f"  {BL}Total:{R} {stats['events']} events, {stats['listeners']} listeners")
             except Exception as e:
