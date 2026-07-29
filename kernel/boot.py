@@ -26,6 +26,7 @@ from kernel.contract import (
     SERVICE_DECISION_LOG,
     SERVICE_DISPATCH_PORT,
     SERVICE_EVENT_BUS,
+    SERVICE_EVENT_MESH,
     SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
     SERVICE_SCHEDULER,
@@ -82,6 +83,11 @@ class Kernel:
     def shutdown(self) -> None:
         """Tear down kernel services."""
         self._set_phase(BootPhase.SHUTDOWN)
+        try:
+            if self.container.has(SERVICE_EVENT_MESH):
+                self.container.resolve(SERVICE_EVENT_MESH).detach()
+        except Exception:
+            pass
         try:
             if self.container.has(SERVICE_SCHEDULER):
                 self.container.resolve(SERVICE_SCHEDULER).stop()
@@ -190,6 +196,17 @@ class Kernel:
         self.container.register(SERVICE_EVENT_BUS, bus, singleton=True)
         self.container.register(SERVICE_SCHEDULER, scheduler, singleton=True)
         self.container.register(SERVICE_WORKFLOW_ENGINE, workflows, singleton=True)
+
+        # Optional event-mesh foundation (off by default). Full multi-node mesh deferred.
+        try:
+            from runtime.event_mesh import build_event_mesh
+
+            mesh_cfg = dict(self.config.get("event_mesh") or {})
+            mesh = build_event_mesh(bus, cfg=mesh_cfg, base=self.config.base)
+            if mesh is not None:
+                self.container.register(SERVICE_EVENT_MESH, mesh, singleton=True)
+        except Exception:
+            pass
 
         scheduler.start()
 

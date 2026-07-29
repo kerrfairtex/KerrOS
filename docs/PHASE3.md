@@ -16,6 +16,7 @@
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
 | **Composite LLM** | `adapters/llm/composite_adapter.py` | Local-first with cloud fallback |
 | **OmniRoute telemetry** | `adapters/llm/omniroute_telemetry.py` | Parse `X-OmniRoute-*` cost/usage headers → `omniroute.usage` EventBus events |
+| **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP transport stubs (ADR-008) |
 
 ## Usage
 
@@ -112,8 +113,19 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- Distributed event mesh across nodes (C-16)
+- Multi-node discovery / durable event broker / nng actor mesh (C-16 full, C-17)
 - Workflow YAML definitions
+
+## Event mesh foundation
+
+`LocalEventMesh` bridges in-process buses and optionally forwards via a
+`EventMeshTransport` (null / file JSONL / HTTP stub). Enable with:
+
+```json
+"event_mesh": { "enabled": true, "node_id": "node-a", "transport": "file" }
+```
+
+or `KERROS_EVENT_MESH=1`. See [`ADR-008`](adr/ADR-008-event-mesh-foundation.md).
 
 ## Cron scheduling
 

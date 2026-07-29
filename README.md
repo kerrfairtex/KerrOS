@@ -108,7 +108,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
 - [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
 - [x] Cron expressions — `Scheduler.schedule_cron` / `runtime/cron.py` (5-field)
-- [ ] Distributed event mesh — deferred
+- [x] Event mesh foundation — `LocalEventMesh` + transport Protocol ([`ADR-008`](docs/adr/ADR-008-event-mesh-foundation.md)); full multi-node broker still gated
 - [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
 
 ### P4 — Security
@@ -145,7 +145,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron expressions (`schedule_cron`); event mesh still deferred
+4. [x] Persist workflow state / resume; [x] cron; [x] event mesh foundation (ADR-008); multi-node broker still gated
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

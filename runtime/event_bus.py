@@ -37,6 +37,18 @@ class Event:
             "source": self.source,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Event":
+        """Rehydrate an Event (used by event-mesh transports)."""
+        payload = data.get("payload") if isinstance(data.get("payload"), dict) else {}
+        return cls(
+            topic=str(data.get("topic") or ""),
+            payload=dict(payload),
+            id=str(data.get("id") or uuid.uuid4()),
+            timestamp=float(data.get("timestamp") or time.time()),
+            source=str(data.get("source") or ""),
+        )
+
 
 @dataclass
 class EventBus:
@@ -68,9 +80,13 @@ class EventBus:
         source: str = "",
     ) -> Event:
         event = Event(topic=topic, payload=payload or {}, source=source)
+        return self.emit(event)
+
+    def emit(self, event: Event) -> Event:
+        """Dispatch an existing Event (preserves id/timestamp for mesh ingest)."""
         self._history.append(event)
 
-        for handler in list(self._handlers.get(topic, [])):
+        for handler in list(self._handlers.get(event.topic, [])):
             try:
                 handler(event)
             except Exception:

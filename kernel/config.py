@@ -114,6 +114,14 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "lockout_opens": 3,
             "lockout_s": 300,
         },
+        # P3/C-16 event mesh foundation — off by default; full multi-node broker deferred.
+        "event_mesh": {
+            "enabled": False,
+            "node_id": "local",
+            "transport": "null",
+            "file_dir": "data/event_mesh",
+            "http_peers": [],
+        },
     }
     merged = {**defaults, **raw}
 
