@@ -57,5 +57,6 @@ data/*.bak
 data/decision_log.db
 data/workflows/*.db
 data/workflows/*.db-*
+data/event_mesh/
 deploy/omniroute/data/
 deploy/omniroute/.env
