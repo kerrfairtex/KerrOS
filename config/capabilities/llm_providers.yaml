@@ -1,0 +1,67 @@
+version: 1
+capabilities:
+  - name: "provider:groq"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:GROQ_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "primary"
+      adapter: "adapters.llm.multi_api_adapter"
+      notes: "Cloud primary per ADR-001."
+
+  - name: "provider:cloud"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["provider:groq"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "fallback_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      notes: "Multi-API fallback chain (Groq → NVIDIA → OpenRouter → …)."
+
+  - name: "provider:ollama"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:OLLAMA_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "local"
+      adapter: "adapters.llm.ollama_adapter"
+      default_endpoint: "http://localhost:11434/v1"
+
+  - name: "provider:vllm"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:VLLM_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "local"
+      adapter: "adapters.llm.vllm_adapter"
+      default_endpoint: "http://localhost:8000/v1"
+
+  - name: "provider:litellm"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:LITELLM_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "proxy"
+      adapter: "adapters.llm.litellm_adapter"
+      default_endpoint: "http://localhost:4000"
+
+  - name: "provider:unsloth"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "local"
+      adapter: "adapters.llm.unsloth_adapter"
+      notes: "Optional local Unsloth inference path."

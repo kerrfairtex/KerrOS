@@ -90,8 +90,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 **Status: started (foundation).** Schema + bootstrap exist; expand coverage next.
 - [x] Minimal manifest schema + registry — `kernel/capability_registry.py`, `config/capabilities/core_tools.yaml`
 - [x] Boot registers `capability_registry` and bootstraps claw tool definitions
-- [ ] Write manifests for agents, DevOps tools, and LLM providers
-- [ ] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
+- [x] Write manifests for agents, DevOps tools, and LLM providers
+- [x] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
 - [ ] Generate docs/status from manifests (Documentation as Code)
 
 ### P2 — Runtime (`kerrd`, service manager, IPC, health)

@@ -1,0 +1,81 @@
+version: 1
+capabilities:
+  - name: "agent:knowledge"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:memory", "port:dispatch"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.knowledge"
+      role: "RAG-grounded Q&A with tool fallback"
+
+  - name: "agent:security"
+    kind: "agent"
+    permissions: ["elevated"]
+    dependencies: ["port:dispatch", "tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.security"
+      role: "Security analysis and gated recon tools"
+
+  - name: "agent:code"
+    kind: "agent"
+    permissions: ["elevated"]
+    dependencies: ["service:code-worker", "port:llm"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.code"
+      role: "Code generation with isolated subprocess execution"
+
+  - name: "agent:research"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:memory", "port:search"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.research"
+      role: "Deep research and multi-source synthesis"
+
+  - name: "agent:planner"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:llm"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.planner"
+      role: "Goal decomposition and step planning"
+
+  - name: "agent:reflection"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:memory"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.reflection"
+      role: "Episode review and lesson logging"
+
+  - name: "agent:document"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:storage", "port:llm"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.document"
+      role: "Document drafting and formatting"
+
+  - name: "agent:react"
+    kind: "agent"
+    permissions: ["standard"]
+    dependencies: ["port:dispatch", "port:llm"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "agents.react"
+      role: "ReAct loop orchestration"

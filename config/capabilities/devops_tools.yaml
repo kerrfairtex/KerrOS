@@ -1,0 +1,76 @@
+version: 1
+# Deploy/mutation tools — blocked by default; require /scope arm-deploy window.
+capabilities:
+  - name: "tool:github_create_repo"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:gh", "env:GITHUB_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      notes: "Requires gh CLI and GITHUB_TOKEN; scope_gate DEPLOY_TOOLS."
+
+  - name: "tool:github_push"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:git", "env:GITHUB_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:supabase_migrate"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:supabase"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:vercel_deploy"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:vercel", "env:VERCEL_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:netlify_deploy"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:netlify", "env:NETLIFTY_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:railway_deploy"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:railway", "env:RAILWAY_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:cloudflare_deploy"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:wrangler", "env:CLOUDFLARE_API_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+
+  - name: "tool:stripe_trigger"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:stripe", "env:STRIPE_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      notes: "Triggers Stripe test events; never use live keys in cloud agents."

@@ -287,6 +287,7 @@ def main():
                 ("/schedule",          "List scheduled jobs"),
                 ("/workflows",         "List registered workflows"),
                 ("/llm",               "Show LLM provider status"),
+                ("/capabilities [kind]", "List capability registry entries"),
                 ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
@@ -484,6 +485,26 @@ def main():
                         print(f"  {GO}{key}{R}: available={avail}")
             except Exception as e:
                 print(f"  {RE}LLM status unavailable: {e}{R}")
+            divider()
+
+        elif user.startswith("/capabilities"):
+            divider()
+            try:
+                parts = user.split()
+                kind = parts[1] if len(parts) > 1 else None
+                registry = resolve("capability_registry")
+                caps = registry.list(kind=kind)
+                if not caps:
+                    print(f"  {GY}No capabilities registered{(' for kind=' + kind) if kind else ''}.{R}")
+                else:
+                    print(f"  {BL}Count:{R} {len(caps)}" + (f"  kind={kind}" if kind else ""))
+                    for cap in caps:
+                        print(
+                            f"  {GO}{cap.name}{R}  [{cap.kind}]  "
+                            f"{cap.setup_state}  perms={','.join(cap.permissions) or '-'}"
+                        )
+            except Exception as e:
+                print(f"  {RE}Capabilities unavailable: {e}{R}")
             divider()
 
         elif user=="/decisions":

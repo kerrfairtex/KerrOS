@@ -1,0 +1,20 @@
+version: 1
+# OmniRoute is registered as ONE meta-provider capability.
+# Its internal catalog (~290 providers) stays OmniRoute's source of truth.
+capabilities:
+  - name: "provider:omniroute"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:OMNIROUTE_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "meta_provider"
+      adapter: "adapters.llm.omniroute_adapter"
+      default_endpoint: "http://127.0.0.1:20128/v1"
+      notes: >
+        Single KerrOS capability entry for OmniRoute. Do not expand this
+        manifest into per-upstream providers — use OmniRoute's own dashboard
+        and routing strategies for the provider catalog (README P1).
+      bind: "127.0.0.1"
+      openapi_compatible: true

@@ -87,6 +87,25 @@ class KernelBootTest(unittest.TestCase):
         tools = registry.list(kind="tool")
         self.assertTrue(any(c.name == "tool:exec" for c in tools))
 
+    def test_capability_manifests_cover_agents_providers_devops(self):
+        boot()
+        registry = resolve("capability_registry")
+        names = {c.name for c in registry.list()}
+        self.assertIn("agent:knowledge", names)
+        self.assertIn("agent:code", names)
+        self.assertIn("provider:groq", names)
+        self.assertIn("provider:omniroute", names)
+        self.assertIn("tool:vercel_deploy", names)
+        self.assertIn("tool:github_create_repo", names)
+        omni = registry.get("provider:omniroute")
+        self.assertIsNotNone(omni)
+        self.assertEqual(omni.kind, "provider")
+        self.assertEqual(omni.metadata.get("role"), "meta_provider")
+        agents = registry.list(kind="agent")
+        self.assertGreaterEqual(len(agents), 7)
+        providers = registry.list(kind="provider")
+        self.assertGreaterEqual(len(providers), 5)
+
     def test_shutdown_resets_phase(self):
         k = boot()
         k.shutdown()
