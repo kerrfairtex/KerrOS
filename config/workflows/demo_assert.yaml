@@ -1,0 +1,15 @@
+# Example multi-workflow document (optional form)
+workflows:
+  - name: demo.assert
+    description: YAML demo with assert_eq
+    steps:
+      - id: answer
+        action: set
+        params:
+          value: 42
+      - id: check
+        action: assert_eq
+        depends_on: [answer]
+        params:
+          key: answer
+          value: 42

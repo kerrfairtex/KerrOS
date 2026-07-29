@@ -1,0 +1,21 @@
+# Demo workflow — loaded at boot from config/workflows/*.yaml
+name: demo.hello
+description: YAML demo — set → template → publish
+steps:
+  - id: greet
+    action: set
+    description: Constant greeting
+    params:
+      value: hello
+  - id: shout
+    action: template
+    depends_on: [greet]
+    params:
+      template: "{{ greet }} world"
+  - id: notify
+    action: publish
+    depends_on: [shout]
+    params:
+      topic: workflow.demo.done
+      payload:
+        message: "{{ shout }}"

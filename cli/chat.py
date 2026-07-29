@@ -321,7 +321,7 @@ def main():
                 ("/services",          "Show managed service status"),
                 ("/events [n]",        "Show recent event bus events"),
                 ("/schedule",          "List jobs; cron <name> <expr>; cancel <id>"),
-                ("/workflows",         "List workflows; runs [n]; resume <id>"),
+                ("/workflows",         "List/run/reload YAML workflows; runs; resume"),
                 ("/reflect",           "Review episodes → lessons (Reflection Agent)"),
                 ("/reflections",       "Show saved reflection lessons"),
                 ("/llm",               "LLM providers + resilience; reset [name]"),
@@ -576,6 +576,40 @@ def main():
                             f"id={rid}…  state={row.get('state')}  "
                             f"err={row.get('error') or '-'}"
                         )
+                elif len(parts) >= 2 and parts[1] == "run":
+                    if len(parts) < 3:
+                        print(f"  {RE}Usage: /workflows run <name>{R}")
+                    else:
+                        run = wf.run(parts[2])
+                        print(
+                            f"  {GO}ran{R} {run.workflow}  "
+                            f"id={run.id[:8]}…  state={run.state.value}"
+                        )
+                        if run.results:
+                            print(f"  {GY}results:{R} {run.results}")
+                elif len(parts) >= 2 and parts[1] == "reload":
+                    from pathlib import Path as _Path
+                    from kernel.boot import get_kernel
+
+                    k = get_kernel()
+                    yaml_dir = _Path("config/workflows")
+                    if k and k.config:
+                        yaml_dir = _Path(
+                            str(
+                                k.config.get(
+                                    "workflow_yaml_dir",
+                                    k.config.base / "config" / "workflows",
+                                )
+                            )
+                        )
+                        if not yaml_dir.is_absolute():
+                            yaml_dir = k.config.base / yaml_dir
+                    names = wf.load_yaml_dir(yaml_dir)
+                    print(
+                        f"  {GO}reloaded{R} {len(names)} workflow(s) from {yaml_dir}"
+                    )
+                    for name in names:
+                        print(f"  {GO}{name}{R}")
                 else:
                     names = wf.list_workflows()
                     if not names:
@@ -583,7 +617,8 @@ def main():
                     for name in names:
                         print(f"  {GO}{name}{R}")
                     print(
-                        f"  {GY}/workflows runs [n] · /workflows resume <id>{R}"
+                        f"  {GY}/workflows run <name> · /workflows runs [n] · "
+                        f"/workflows resume <id> · /workflows reload{R}"
                     )
             except Exception as e:
                 print(f"  {RE}Workflows unavailable: {e}{R}")

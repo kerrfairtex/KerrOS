@@ -11,6 +11,7 @@
 | **Scheduler** | `runtime/scheduler.py` | One-shot, interval, and 5-field cron jobs |
 | **Cron parser** | `runtime/cron.py` | Zero-dep 5-field expression → next run |
 | **Workflow engine** | `runtime/workflows.py` | DAG step execution + SQLite run persistence/resume |
+| **Workflow YAML** | `runtime/workflow_yaml.py` | Declarative defs (`config/workflows/*.yaml`, ADR-010) |
 | **Workflow run store** | `runtime/workflow_store.py` | `data/workflows/runs.db` checkpoints |
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
@@ -74,7 +75,7 @@ Or pass `provider_hint` in `llm_complete()` / `LLMPort.complete()`.
 
 - `/events [n]` — recent event bus events
 - `/schedule` — list jobs; `/schedule cron <name> <expr>`; `/schedule cancel <id>`
-- `/workflows` — registered workflows; `/workflows runs [n]`; `/workflows resume <id>`
+- `/workflows` — list; `/workflows run <name>`; `/workflows reload`; `/workflows runs [n]`; `/workflows resume <id>`
 - `/llm` — provider availability status
 
 ## Kernel integration
@@ -115,7 +116,25 @@ Events: `llm.circuit.*` on the kernel EventBus.
 ## Deferred
 
 - nng actor mesh / Docker multi-node deploy (C-16 full, C-17)
-- Workflow YAML definitions
+
+## Workflow YAML definitions
+
+Declarative workflows live under `config/workflows/*.yaml` (override with
+`workflow_yaml_dir`). Built-in actions only: `set`/`echo`, `get`, `template`,
+`merge`, `publish`, `noop`, `assert_eq`. Boot auto-loads the directory; CLI
+`/workflows reload` re-registers. See [`ADR-010`](adr/ADR-010-workflow-yaml.md).
+
+```yaml
+name: demo.hello
+steps:
+  - id: greet
+    action: set
+    params: { value: hello }
+  - id: shout
+    action: template
+    depends_on: [greet]
+    params: { template: "{{ greet }} world" }
+```
 
 ## Event mesh foundation
 

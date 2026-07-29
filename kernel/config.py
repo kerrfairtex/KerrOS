@@ -126,6 +126,8 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "discovery_dir": "data/event_mesh/peers",
             "discovery_ttl_s": 60,
         },
+        # P3: declarative workflow YAML directory (loaded at boot).
+        "workflow_yaml_dir": "config/workflows",
     }
     merged = {**defaults, **raw}
 

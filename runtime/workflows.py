@@ -109,6 +109,25 @@ class WorkflowEngine:
     def list_workflows(self) -> list[str]:
         return sorted(self._definitions.keys())
 
+    def load_yaml_dir(self, directory: Path | str) -> list[str]:
+        """Register workflows from ``*.yaml`` / ``*.yml`` under directory."""
+        from runtime.workflow_yaml import load_workflows_dir
+
+        return load_workflows_dir(self, Path(directory))
+
+    def load_yaml_file(self, path: Path | str) -> list[str]:
+        """Register workflow(s) from a single YAML file."""
+        from runtime.workflow_yaml import load_workflow_file
+
+        names: list[str] = []
+        for definition in load_workflow_file(Path(path), bus=self.bus):
+            self.register(definition)
+            names.append(definition.name)
+        return names
+
+    def get_definition(self, name: str) -> WorkflowDefinition | None:
+        return self._definitions.get(name)
+
     def list_catalog(self) -> list[dict[str, Any]]:
         self._load_catalog()
         return [self._catalog[name] for name in sorted(self._catalog.keys())]

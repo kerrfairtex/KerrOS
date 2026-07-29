@@ -62,7 +62,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 | `registry/` | `kernel/capability_registry.py`, `config/capabilities/` | P1 foundation — expand manifests beyond claw tools |
 | `knowledge/` | RAG store: 238K chunks, 13 categories (NIST/CWE/CVE/Sigma/YARA/CISA KEV) | |
 | `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation, hybrid memory adapter | |
-| `workflows/` | `runtime/workflows.py` DAG engine | P3 foundation; YAML defs / persistence still deferred |
+| `workflows/` | `runtime/workflows.py` DAG engine + YAML defs | P3; [`ADR-010`](docs/adr/ADR-010-workflow-yaml.md) |
 | `services/` | `kerrd`, `runtime/services.py`, `kernel/watchdog.py` | |
 | `skills/` | progressive-disclosure skills (ADR-007) | |
 | `docs/`, `docs/adr/` | ADR-001..007 (Accepted) + PHASE2/PHASE3 docs | |
@@ -108,6 +108,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
 - [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
 - [x] Cron expressions — `Scheduler.schedule_cron` / `runtime/cron.py` (5-field)
+- [x] Workflow YAML definitions — `runtime/workflow_yaml.py` / `config/workflows/` ([`ADR-010`](docs/adr/ADR-010-workflow-yaml.md))
 - [x] Event mesh foundation — `LocalEventMesh` + transport Protocol ([`ADR-008`](docs/adr/ADR-008-event-mesh-foundation.md))
 - [x] Event mesh transport — durable SQLite broker + peer discovery ([`ADR-009`](docs/adr/ADR-009-event-mesh-transport.md)); nng/Docker multi-node still gated
 - [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
@@ -146,7 +147,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron; [x] event mesh foundation + durable transport (ADR-008/009); nng/Docker mesh still gated
+4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009); [x] workflow YAML (ADR-010); nng/Docker mesh still gated
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

@@ -193,6 +193,22 @@ class Kernel:
             capability_registry=self.container.resolve(SERVICE_CAPABILITY_REGISTRY),
         )
 
+        # Declarative YAML workflows (config/workflows/*.yaml by default).
+        try:
+            yaml_dir = Path(
+                str(
+                    self.config.get(
+                        "workflow_yaml_dir",
+                        self.config.base / "config" / "workflows",
+                    )
+                )
+            )
+            if not yaml_dir.is_absolute():
+                yaml_dir = self.config.base / yaml_dir
+            workflows.load_yaml_dir(yaml_dir)
+        except Exception:
+            pass
+
         self.container.register(SERVICE_EVENT_BUS, bus, singleton=True)
         self.container.register(SERVICE_SCHEDULER, scheduler, singleton=True)
         self.container.register(SERVICE_WORKFLOW_ENGINE, workflows, singleton=True)
