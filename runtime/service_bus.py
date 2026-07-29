@@ -4,7 +4,7 @@ runtime/service_bus.py
 In-process event bus for KerrOS services (Phase 2).
 
 Lightweight pub/sub for service lifecycle and health events.
-Full actor-mesh (nng/socket) is deferred to multi-node deployments.
+Cross-process fanout: ``runtime/actor_mesh.py`` (C-16 / ADR-012).
 """
 
 from __future__ import annotations

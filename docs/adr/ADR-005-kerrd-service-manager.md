@@ -27,7 +27,7 @@ Default autostart service: `code-worker` (IPC-enabled subprocess runner).
 - Foundation for multi-service deployments without network IPC yet
 
 **Negative:**
-- In-process bus does not span machines (deferred to C-16)
+- In-process bus does not span machines by default (optional C-16: ADR-012)
 - `run_daemon.py` becomes a thin shim — callers should migrate to `kerrd`
 
 ## Alternatives considered

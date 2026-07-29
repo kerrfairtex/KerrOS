@@ -116,7 +116,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- nng actor mesh (C-16 full)
+- Authenticated WAN / full actor orchestrator (beyond ADR-012 foundation)
 
 ## Workflow YAML definitions
 

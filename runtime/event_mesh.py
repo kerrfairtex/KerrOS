@@ -8,7 +8,7 @@ pluggable transport. ADR-008: Protocol + LocalEventMesh + null/file/http stubs.
 ADR-009: durable SQLite broker + file/SQL peer discovery.
 ADR-011: HTTP ingest listener + Docker Compose multi-node kit.
 
-nng/socket actor meshes remain deferred (C-16 full).
+Service/lifecycle actor mesh (nng/socket) is ADR-012 (`runtime/actor_mesh.py`).
 """
 
 from __future__ import annotations

@@ -12,6 +12,7 @@
 | **Service bus** | `runtime/service_bus.py` | In-process pub/sub for lifecycle events |
 | **Health monitoring** | `runtime/health.py` | Aggregate kernel + services + decision log health |
 | **IPC** | `runtime/ipc.py` (P1) | JSON-line protocol for worker services |
+| **Actor mesh** | `runtime/actor_mesh.py` | Optional nng/socket ServiceBus fanout (C-16 / ADR-012) |
 
 ## Usage
 
@@ -48,9 +49,25 @@ mgr = resolve("service_manager")
 health = resolve("health_monitor")
 ```
 
+## Actor mesh (C-16)
+
+Optional cross-process `ServiceBus` fanout via stdlib TCP or pynng Bus0:
+
+```json
+"actor_mesh": {
+  "enabled": true,
+  "backend": "nng",
+  "listen": "tcp://127.0.0.1:9091",
+  "peers": ["tcp://127.0.0.1:9092"]
+}
+```
+
+or `KERROS_ACTOR_MESH=1`. Use `ActorMesh.publish` for remote fanout. See
+[`ADR-012`](adr/ADR-012-actor-mesh.md). Optional dep: `requirements-optional.txt`.
+
 ## Deferred (multi-node / scale triggers)
 
-- IPC actor-mesh (nng/socket) — C-16 full
+- Full actor orchestrator / authenticated WAN mesh (beyond ADR-012 foundation)
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - pgvector → Qdrant migration — C-18
 - LGU audit immutability extensions — Phase 2 governance follow-up

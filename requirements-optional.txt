@@ -1,0 +1,13 @@
+# Optional dependencies — IPC actor-mesh (C-16 / ADR-012)
+
+Install only when you want the native nng backend:
+
+```bash
+pip install -r requirements-optional.txt
+# or: pip install pynng
+```
+
+Without pynng, KerrOS still provides `backend: socket` (stdlib TCP).
+Config `actor_mesh.backend: nng` soft-falls back to socket if pynng is missing.
+
+pynng>=0.8.0

@@ -98,7 +98,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 **Status: foundation implemented** (`docs/PHASE2.md`, ADR-005).
 - [x] `kerrd` + `ServiceManager` + `HealthMonitor` + in-process service bus
 - [x] Code Agent IPC worker (`runtime/ipc.py`, `agents/code/subprocess_runner.py`)
-- [ ] Multi-node IPC actor-mesh (nng/socket) — deferred (C-16 full)
+- [x] IPC actor-mesh foundation (nng/socket) — `runtime/actor_mesh.py` ([`ADR-012`](docs/adr/ADR-012-actor-mesh.md)); optional `pynng`
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
 
@@ -112,7 +112,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Workflow YAML definitions — `runtime/workflow_yaml.py` / `config/workflows/` ([`ADR-010`](docs/adr/ADR-010-workflow-yaml.md))
 - [x] Event mesh foundation — `LocalEventMesh` + transport Protocol ([`ADR-008`](docs/adr/ADR-008-event-mesh-foundation.md))
 - [x] Event mesh transport — durable SQLite broker + peer discovery ([`ADR-009`](docs/adr/ADR-009-event-mesh-transport.md))
-- [x] Docker event mesh (C-17) — HTTP ingest + Compose kit ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md)); nng still gated
+- [x] Docker event mesh (C-17) — HTTP ingest + Compose kit ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
 
 ### P4 — Security
@@ -149,7 +149,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011); [x] workflow YAML (ADR-010); nng actor mesh still gated
+4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011); [x] workflow YAML (ADR-010); [x] actor mesh foundation (ADR-012)
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

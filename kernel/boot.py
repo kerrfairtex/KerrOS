@@ -27,6 +27,8 @@ from kernel.contract import (
     SERVICE_DISPATCH_PORT,
     SERVICE_EVENT_BUS,
     SERVICE_EVENT_MESH,
+    SERVICE_SERVICE_BUS,
+    SERVICE_ACTOR_MESH,
     SERVICE_HEALTH_MONITOR,
     SERVICE_LLM_PORT,
     SERVICE_SCHEDULER,
@@ -86,6 +88,11 @@ class Kernel:
         try:
             if self.container.has(SERVICE_EVENT_MESH):
                 self.container.resolve(SERVICE_EVENT_MESH).detach()
+        except Exception:
+            pass
+        try:
+            if self.container.has(SERVICE_ACTOR_MESH):
+                self.container.resolve(SERVICE_ACTOR_MESH).detach()
         except Exception:
             pass
         try:
@@ -159,9 +166,21 @@ class Kernel:
         capability_registry.load_manifest_dir(self.config.base / "config" / "capabilities")
         capability_registry.bootstrap_from_tool_definitions(TOOL_DEFINITIONS)
 
+        self.container.register(SERVICE_SERVICE_BUS, bus, singleton=True)
         self.container.register(SERVICE_SERVICE_MANAGER, manager, singleton=True)
         self.container.register(SERVICE_HEALTH_MONITOR, health, singleton=True)
         self.container.register(SERVICE_CAPABILITY_REGISTRY, capability_registry, singleton=True)
+
+        # Optional IPC actor-mesh (C-16) — off by default; socket or nng backend.
+        try:
+            from runtime.actor_mesh import build_actor_mesh
+
+            actor_cfg = dict(self.config.get("actor_mesh") or {})
+            actor_mesh = build_actor_mesh(bus, cfg=actor_cfg)
+            if actor_mesh is not None:
+                self.container.register(SERVICE_ACTOR_MESH, actor_mesh, singleton=True)
+        except Exception:
+            pass
 
     def _register_event_infrastructure(self) -> None:
         from runtime.event_bus import EventBus

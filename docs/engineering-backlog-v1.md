@@ -22,8 +22,8 @@
 | C-13 | ADR template + ADR-001..003 | Documentation | §3 | New |
 | C-14 | Knowledge/Security/Research/Planner/Reflection/Document Agents | Userspace agents | §0 | Existing — no kernel dependency change required |
 | C-15 | LGU/audit-grade scope decision | Governance artifact | §5 | New — decision record, not code |
-| C-16 | IPC actor-mesh (nng/socket) | Runtime | §1 Phase 2 | Deferred — do not build now |
-| C-17 | Docker (server-side) | Deployment | §1 Phase 2 | Deferred |
+| C-16 | IPC actor-mesh (nng/socket) | Runtime | §1 Phase 2 | Foundation — ADR-012 (`runtime/actor_mesh.py`) |
+| C-17 | Docker (server-side) | Deployment | §1 Phase 2 | Foundation — ADR-011 (`deploy/event_mesh/`) |
 | C-18 | pgvector → Qdrant migration | Storage | §3, §6 Phase 2 | Deferred, conditional |
 | C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Deferred |
 

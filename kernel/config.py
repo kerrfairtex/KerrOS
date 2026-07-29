@@ -130,6 +130,14 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         },
         # P3: declarative workflow YAML directory (loaded at boot).
         "workflow_yaml_dir": "config/workflows",
+        # C-16 actor mesh — off by default (socket always; nng if pynng installed).
+        "actor_mesh": {
+            "enabled": False,
+            "node_id": "local",
+            "backend": "socket",  # socket | nng
+            "listen": None,  # e.g. "tcp://127.0.0.1:9091"
+            "peers": [],
+        },
     }
     merged = {**defaults, **raw}
 
