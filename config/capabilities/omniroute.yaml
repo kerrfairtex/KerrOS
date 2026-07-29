@@ -16,5 +16,10 @@ capabilities:
         Single KerrOS capability entry for OmniRoute. Do not expand this
         manifest into per-upstream providers — use OmniRoute's own dashboard
         and routing strategies for the provider catalog (README P1).
+        HealthMonitor probes GET {endpoint}/models via OMNIROUTE_ENDPOINT,
+        KERROS_OMNIROUTE_URL, or config omniroute_url; surfaced in /health
+        and kerrd health as components.omniroute.
       bind: "127.0.0.1"
       openapi_compatible: true
+      health_probe: "GET /models"
+      health_component: "omniroute"

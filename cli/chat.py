@@ -437,7 +437,18 @@ def main():
                 print(f"  {BL}Healthy:{R}   {report['healthy']}")
                 print(f"  {BL}Uptime:{R}    {report['uptime_s']}s")
                 for name, comp in report["components"].items():
-                    print(f"  {GO}{name}{R}: {comp.get('status', 'unknown')}")
+                    status = comp.get("status", "unknown")
+                    if name == "omniroute":
+                        enabled = "on" if comp.get("enabled") else "off"
+                        avail = "up" if comp.get("available") else "down"
+                        url = comp.get("base_url", "")
+                        extra = f"  enabled={enabled}  {avail}  {url}"
+                        err = comp.get("error")
+                        if err:
+                            extra += f"  ({err})"
+                        print(f"  {GO}{name}{R}: {status}{extra}")
+                    else:
+                        print(f"  {GO}{name}{R}: {status}")
             except Exception as e:
                 print(f"  {RE}Health unavailable: {e}{R}")
             divider()

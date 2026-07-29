@@ -106,6 +106,27 @@ class HealthMonitor:
             report["components"]["event_bus"] = {"status": "error", "error": str(exc)}
             self.record("event_bus", "error", str(exc))
 
+        try:
+            from adapters.llm.omniroute_adapter import probe_omniroute
+
+            omni = probe_omniroute()
+            report["components"]["omniroute"] = omni
+            self.record(
+                "omniroute",
+                omni.get("status", "unknown"),
+                omni.get("base_url", ""),
+            )
+            # Optional gateway: only fail overall health when enabled but down.
+            if omni.get("enabled") and omni.get("status") != "ok":
+                report["healthy"] = False
+        except Exception as exc:
+            report["components"]["omniroute"] = {
+                "status": "error",
+                "provider": "omniroute",
+                "error": str(exc),
+            }
+            self.record("omniroute", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:
