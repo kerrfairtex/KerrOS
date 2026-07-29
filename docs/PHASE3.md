@@ -11,7 +11,7 @@
 | **Scheduler** | `runtime/scheduler.py` | One-shot, interval, and 5-field cron jobs |
 | **Cron parser** | `runtime/cron.py` | Zero-dep 5-field expression → next run |
 | **Workflow engine** | `runtime/workflows.py` | DAG step execution + SQLite run persistence/resume |
-| **Workflow YAML** | `runtime/workflow_yaml.py` | Declarative defs (`config/workflows/*.yaml`, ADR-010) |
+| **Workflow YAML** | `runtime/workflow_yaml.py` | Declarative defs + gated `llm`/`tool` actions (ADR-010/013) |
 | **Workflow run store** | `runtime/workflow_store.py` | `data/workflows/runs.db` checkpoints |
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
@@ -121,21 +121,26 @@ Events: `llm.circuit.*` on the kernel EventBus.
 ## Workflow YAML definitions
 
 Declarative workflows live under `config/workflows/*.yaml` (override with
-`workflow_yaml_dir`). Built-in actions only: `set`/`echo`, `get`, `template`,
-`merge`, `publish`, `noop`, `assert_eq`. Boot auto-loads the directory; CLI
-`/workflows reload` re-registers. See [`ADR-010`](adr/ADR-010-workflow-yaml.md).
+`workflow_yaml_dir`). Built-in actions: `set`/`echo`, `get`, `template`,
+`merge`, `publish`, `noop`, `assert_eq`, **`llm`**, **`tool`**. Boot auto-loads
+the directory; CLI `/workflows reload` re-registers. See
+[`ADR-010`](adr/ADR-010-workflow-yaml.md) and
+[`ADR-013`](adr/ADR-013-workflow-yaml-tool-llm.md).
 
 ```yaml
-name: demo.hello
+name: demo.tool_calc
 steps:
-  - id: greet
+  - id: expr
     action: set
-    params: { value: hello }
-  - id: shout
-    action: template
-    depends_on: [greet]
-    params: { template: "{{ greet }} world" }
+    params: { value: "2+2" }
+  - id: result
+    action: tool
+    depends_on: [expr]
+    params: { tool: calc, args: "{{ expr }}" }
 ```
+
+Tool steps use `workflow_actions.allowed_tools` (default: calc / skills_*);
+`scope_gate` still applies. LLM steps need a configured provider at run time.
 
 ## Event mesh foundation
 

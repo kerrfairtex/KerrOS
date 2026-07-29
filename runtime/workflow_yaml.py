@@ -1,16 +1,20 @@
 """
 runtime/workflow_yaml.py
 ========================
-Declarative workflow definitions from YAML (P3).
+Declarative workflow definitions from YAML (P3 / ADR-010 / ADR-013).
 
 Maps YAML steps onto WorkflowEngine via a closed set of built-in actions
 (no arbitrary code / eval). Callables still are not serialized to SQLite —
 YAML (or Python register) must be loaded before resume.
+
+ADR-013 adds gated ``llm`` / ``tool`` actions resolved at step runtime via
+injected callables (or kernel.access lazy fallbacks).
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -25,8 +29,22 @@ from runtime.workflows import (
 )
 
 StepFn = Callable[[dict[str, Any]], Any]
+LlmCompleteFn = Callable[..., str]
+RunToolFn = Callable[[str, Any], Any]
 
 _TEMPLATE_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_.:-]+)\s*\}\}")
+
+# Passiveive / read-only-ish tools allowed by default for YAML ``tool`` steps.
+# Override with workflow_actions.allowed_tools; use ["*"] to allow all
+# (scope_gate still applies).
+DEFAULT_ALLOWED_TOOLS = frozenset(
+    {
+        "calc",
+        "skills_list",
+        "skill_view",
+        "skill_manage",
+    }
+)
 
 BUILTIN_ACTIONS = frozenset(
     {
@@ -38,12 +56,73 @@ BUILTIN_ACTIONS = frozenset(
         "publish",
         "noop",
         "assert_eq",
+        "llm",
+        "llm_complete",
+        "tool",
     }
 )
 
 
 class WorkflowYamlError(ValueError):
     """Invalid workflow YAML."""
+
+
+@dataclass
+class WorkflowActionContext:
+    """Runtime services for YAML actions (injected; lazy fallbacks OK)."""
+
+    bus: EventBus | None = None
+    llm_complete: LlmCompleteFn | None = None
+    run_tool: RunToolFn | None = None
+    allowed_tools: frozenset[str] | None = None
+    allow_llm: bool = True
+    allow_all_tools: bool = False
+
+    def resolved_allowed_tools(self) -> frozenset[str] | None:
+        """None means allow-all (``*``); otherwise an allowlist."""
+        if self.allow_all_tools:
+            return None
+        if self.allowed_tools is None:
+            return DEFAULT_ALLOWED_TOOLS
+        if "*" in self.allowed_tools:
+            return None
+        return self.allowed_tools
+
+
+def action_context_from_config(
+    cfg: Optional[dict[str, Any]] = None,
+    *,
+    bus: EventBus | None = None,
+) -> WorkflowActionContext:
+    """Build context from ``workflow_actions`` config mapping."""
+    data = dict(cfg or {})
+    allow_llm = data.get("allow_llm", True)
+    if isinstance(allow_llm, str):
+        allow_llm = allow_llm.lower() in ("1", "true", "yes")
+
+    raw_tools = data.get("allowed_tools", None)
+    allow_all = bool(data.get("allow_all_tools", False))
+    allowed: frozenset[str] | None
+    if raw_tools is None:
+        allowed = None  # → DEFAULT_ALLOWED_TOOLS via resolved_allowed_tools
+    elif isinstance(raw_tools, str):
+        parts = [p.strip() for p in raw_tools.split(",") if p.strip()]
+        allowed = frozenset(parts)
+        if "*" in allowed:
+            allow_all = True
+    elif isinstance(raw_tools, (list, tuple, set)):
+        allowed = frozenset(str(x).strip() for x in raw_tools if str(x).strip())
+        if "*" in allowed:
+            allow_all = True
+    else:
+        raise WorkflowYamlError("workflow_actions.allowed_tools must be a list or string")
+
+    return WorkflowActionContext(
+        bus=bus,
+        allowed_tools=allowed,
+        allow_llm=bool(allow_llm),
+        allow_all_tools=allow_all,
+    )
 
 
 def _require_mapping(value: Any, label: str) -> dict[str, Any]:
@@ -77,11 +156,28 @@ def _render_templates(value: Any, ctx: dict[str, Any]) -> Any:
     return value
 
 
+def _resolve_llm(services: WorkflowActionContext) -> LlmCompleteFn:
+    if services.llm_complete is not None:
+        return services.llm_complete
+    from kernel.access import llm_complete
+
+    return llm_complete
+
+
+def _resolve_run_tool(services: WorkflowActionContext) -> RunToolFn:
+    if services.run_tool is not None:
+        return services.run_tool
+    from kernel.access import run_tool
+
+    return run_tool
+
+
 def build_builtin_action(
     name: str,
     params: Optional[dict[str, Any]] = None,
     *,
     bus: EventBus | None = None,
+    services: WorkflowActionContext | None = None,
 ) -> StepFn:
     """Return a StepFn for a named built-in. Raises WorkflowYamlError if unknown."""
     action = str(name or "").strip().lower()
@@ -91,6 +187,16 @@ def build_builtin_action(
             f"(allowed: {', '.join(sorted(BUILTIN_ACTIONS))})"
         )
     raw = dict(params or {})
+    svc = services or WorkflowActionContext(bus=bus)
+    if bus is not None and svc.bus is None:
+        svc = WorkflowActionContext(
+            bus=bus,
+            llm_complete=svc.llm_complete,
+            run_tool=svc.run_tool,
+            allowed_tools=svc.allowed_tools,
+            allow_llm=svc.allow_llm,
+            allow_all_tools=svc.allow_all_tools,
+        )
 
     def _set(ctx: dict[str, Any]) -> Any:
         _ = ctx
@@ -127,7 +233,8 @@ def build_builtin_action(
         return out
 
     def _publish(ctx: dict[str, Any]) -> dict[str, Any]:
-        if bus is None:
+        event_bus = svc.bus
+        if event_bus is None:
             raise RuntimeError("publish action requires an EventBus")
         topic = str(raw.get("topic") or "").strip()
         if not topic:
@@ -135,7 +242,7 @@ def build_builtin_action(
         payload = _render_templates(raw.get("payload") or {}, ctx)
         if not isinstance(payload, dict):
             payload = {"value": payload}
-        event = bus.publish(topic, payload, source="workflow")
+        event = event_bus.publish(topic, payload, source="workflow")
         return {"topic": topic, "event_id": event.id}
 
     def _noop(ctx: dict[str, Any]) -> None:
@@ -154,6 +261,52 @@ def build_builtin_action(
             )
         return True
 
+    def _llm(ctx: dict[str, Any]) -> str:
+        if not svc.allow_llm:
+            raise RuntimeError("llm action disabled by workflow_actions.allow_llm")
+        prompt_raw = raw.get("prompt")
+        if prompt_raw is None:
+            prompt_raw = raw.get("user")
+        if prompt_raw is None:
+            raise WorkflowYamlError("llm action requires params.prompt")
+        prompt = _render_templates(prompt_raw, ctx)
+        system = raw.get("system")
+        if system is not None:
+            system = _render_templates(system, ctx)
+        max_tokens = int(raw.get("max_tokens") or 1024)
+        kwargs: dict[str, Any] = {}
+        if raw.get("provider_hint"):
+            kwargs["provider_hint"] = str(
+                _render_templates(raw.get("provider_hint"), ctx)
+            )
+        if raw.get("history") is not None:
+            kwargs["history"] = _render_templates(raw.get("history"), ctx)
+        complete = _resolve_llm(svc)
+        return complete(
+            str(prompt),
+            system=str(system) if system is not None else None,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+
+    def _tool(ctx: dict[str, Any]) -> Any:
+        tool_name = raw.get("tool") or raw.get("name")
+        if not tool_name:
+            raise WorkflowYamlError("tool action requires params.tool")
+        tool_name = str(_render_templates(tool_name, ctx)).strip()
+        allow = svc.resolved_allowed_tools()
+        if allow is not None and tool_name not in allow:
+            raise PermissionError(
+                f"tool '{tool_name}' not in workflow_actions.allowed_tools "
+                f"(allowed: {', '.join(sorted(allow))})"
+            )
+        if "args" in raw:
+            args = _render_templates(raw.get("args"), ctx)
+        else:
+            args = _render_templates(raw.get("params") or "", ctx)
+        run = _resolve_run_tool(svc)
+        return run(tool_name, args)
+
     handlers: dict[str, StepFn] = {
         "set": _set,
         "echo": _set,
@@ -163,6 +316,9 @@ def build_builtin_action(
         "publish": _publish,
         "noop": _noop,
         "assert_eq": _assert_eq,
+        "llm": _llm,
+        "llm_complete": _llm,
+        "tool": _tool,
     }
     fn = handlers[action]
     fn.__name__ = action  # type: ignore[attr-defined]
@@ -175,6 +331,7 @@ def definition_from_mapping(
     data: dict[str, Any],
     *,
     bus: EventBus | None = None,
+    services: WorkflowActionContext | None = None,
     source: str = "",
 ) -> WorkflowDefinition:
     """Build a WorkflowDefinition from a parsed YAML mapping."""
@@ -189,6 +346,7 @@ def definition_from_mapping(
     if not isinstance(steps_raw, list) or not steps_raw:
         raise WorkflowYamlError(f"workflow '{name}' needs a non-empty steps list")
 
+    svc = services or WorkflowActionContext(bus=bus)
     steps: list[WorkflowStep] = []
     for i, step_data in enumerate(steps_raw):
         step_data = _require_mapping(step_data, f"steps[{i}]")
@@ -214,7 +372,9 @@ def definition_from_mapping(
             raise WorkflowYamlError(
                 f"workflow '{name}' step '{step_id}' depends_on must be a list"
             )
-        action = build_builtin_action(action_name, params, bus=bus)
+        action = build_builtin_action(
+            action_name, params, bus=bus, services=svc
+        )
         steps.append(
             WorkflowStep(
                 id=step_id,
@@ -235,6 +395,7 @@ def parse_workflow_yaml(
     text: str,
     *,
     bus: EventBus | None = None,
+    services: WorkflowActionContext | None = None,
     source: str = "",
 ) -> list[WorkflowDefinition]:
     """Parse YAML text into one or more workflow definitions."""
@@ -245,9 +406,15 @@ def parse_workflow_yaml(
 
     if data is None:
         return []
+    svc = services or WorkflowActionContext(bus=bus)
     if isinstance(data, list):
         return [
-            definition_from_mapping(_require_mapping(item, "workflow list item"), bus=bus, source=source)
+            definition_from_mapping(
+                _require_mapping(item, "workflow list item"),
+                bus=bus,
+                services=svc,
+                source=source,
+            )
             for item in data
         ]
     data = _require_mapping(data, "workflow document")
@@ -256,20 +423,30 @@ def parse_workflow_yaml(
         if not isinstance(items, list):
             raise WorkflowYamlError("'workflows' must be a list")
         return [
-            definition_from_mapping(_require_mapping(item, "workflows[]"), bus=bus, source=source)
+            definition_from_mapping(
+                _require_mapping(item, "workflows[]"),
+                bus=bus,
+                services=svc,
+                source=source,
+            )
             for item in items
         ]
-    return [definition_from_mapping(data, bus=bus, source=source)]
+    return [
+        definition_from_mapping(data, bus=bus, services=svc, source=source)
+    ]
 
 
 def load_workflow_file(
     path: Path,
     *,
     bus: EventBus | None = None,
+    services: WorkflowActionContext | None = None,
 ) -> list[WorkflowDefinition]:
     path = Path(path)
     text = path.read_text(encoding="utf-8")
-    return parse_workflow_yaml(text, bus=bus, source=str(path))
+    return parse_workflow_yaml(
+        text, bus=bus, services=services, source=str(path)
+    )
 
 
 def load_workflows_dir(
@@ -277,11 +454,26 @@ def load_workflows_dir(
     directory: Path,
     *,
     patterns: tuple[str, ...] = ("*.yaml", "*.yml"),
+    services: WorkflowActionContext | None = None,
 ) -> list[str]:
     """Load and register all workflow YAML files under directory. Returns names."""
     directory = Path(directory)
     if not directory.is_dir():
         return []
+    svc = services
+    if svc is None:
+        svc = getattr(engine, "action_context", None)
+    if svc is None:
+        svc = WorkflowActionContext(bus=engine.bus)
+    elif svc.bus is None and engine.bus is not None:
+        svc = WorkflowActionContext(
+            bus=engine.bus,
+            llm_complete=svc.llm_complete,
+            run_tool=svc.run_tool,
+            allowed_tools=svc.allowed_tools,
+            allow_llm=svc.allow_llm,
+            allow_all_tools=svc.allow_all_tools,
+        )
     registered: list[str] = []
     paths: list[Path] = []
     for pattern in patterns:
@@ -293,7 +485,9 @@ def load_workflows_dir(
         if resolved in seen:
             continue
         seen.add(resolved)
-        for definition in load_workflow_file(path, bus=engine.bus):
+        for definition in load_workflow_file(
+            path, bus=engine.bus, services=svc
+        ):
             engine.register(definition)
             registered.append(definition.name)
     return registered

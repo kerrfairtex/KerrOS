@@ -1,0 +1,14 @@
+# Demo: gated YAML tool action (calc is on the default allowlist)
+name: demo.tool_calc
+description: YAML tool action — calc via scope-gated dispatch
+steps:
+  - id: expr
+    action: set
+    params:
+      value: "2+2"
+  - id: result
+    action: tool
+    depends_on: [expr]
+    params:
+      tool: calc
+      args: "{{ expr }}"

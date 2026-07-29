@@ -21,7 +21,7 @@ Ship a **closed action set** loaded from YAML:
    and `/workflows run <name>`
 4. Catalog JSON still records action **names** via `__name__` on generated fns
 
-Arbitrary Python step bodies and shell/tool actions stay out of YAML for now.
+Arbitrary Python step bodies stay out of YAML. Tool/LLM steps: see ADR-013.
 
 ## Alternatives considered
 
@@ -37,9 +37,8 @@ Arbitrary Python step bodies and shell/tool actions stay out of YAML for now.
 reload of the same YAML.
 
 **Negative:** New step kinds need a code change to the built-in registry.
-Tool/LLM steps remain Python-registered.
 
 ## Revisit when
 
-A product need for tool-port or LLM steps in YAML appears — extend the
-built-in registry with explicit, gated action names rather than open code exec.
+~~Tool/LLM steps in YAML~~ — **done (ADR-013).** Further revisit for streaming
+LLM or multi-tool plans.

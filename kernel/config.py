@@ -130,6 +130,12 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         },
         # P3: declarative workflow YAML directory (loaded at boot).
         "workflow_yaml_dir": "config/workflows",
+        # ADR-013: gate YAML llm/tool actions (tool allowlist; scope_gate still applies).
+        "workflow_actions": {
+            "allow_llm": True,
+            "allowed_tools": None,  # None → DEFAULT_ALLOWED_TOOLS; ["*"] → all
+            "allow_all_tools": False,
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

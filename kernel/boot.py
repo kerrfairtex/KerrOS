@@ -205,11 +205,18 @@ class Kernel:
                 )
             )
         )
+        from runtime.workflow_yaml import action_context_from_config
+
+        action_ctx = action_context_from_config(
+            dict(self.config.get("workflow_actions") or {}),
+            bus=bus,
+        )
         workflows = WorkflowEngine(
             bus=bus,
             catalog_path=workflow_catalog_path,
             store_path=workflow_store_path,
             capability_registry=self.container.resolve(SERVICE_CAPABILITY_REGISTRY),
+            action_context=action_ctx,
         )
 
         # Declarative YAML workflows (config/workflows/*.yaml by default).

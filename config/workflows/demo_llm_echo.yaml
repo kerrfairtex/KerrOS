@@ -1,0 +1,15 @@
+# Demo: YAML llm action (needs a working LLM port / API key at run time)
+name: demo.llm_echo
+description: YAML llm action — prompt templating (run when LLM is configured)
+steps:
+  - id: topic
+    action: set
+    params:
+      value: KerrOS
+  - id: answer
+    action: llm
+    depends_on: [topic]
+    params:
+      system: "Reply with one short sentence."
+      prompt: "What is {{ topic }} in one word?"
+      max_tokens: 32

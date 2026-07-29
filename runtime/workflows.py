@@ -70,6 +70,7 @@ class WorkflowEngine:
     catalog_path: Path | None = None
     store_path: Path | None = None
     capability_registry: "CapabilityRegistry | None" = None
+    action_context: Any = None
     _definitions: dict[str, WorkflowDefinition] = field(default_factory=dict)
     _runs: dict[str, WorkflowRun] = field(default_factory=dict)
     _catalog: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -113,14 +114,18 @@ class WorkflowEngine:
         """Register workflows from ``*.yaml`` / ``*.yml`` under directory."""
         from runtime.workflow_yaml import load_workflows_dir
 
-        return load_workflows_dir(self, Path(directory))
+        return load_workflows_dir(
+            self, Path(directory), services=self.action_context
+        )
 
     def load_yaml_file(self, path: Path | str) -> list[str]:
         """Register workflow(s) from a single YAML file."""
         from runtime.workflow_yaml import load_workflow_file
 
         names: list[str] = []
-        for definition in load_workflow_file(Path(path), bus=self.bus):
+        for definition in load_workflow_file(
+            Path(path), bus=self.bus, services=self.action_context
+        ):
             self.register(definition)
             names.append(definition.name)
         return names
