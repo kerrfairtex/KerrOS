@@ -114,7 +114,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
 - [x] Generate scope policy docs — `scripts/render_scope_policy.py` → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md)
 - [ ] Full audit checklist in §6
-- [ ] Confirm DevOps tokens are scoped least-privilege per service
+- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
 
 ### P5 — Storage
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
@@ -136,15 +136,15 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 **KerrOS side (independent of OmniRoute):**
 - [x] `scope_gate.py` fail-closed default; deploy arm window expires server-side (`deploy_armed_until`)
 - [x] `verify_identity`/`verify_business` log SHA-256 digests, not raw PII (KOS-010)
-- [ ] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) — confirm each token is scoped least-privilege, not one shared key
+- [x] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) — least-privilege token checklist + shape checks ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md)); Stripe live keys refused
 - [x] Shell exec uses `shell=False` + metachar rejection; `_calc` uses AST safe math (no `eval`)
 
 ## 7. Immediate next actions
-1. Confirm DevOps tokens are scoped least-privilege per service (P4 leftover)
+1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. Re-provision the DigitalOcean droplet; run the loopback Docker kit — [`deploy/omniroute/`](deploy/omniroute/) + `scripts/omniroute_droplet.sh` (host bind `127.0.0.1:20128` only)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
 4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
-5. Complete remaining §6 security audit checklist items
+5. Complete remaining §6 security audit checklist items (OmniRoute bind/AES/promptfoo)
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 
 ## 8. Open decisions log — don't resolve these silently

@@ -1048,21 +1048,42 @@ def _verify_business(name):
     return "\n".join(out)
 
 # ── DevOps / Deploy pipeline ─────────────────────────────
+def _deploy_preflight(tool_name: str):
+    """Block deploy CLIs when credentials are missing or over-privileged."""
+    try:
+        from tools.devops_tokens import preflight
+    except Exception:
+        return None
+    return preflight(tool_name)
+
+
 def _github_create_repo(args):
+    blocked = _deploy_preflight("github_create_repo")
+    if blocked:
+        return blocked
     reponame = sanitize_token(args.strip(), label="repo name")
     if not reponame: return "[Usage: create repo <name>]"
     if not shutil.which("gh"): return "[gh CLI not installed: pkg install gh]"
     return _run_argv(["gh", "repo", "create", reponame, "--private", "--source=.", "--push"], 30)
 
 def _github_push(args):
+    blocked = _deploy_preflight("github_push")
+    if blocked:
+        return blocked
     branch = sanitize_token((args.strip() or "main"), label="branch")
     return _run_argv(["git", "push", "origin", branch], 30)
 
 def _supabase_migrate(args):
+    blocked = _deploy_preflight("supabase_migrate")
+    if blocked:
+        return blocked
     if not shutil.which("supabase"): return "[supabase CLI not installed]"
     return _run_argv(["supabase", "db", "push"], 30)
 
 def _vercel_deploy(args):
+    blocked = _deploy_preflight("vercel_deploy")
+    if blocked:
+        return blocked
     if not shutil.which("vercel"): return "[vercel CLI not installed]"
     argv = ["vercel", "deploy", "--yes"]
     if "prod" in args.lower():
@@ -1070,6 +1091,9 @@ def _vercel_deploy(args):
     return _run_argv(argv, 90)
 
 def _netlify_deploy(args):
+    blocked = _deploy_preflight("netlify_deploy")
+    if blocked:
+        return blocked
     if not shutil.which("netlify"): return "[netlify CLI not installed]"
     argv = ["netlify", "deploy"]
     if "prod" in args.lower():
@@ -1077,14 +1101,23 @@ def _netlify_deploy(args):
     return _run_argv(argv, 90)
 
 def _railway_deploy(args):
+    blocked = _deploy_preflight("railway_deploy")
+    if blocked:
+        return blocked
     if not shutil.which("railway"): return "[railway CLI not installed]"
     return _run_argv(["railway", "up"], 90)
 
 def _cloudflare_deploy(args):
+    blocked = _deploy_preflight("cloudflare_deploy")
+    if blocked:
+        return blocked
     if not shutil.which("wrangler"): return "[wrangler CLI not installed]"
     return _run_argv(["wrangler", "deploy"], 60)
 
 def _stripe_trigger(args):
+    blocked = _deploy_preflight("stripe_trigger")
+    if blocked:
+        return blocked
     event = sanitize_token(args.strip(), label="event")
     if not event: return "[Usage: stripe trigger <event_name>]"
     if not shutil.which("stripe"): return "[stripe CLI not installed]"

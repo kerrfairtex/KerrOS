@@ -201,6 +201,24 @@ deploy:
     access_token_env: SUPABASE_ACCESS_TOKEN
     project_id_env: SUPABASE_PROJECT_ID
     db_url_env: SUPABASE_DB_URL
+  netlify:
+    # Prefer NETLIFY_AUTH_TOKEN; NETLIFTY_API_KEY is a legacy alias.
+    token_env: NETLIFY_AUTH_TOKEN
+    legacy_token_env: NETLIFTY_API_KEY
+    team_id_env: NETLIFY_TEAM_ID
+    org_name_env: NETLIFTY_ORG_NAME
+  railway:
+    token_env: RAILWAY_API_KEY
+    ssh_key_env: RAILWAY_SSH_KEY
+  cloudflare:
+    token_env: CLOUDFLARE_API_TOKEN
+    account_id_env: CLOUDFLARE_ACCOUNT_ID
+    zone_id_env: CLOUDFLARE_ZONE_ID
+  stripe:
+    # Test-mode only (sk_test_ / rk_test_). Live keys refused by devops_tokens.
+    api_key_env: STRIPE_API_KEY
+    secret_key_env: STRIPE_SECRET_KEY
+    publishable_key_env: STRIPE_PUBLISHABLE_KEY
   git_identity:
     author_name_env: GIT_AUTHOR_NAME
     author_email_env: GIT_AUTHOR_EMAIL

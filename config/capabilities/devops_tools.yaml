@@ -1,5 +1,6 @@
 version: 1
 # Deploy/mutation tools — blocked by default; require /scope arm-deploy window.
+# Token scoping: docs/DEVOPS_TOKEN_SCOPING.md + tools/devops_tokens.py
 capabilities:
   - name: "tool:github_create_repo"
     kind: "tool"
@@ -9,6 +10,8 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "GITHUB_TOKEN"
+      token_scope: "fine-grained contents+metadata (one repo) or classic repo only"
       notes: "Requires gh CLI and GITHUB_TOKEN; scope_gate DEPLOY_TOOLS."
 
   - name: "tool:github_push"
@@ -19,15 +22,20 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "GITHUB_TOKEN"
+      token_scope: "fine-grained contents+metadata (one repo) or classic repo only"
 
   - name: "tool:supabase_migrate"
     kind: "tool"
     permissions: ["deploy"]
-    dependencies: ["cli:supabase"]
+    dependencies: ["cli:supabase", "env:SUPABASE_ACCESS_TOKEN"]
     setup_required: true
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "SUPABASE_ACCESS_TOKEN"
+      token_scope: "project-scoped Management/CLI token"
+      notes: "Prefer SUPABASE_ACCESS_TOKEN; avoid SERVICE_ROLE in agent .env."
 
   - name: "tool:vercel_deploy"
     kind: "tool"
@@ -37,15 +45,21 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "VERCEL_TOKEN"
+      token_scope: "one team/project deploy"
 
   - name: "tool:netlify_deploy"
     kind: "tool"
     permissions: ["deploy"]
-    dependencies: ["cli:netlify", "env:NETLIFTY_API_KEY"]
+    dependencies: ["cli:netlify", "env:NETLIFY_AUTH_TOKEN"]
     setup_required: true
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "NETLIFY_AUTH_TOKEN"
+      token_env_aliases: ["NETLIFTY_API_KEY"]
+      token_scope: "site/team-scoped personal access token"
+      notes: "NETLIFTY_API_KEY is a legacy alias for NETLIFY_AUTH_TOKEN."
 
   - name: "tool:railway_deploy"
     kind: "tool"
@@ -55,6 +69,8 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "RAILWAY_API_KEY"
+      token_scope: "project-scoped API token"
 
   - name: "tool:cloudflare_deploy"
     kind: "tool"
@@ -64,6 +80,8 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
+      token_env: "CLOUDFLARE_API_TOKEN"
+      token_scope: "Workers Scripts Edit (+ DNS Edit) on one account/zone"
 
   - name: "tool:stripe_trigger"
     kind: "tool"
@@ -73,4 +91,8 @@ capabilities:
     setup_state: "needs_setup"
     metadata:
       gate: "deploy"
-      notes: "Triggers Stripe test events; never use live keys in cloud agents."
+      token_env: "STRIPE_API_KEY"
+      token_env_aliases: ["STRIPE_SECRET_KEY"]
+      token_scope: "sk_test_ or rk_test_ only"
+      forbidden_prefixes: ["sk_live_", "rk_live_"]
+      notes: "Triggers Stripe test events; live keys are refused by devops_tokens."
