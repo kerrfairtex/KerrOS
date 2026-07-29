@@ -106,6 +106,14 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "qdrant_url": "http://127.0.0.1:6333",
         # KerrOS-only collection — do not reuse OmniRoute vector namespaces (P5).
         "qdrant_collection": "kerros_memory",
+        # P6: composite provider circuit breaker / cooldown / lockout.
+        "llm_resilience": {
+            "enabled": True,
+            "failure_threshold": 3,
+            "cooldown_s": 30,
+            "lockout_opens": 3,
+            "lockout_s": 300,
+        },
     }
     merged = {**defaults, **raw}
 

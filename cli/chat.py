@@ -324,7 +324,7 @@ def main():
                 ("/workflows",         "List workflows; runs [n]; resume <id>"),
                 ("/reflect",           "Review episodes → lessons (Reflection Agent)"),
                 ("/reflections",       "Show saved reflection lessons"),
-                ("/llm",               "Show LLM provider status"),
+                ("/llm",               "LLM providers + resilience; reset [name]"),
                 ("/capabilities [kind]", "List capability registry entries"),
                 ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),
                 ("/decisions",         "Show recent decision log entries"),
@@ -558,19 +558,47 @@ def main():
                 print(f"  {RE}Workflows unavailable: {e}{R}")
             divider()
 
-        elif user == "/llm":
+        elif user.startswith("/llm"):
             divider()
             try:
+                parts = user.split()
                 port = resolve("llm_port")
-                status = port.status() if hasattr(port, "status") else {}
-                print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
-                print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
-                print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
-                for key in ("ollama", "vllm", "cloud"):
-                    info = status.get(key, {})
-                    if isinstance(info, dict):
-                        avail = info.get("available", info.get("groq", "?"))
-                        print(f"  {GO}{key}{R}: available={avail}")
+                if len(parts) >= 2 and parts[1] == "reset":
+                    target = parts[2] if len(parts) > 2 else None
+                    if hasattr(port, "reset_resilience"):
+                        reset = port.reset_resilience(target)
+                        print(
+                            f"  {GR}[ ✓ ]{R} resilience reset: "
+                            f"{', '.join(reset) if reset else (target or 'all')}"
+                        )
+                    else:
+                        print(f"  {GY}Resilience reset not supported on this LLM port.{R}")
+                else:
+                    status = port.status() if hasattr(port, "status") else {}
+                    print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
+                    print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
+                    print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
+                    for key in ("ollama", "vllm", "litellm", "omniroute", "cloud"):
+                        info = status.get(key, {})
+                        if isinstance(info, dict):
+                            avail = info.get("available", info.get("enabled", info.get("groq", "?")))
+                            print(f"  {GO}{key}{R}: available={avail}")
+                    resilience = status.get("resilience") or {}
+                    if resilience:
+                        print(
+                            f"  {BL}Resilience:{R} enabled={resilience.get('enabled')} "
+                            f"threshold={resilience.get('config', {}).get('failure_threshold')} "
+                            f"cooldown={resilience.get('config', {}).get('cooldown_s')}s"
+                        )
+                        for pname, pinfo in (resilience.get("providers") or {}).items():
+                            print(
+                                f"    {GO}{pname}{R}: {pinfo.get('state')} "
+                                f"fails={pinfo.get('consecutive_failures')} "
+                                f"opens={pinfo.get('open_count')} "
+                                f"cd={pinfo.get('cooldown_remaining_s')}s "
+                                f"lock={pinfo.get('lockout_remaining_s')}s"
+                            )
+                    print(f"  {GY}/llm reset [provider]{R}")
             except Exception as e:
                 print(f"  {RE}LLM status unavailable: {e}{R}")
             divider()

@@ -123,9 +123,9 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md) (`rag/path_guard.py`)
 
 ### P6 — Autonomous Runtime
-**Status: seed started (Reflection Agent loop hardened).**
+**Status: seed started (Reflection Agent + LLM resilience).**
 - [x] Reflection Agent (episode review, lesson logging) — `/reflect` → `reflections.json` + high-confidence → `semantic.lessons_learned`
-- [ ] When you get here, imitate OmniRoute's 3-layer resilience model (circuit breaker / cooldown / lockout) rather than reinventing it — it's a working reference you already have access to
+- [x] OmniRoute-inspired 3-layer resilience — circuit breaker / cooldown / lockout per composite provider (`adapters/llm/resilience.py`, `/llm`)
 
 ## 6. Security audit checklist
 

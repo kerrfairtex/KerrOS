@@ -96,6 +96,19 @@ model, provider, latency, cache). `OpenAICompatClient` (provider `omniroute`)
 publishes them on the kernel EventBus as topic `omniroute.usage` without
 changing the `LLMPort.complete() -> str` contract. Inspect via `/events`.
 
+### LLM provider resilience (P6)
+
+`CompositeLLMAdapter` gates each provider with a KerrOS-native 3-layer model
+inspired by OmniRoute (not a port of their per-key catalog):
+
+1. **Circuit breaker** — open after `failure_threshold` consecutive failures
+2. **Cooldown** — after `cooldown_s`, one half-open probe is allowed
+3. **Lockout** — after `lockout_opens` opens, provider is locked for `lockout_s`
+
+Config: `llm_resilience` in `config.json` / `kernel/config.py` defaults.
+CLI: `/llm` shows circuit state; `/llm reset [provider]` clears lockout.
+Events: `llm.circuit.*` on the kernel EventBus.
+
 ## Deferred
 
 - Distributed event mesh across nodes (C-16)
