@@ -127,6 +127,9 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "discovery": None,  # None=auto for durable; file | none
             "discovery_dir": "data/event_mesh/peers",
             "discovery_ttl_s": 60,
+            # ADR-014: shared secret (env KERROS_EVENT_MESH_TOKEN preferred).
+            "auth_token": "",
+            "auth_required": False,
         },
         # P3: declarative workflow YAML directory (loaded at boot).
         "workflow_yaml_dir": "config/workflows",
@@ -143,6 +146,8 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "backend": "socket",  # socket | nng
             "listen": None,  # e.g. "tcp://127.0.0.1:9091"
             "peers": [],
+            "auth_token": "",  # env KERROS_ACTOR_MESH_TOKEN
+            "auth_required": False,
         },
     }
     merged = {**defaults, **raw}

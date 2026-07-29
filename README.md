@@ -114,6 +114,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Event mesh foundation — `LocalEventMesh` + transport Protocol ([`ADR-008`](docs/adr/ADR-008-event-mesh-foundation.md))
 - [x] Event mesh transport — durable SQLite broker + peer discovery ([`ADR-009`](docs/adr/ADR-009-event-mesh-transport.md))
 - [x] Docker event mesh (C-17) — HTTP ingest + Compose kit ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
+- [x] Authenticated mesh — shared-secret HTTP + actor envelopes ([`ADR-014`](docs/adr/ADR-014-authenticated-mesh.md))
 - [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
 
 ### P4 — Security
@@ -150,7 +151,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011); [x] workflow YAML + tool/LLM actions (ADR-010/013); [x] actor mesh (ADR-012)
+4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011/014); [x] workflow YAML + tool/LLM (ADR-010/013); [x] actor mesh (ADR-012)
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

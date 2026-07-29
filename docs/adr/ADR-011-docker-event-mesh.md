@@ -38,10 +38,10 @@ durable/file remain for shared-filesystem same-host use.
 **Positive:** Two containers can exchange events; CI can guard loopback
 publishes; ADR-009 revisit trigger for Docker is satisfied at foundation level.
 
-**Negative:** Ingest has no auth — must stay on private Docker network +
-loopback host publish. Not a WAN mesh.
+**Negative:** Originally no auth — addressed by ADR-014 shared secret. Still
+not a WAN mesh without TLS at the edge.
 
 ## Revisit when
 
-A third physical host or authenticated edge exposure is required — then put a
-reverse proxy + auth (or NATS) behind the same `EventMeshTransport` Protocol.
+~~Authenticated edge~~ — **foundation in ADR-014.** Revisit for TLS/mTLS or
+NATS when exposing beyond a private network.

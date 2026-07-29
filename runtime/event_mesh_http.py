@@ -1,11 +1,15 @@
 """
 runtime/event_mesh_http.py
 ==========================
-HTTP ingest/listen for Docker / multi-node event mesh (C-17 / ADR-011).
+HTTP ingest/listen for Docker / multi-node event mesh (C-17 / ADR-011 / ADR-014).
 
 Stdlib ``ThreadingHTTPServer`` — no Flask/FastAPI dependency. Peers POST
 ``{"origin_node", "event"}`` to ``/mesh/ingest``; the handler calls
 ``LocalEventMesh.ingest`` (no outbound re-send).
+
+When ``MeshAuth`` has a token, ``POST /mesh/ingest`` and ``POST /mesh/publish``
+require ``Authorization: Bearer <token>`` or ``X-Kerros-Mesh-Token``.
+``GET /health`` stays open for probes.
 """
 
 from __future__ import annotations
@@ -16,6 +20,8 @@ from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
+
+from runtime.mesh_auth import MeshAuth, check_http_auth
 
 if TYPE_CHECKING:
     from runtime.event_mesh import LocalEventMesh
@@ -50,6 +56,7 @@ class EventMeshHttpServer:
     mesh: "LocalEventMesh"
     host: str = "0.0.0.0"
     port: int = 8787
+    auth: MeshAuth = field(default_factory=MeshAuth)
     path_ingest: str = "/mesh/ingest"
     path_publish: str = "/mesh/publish"
     path_health: str = "/health"
@@ -57,10 +64,12 @@ class EventMeshHttpServer:
     _thread: threading.Thread | None = field(default=None, init=False, repr=False)
     received: int = 0
     published: int = 0
+    rejected_auth: int = 0
 
     def start(self) -> None:
         if self._httpd is not None:
             return
+        self.auth.ensure_ready(what="event mesh HTTP listen")
         mesh = self.mesh
         server = self
 
@@ -87,6 +96,13 @@ class EventMeshHttpServer:
                 self.end_headers()
                 self.wfile.write(payload)
 
+            def _require_auth(self) -> bool:
+                if check_http_auth(self.headers, server.auth):
+                    return True
+                server.rejected_auth += 1
+                self._write(401, {"ok": False, "error": "unauthorized"})
+                return False
+
             def do_GET(self) -> None:  # noqa: N802
                 path = urlparse(self.path).path
                 if path == server.path_health:
@@ -96,6 +112,7 @@ class EventMeshHttpServer:
                         {
                             "ok": True,
                             "node_id": mesh.node_id,
+                            "auth": server.auth.enabled,
                             "stats": stats,
                         },
                     )
@@ -104,6 +121,9 @@ class EventMeshHttpServer:
 
             def do_POST(self) -> None:  # noqa: N802
                 path = urlparse(self.path).path
+                if path in (server.path_ingest, server.path_publish):
+                    if not self._require_auth():
+                        return
                 try:
                     data = self._read_json()
                 except ValueError as exc:
@@ -207,12 +227,18 @@ def start_mesh_http_server(
     listen: str | int | None = None,
     host: str | None = None,
     port: int | None = None,
+    auth: MeshAuth | None = None,
 ) -> EventMeshHttpServer:
     """Create and start an EventMeshHttpServer attached to ``mesh``."""
     if host is None or port is None:
         h, p = parse_listen_addr(listen)
         host = host or h
         port = port if port is not None else p
-    server = EventMeshHttpServer(mesh=mesh, host=str(host), port=int(port))
+    server = EventMeshHttpServer(
+        mesh=mesh,
+        host=str(host),
+        port=int(port),
+        auth=auth or MeshAuth(),
+    )
     server.start()
     return server

@@ -26,6 +26,12 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional, Protocol, runtime_checkable
 
+from runtime.mesh_auth import (
+    MeshAuth,
+    mesh_auth_from_config,
+    unwrap_actor_payload,
+    wrap_actor_payload,
+)
 from runtime.service_bus import ServiceBus
 
 
@@ -341,22 +347,26 @@ class ActorMesh:
 
     Use ``ActorMesh.publish`` (not raw ``ServiceBus.publish``) so messages
     fan out to remote peers. Inbound remote messages are re-published on the
-    local ServiceBus.
+    local ServiceBus. When ``auth`` has a token, wire envelopes carry it
+    (ADR-014).
     """
 
     node_id: str
     bus: ServiceBus
     backend: ActorMeshBackend
+    auth: MeshAuth = field(default_factory=MeshAuth)
     _seen: set[str] = field(default_factory=set)
     _attached: bool = False
     _stop: threading.Event = field(default_factory=threading.Event, init=False, repr=False)
     _thread: threading.Thread | None = field(default=None, init=False, repr=False)
     _forwarded: int = 0
     _ingested: int = 0
+    _auth_rejected: int = 0
 
     def attach(self) -> None:
         if self._attached:
             return
+        self.auth.ensure_ready(what="actor mesh")
         self.backend.start()
         self._stop.clear()
         self._thread = threading.Thread(
@@ -394,11 +404,22 @@ class ActorMesh:
         self._mark_seen(msg.id)
         self._deliver_local(msg)
         try:
-            self.backend.send(msg.to_bytes())
+            self.backend.send(self._encode(msg))
             self._forwarded += 1
         except Exception:
             pass
         return msg
+
+    def _encode(self, msg: ActorMessage) -> bytes:
+        envelope = wrap_actor_payload(msg.to_dict(), self.auth)
+        return json.dumps(envelope, sort_keys=True).encode("utf-8")
+
+    def _decode(self, raw: bytes) -> ActorMessage:
+        data = json.loads(raw.decode("utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("actor message must be a JSON object")
+        inner = unwrap_actor_payload(data, self.auth)
+        return ActorMessage.from_dict(inner)
 
     def _deliver_local(self, msg: ActorMessage) -> None:
         if not msg.topic:
@@ -417,7 +438,10 @@ class ActorMesh:
             if not raw:
                 continue
             try:
-                msg = ActorMessage.from_bytes(raw)
+                msg = self._decode(raw)
+            except PermissionError:
+                self._auth_rejected += 1
+                continue
             except Exception:
                 continue
             if msg.origin_node == self.node_id:
@@ -433,6 +457,8 @@ class ActorMesh:
             "attached": self._attached,
             "forwarded": self._forwarded,
             "ingested": self._ingested,
+            "auth_rejected": self._auth_rejected,
+            "auth": self.auth.enabled,
             "seen": len(self._seen),
             "endpoints": self.backend.endpoints(),
         }
@@ -489,9 +515,15 @@ def build_actor_mesh(
         # Soft fallback so boot never fails on Termux without pynng.
         backend_name = "socket"
 
+    auth = mesh_auth_from_config(
+        data,
+        env_token="KERROS_ACTOR_MESH_TOKEN",
+        env_required="KERROS_ACTOR_MESH_AUTH_REQUIRED",
+    )
+
     backend = build_actor_backend(
         backend=backend_name, listen=listen or None, peers=peers
     )
-    mesh = ActorMesh(node_id=node_id, bus=bus, backend=backend)
+    mesh = ActorMesh(node_id=node_id, bus=bus, backend=backend, auth=auth)
     mesh.attach()
     return mesh

@@ -21,6 +21,7 @@ services:
       KERROS_EVENT_MESH_TRANSPORT: http
       KERROS_EVENT_MESH_LISTEN: "0.0.0.0:8787"
       KERROS_EVENT_MESH_HTTP_PEERS: http://node-b:8787/mesh/ingest
+      KERROS_EVENT_MESH_TOKEN: ${KERROS_EVENT_MESH_TOKEN:-kerros-mesh-dev-token}
       KERROS_BASE: /app
     ports:
       - "127.0.0.1:${MESH_HOST_PORT_A:-8787}:8787"
@@ -52,6 +53,7 @@ services:
       KERROS_EVENT_MESH_TRANSPORT: http
       KERROS_EVENT_MESH_LISTEN: "0.0.0.0:8787"
       KERROS_EVENT_MESH_HTTP_PEERS: http://node-a:8787/mesh/ingest
+      KERROS_EVENT_MESH_TOKEN: ${KERROS_EVENT_MESH_TOKEN:-kerros-mesh-dev-token}
       KERROS_BASE: /app
     ports:
       - "127.0.0.1:${MESH_HOST_PORT_B:-8788}:8787"

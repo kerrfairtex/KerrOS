@@ -20,6 +20,7 @@
 | **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP stubs (ADR-008) |
 | **Mesh broker** | `runtime/event_mesh_broker.py` | Durable SQLite broker + file/SQL peer discovery (ADR-009) |
 | **Mesh HTTP** | `runtime/event_mesh_http.py` | Ingest listener for Docker multi-node (ADR-011) |
+| **Mesh auth** | `runtime/mesh_auth.py` | Shared-secret tokens for HTTP + actor mesh (ADR-014) |
 
 ## Usage
 
@@ -168,8 +169,9 @@ or `KERROS_EVENT_MESH=1`. Peer discovery: file heartbeats under `discovery_dir`
 ```
 
 See [`deploy/event_mesh/`](../deploy/event_mesh/) and
-[`ADR-011`](adr/ADR-011-docker-event-mesh.md). ADRs:
-[`ADR-008`](adr/ADR-008-event-mesh-foundation.md),
+[`ADR-011`](adr/ADR-011-docker-event-mesh.md). Set
+`KERROS_EVENT_MESH_TOKEN` for authenticated POSTs ([`ADR-014`](adr/ADR-014-authenticated-mesh.md)).
+Also: [`ADR-008`](adr/ADR-008-event-mesh-foundation.md),
 [`ADR-009`](adr/ADR-009-event-mesh-transport.md).
 
 ## Cron scheduling

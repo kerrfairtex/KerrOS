@@ -8,6 +8,7 @@ COMPOSE_DIR="${ROOT}/deploy/event_mesh"
 COMPOSE_FILE="${COMPOSE_DIR}/docker-compose.yml"
 PORT_A="${MESH_HOST_PORT_A:-8787}"
 PORT_B="${MESH_HOST_PORT_B:-8788}"
+MESH_TOKEN="${KERROS_EVENT_MESH_TOKEN:-kerros-mesh-dev-token}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -98,11 +99,12 @@ PY
 cmd_verify() {
   check_loopback
   need_docker
-  # Wait for health on both host ports.
-  python3 - "$PORT_A" "$PORT_B" <<'PY'
+  # Wait for health on both host ports; publish with shared mesh token (ADR-014).
+  python3 - "$PORT_A" "$PORT_B" "$MESH_TOKEN" <<'PY'
 import json, sys, time, urllib.error, urllib.request
 
 ports = [sys.argv[1], sys.argv[2]]
+token = sys.argv[3]
 deadline = time.time() + 60
 for port in ports:
     url = f"http://127.0.0.1:{port}/health"
@@ -111,7 +113,7 @@ for port in ports:
             with urllib.request.urlopen(url, timeout=2) as resp:
                 data = json.loads(resp.read().decode())
             if data.get("ok"):
-                print(f"health OK :{port} node_id={data.get('node_id')}")
+                print(f"health OK :{port} node_id={data.get('node_id')} auth={data.get('auth')}")
                 break
         except Exception as exc:
             if time.time() > deadline:
@@ -119,20 +121,39 @@ for port in ports:
                 raise SystemExit(1)
             time.sleep(1)
 
-# Publish on A → expect B health ingested count to rise via peer forward.
+# Reject unauthenticated publish when token is configured.
+bad = urllib.request.Request(
+    f"http://127.0.0.1:{ports[0]}/mesh/publish",
+    data=json.dumps({"topic": "mesh.verify.deny", "payload": {}}).encode(),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    urllib.request.urlopen(bad, timeout=3)
+    print("FAIL: unauthenticated publish succeeded", file=sys.stderr)
+    raise SystemExit(1)
+except urllib.error.HTTPError as exc:
+    if exc.code != 401:
+        print(f"FAIL: expected 401, got {exc.code}", file=sys.stderr)
+        raise SystemExit(1)
+    print("auth reject OK (401 without token)")
+
 topic = "mesh.verify.ping"
 payload = json.dumps({"topic": topic, "payload": {"from": "verify"}}).encode()
 req = urllib.request.Request(
     f"http://127.0.0.1:{ports[0]}/mesh/publish",
     data=payload,
-    headers={"Content-Type": "application/json"},
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+        "X-Kerros-Mesh-Token": token,
+    },
     method="POST",
 )
 with urllib.request.urlopen(req, timeout=5) as resp:
     pub = json.loads(resp.read().decode())
 print("published on node-a:", pub)
 
-# Give node-b a moment to ingest (HTTP is synchronous on send, but health is local).
 time.sleep(0.5)
 with urllib.request.urlopen(f"http://127.0.0.1:{ports[1]}/health", timeout=3) as resp:
     health_b = json.loads(resp.read().decode())

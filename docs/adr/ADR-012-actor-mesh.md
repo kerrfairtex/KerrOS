@@ -41,9 +41,9 @@ actors, no capability routing, no exactly-once delivery.
 `pynng` is installed; CI covered by socket backend.
 
 **Negative:** Callers must use `ActorMesh.publish` (raw `ServiceBus.publish`
-stays local). No auth on the wire — bind to loopback / private nets only.
+stays local). Wire auth: shared secret via ADR-014 (not TLS).
 
 ## Revisit when
 
-Multi-host authenticated service mesh is required — then put TLS or NATS
-behind `ActorMeshBackend`, or graduate to a real actor runtime.
+~~Authenticated service mesh~~ — **token envelopes in ADR-014.** Revisit for
+TLS/NATS or a full actor runtime when multi-tenant WAN is required.

@@ -7,6 +7,7 @@ Joins local EventBuses and optionally forwards serialized Events through a
 pluggable transport. ADR-008: Protocol + LocalEventMesh + null/file/http stubs.
 ADR-009: durable SQLite broker + file/SQL peer discovery.
 ADR-011: HTTP ingest listener + Docker Compose multi-node kit.
+ADR-014: shared-secret auth for HTTP (+ actor mesh).
 
 Service/lifecycle actor mesh (nng/socket) is ADR-012 (`runtime/actor_mesh.py`).
 """
@@ -28,6 +29,7 @@ from runtime.event_mesh_broker import (
     FilePeerRegistry,
     MeshPeer,
 )
+from runtime.mesh_auth import MeshAuth, http_auth_headers, mesh_auth_from_config
 
 
 @runtime_checkable
@@ -113,11 +115,13 @@ class HttpEventMeshTransport:
     """HTTP transport: POST event JSON to configured peer ingest URLs.
 
     Receive path is ``EventMeshHttpServer`` (``/mesh/ingest``) — used by the
-    Docker multi-node kit (ADR-011). Failures are soft so chat never breaks.
+    Docker multi-node kit (ADR-011). Sends ``Authorization`` when ``auth``
+    has a token (ADR-014). Failures are soft so chat never breaks.
     """
 
     peers: list[str] = field(default_factory=list)
     timeout_s: float = 2.0
+    auth: MeshAuth = field(default_factory=MeshAuth)
     posted: list[dict[str, Any]] = field(default_factory=list)
 
     def send(self, event: Event, *, origin_node: str) -> None:
@@ -126,12 +130,19 @@ class HttpEventMeshTransport:
         if not self.peers:
             return
         try:
+            self.auth.ensure_ready(what="event mesh HTTP send")
+        except Exception:
+            return
+        try:
             import requests
         except Exception:
             return
+        headers = {"Content-Type": "application/json", **http_auth_headers(self.auth)}
         for url in self.peers:
             try:
-                requests.post(url, json=body, timeout=self.timeout_s)
+                requests.post(
+                    url, json=body, timeout=self.timeout_s, headers=headers
+                )
             except Exception:
                 continue
 
@@ -411,6 +422,8 @@ def build_event_mesh(
                 directory=discovery_dir, node_id=node_id, ttl_s=ttl_s
             )
 
+    mesh_auth = mesh_auth_from_config(data)
+
     transport: EventMeshTransport
     if transport_name == "file":
         directory = _resolve_under(
@@ -430,7 +443,9 @@ def build_event_mesh(
             or data.get("http_timeout_s")
             or 2.0
         )
-        transport = HttpEventMeshTransport(peers=peers, timeout_s=timeout_s)
+        transport = HttpEventMeshTransport(
+            peers=peers, timeout_s=timeout_s, auth=mesh_auth
+        )
     elif transport_name == "durable":
         broker_db = _resolve_under(
             root,
@@ -464,7 +479,9 @@ def build_event_mesh(
         try:
             from runtime.event_mesh_http import start_mesh_http_server
 
-            mesh.http_server = start_mesh_http_server(mesh, listen=listen)
+            mesh.http_server = start_mesh_http_server(
+                mesh, listen=listen, auth=mesh_auth
+            )
         except Exception:
             pass
 

@@ -51,6 +51,10 @@ class EventMeshComposeTest(unittest.TestCase):
             services["node-b"]["environment"]["KERROS_EVENT_MESH_HTTP_PEERS"],
             "http://node-a:8787/mesh/ingest",
         )
+        self.assertIn(
+            "KERROS_EVENT_MESH_TOKEN",
+            services["node-a"]["environment"],
+        )
         self.assertIn("mesh", data.get("networks") or {})
 
     def test_all_host_ports_are_loopback(self):
