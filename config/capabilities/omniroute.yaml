@@ -19,7 +19,10 @@ capabilities:
         HealthMonitor probes GET {endpoint}/models via OMNIROUTE_ENDPOINT,
         KERROS_OMNIROUTE_URL, or config omniroute_url; surfaced in /health
         and kerrd health as components.omniroute.
+        OmniRoute FTS5+vector memory is separate from KerrOS RAG
+        (docs/MEMORY_SEPARATION.md) — provider only, not a MemoryPort.
       bind: "127.0.0.1"
       openapi_compatible: true
       health_probe: "GET /models"
       health_component: "omniroute"
+      memory_boundary: "separate"

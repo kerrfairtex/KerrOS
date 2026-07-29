@@ -26,6 +26,17 @@ KNOWLEDGE_INDEX = os.path.expanduser(
     CFG.get("knowledge_index", "~/offline_ai/data/knowledge")
 )
 
+# P5: never point KerrOS RAG at OmniRoute storage (docs/MEMORY_SEPARATION.md).
+from rag.path_guard import assert_kerros_paths
+
+assert_kerros_paths(
+    [
+        ("DB_PATH", DB_PATH),
+        ("knowledge_root", KNOWLEDGE_ROOT),
+        ("knowledge_index", KNOWLEDGE_INDEX),
+    ]
+)
+
 
 def _conn():
     conn = sqlite3.connect(DB_PATH)

@@ -120,7 +120,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 ### P5 — Storage
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
 - [x] Lexical phrase-match scoring in `rag/store.py`; hybrid/vector path via adapters
-- [ ] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — different jobs, don't merge
+- [x] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md) (`rag/path_guard.py`)
 
 ### P6 — Autonomous Runtime
 **Status: earliest-stage, correctly sequenced last.**

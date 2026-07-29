@@ -34,6 +34,9 @@ class QdrantVectorStore:
             or cfg.get("qdrant_collection")
             or "kerros_memory"
         )
+        from rag.path_guard import assert_qdrant_collection
+
+        self.collection = assert_qdrant_collection(self.collection)
         self.api_key = os.getenv("KERROS_QDRANT_API_KEY") or cfg.get("qdrant_api_key") or ""
         self.timeout = float(cfg.get("qdrant_timeout_s", 5))
         self._embedder = SentenceTransformersAdapter(

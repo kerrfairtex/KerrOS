@@ -52,7 +52,7 @@ Full checklist: [`docs/OMNIROUTE_SECURITY_AUDIT.md`](../../docs/OMNIROUTE_SECURI
 - Host publish is `127.0.0.1:20128` only. Changing compose to `20128:20128` exposes the dashboard/API on all interfaces — forbidden without a TLS reverse proxy in front (§6).
 - Inside the container OmniRoute binds `0.0.0.0` (`OMNIROUTE_SERVER_HOST`); isolation is the Docker port mapping, not the in-container bind.
 - Set `STORAGE_ENCRYPTION_KEY` (AES-256-GCM), `JWT_SECRET`, and `API_KEY_SECRET` in `.env` before production use — empty storage key means plaintext.
-- Keep OmniRoute memory separate from KerrOS RAG (README P5).
+- Keep OmniRoute memory separate from KerrOS RAG — [`docs/MEMORY_SEPARATION.md`](../../docs/MEMORY_SEPARATION.md) (P5).
 - Prefer a pinned image tag (`3.8.49`) over `latest` on production droplets.
 - After gateway is up: `scripts/run_omniroute_rag_promptfoo.sh` (KerrOS RAG injection eval).
 

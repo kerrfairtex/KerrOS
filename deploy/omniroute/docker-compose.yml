@@ -19,6 +19,8 @@ services:
       # Loopback publish — do not change to "20128:20128" on a public droplet.
       - "127.0.0.1:${OMNIROUTE_HOST_PORT:-20128}:20128"
     volumes:
+      # OmniRoute-only data (FTS/vector/gateway state). Do NOT mount KerrOS data/
+      # or the KerrOS RAG SQLite file here — see docs/MEMORY_SEPARATION.md (P5).
       - omniroute-data:/app/data
     environment:
       DATA_DIR: /app/data

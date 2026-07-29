@@ -9,6 +9,8 @@ capabilities:
     metadata:
       module: "agents.knowledge"
       role: "RAG-grounded Q&A with tool fallback"
+      memory: "kerros_rag"
+      notes: "Uses KerrOS port:memory / rag_store only — not OmniRoute memory (P5)."
 
   - name: "agent:security"
     kind: "agent"

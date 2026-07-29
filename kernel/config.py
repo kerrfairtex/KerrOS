@@ -104,6 +104,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "omniroute_url": "http://127.0.0.1:20128/v1",
         "qdrant_enabled": False,
         "qdrant_url": "http://127.0.0.1:6333",
+        # KerrOS-only collection — do not reuse OmniRoute vector namespaces (P5).
         "qdrant_collection": "kerros_memory",
     }
     merged = {**defaults, **raw}
