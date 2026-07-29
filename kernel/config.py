@@ -89,7 +89,12 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
     ).expanduser().resolve()
 
     scope = root / "config" / "scope.json"
-    if not scope.exists():
+    # Do not fall back to the repo scope.json when KERROS_BASE/OFFLINE_AI_BASE
+    # (or an explicit base=) isolates the runtime — that would leak arm/allow
+    # state across test sandboxes and alternate installs.
+    if not scope.exists() and base is None and not (
+        os.environ.get("KERROS_BASE") or os.environ.get("OFFLINE_AI_BASE")
+    ):
         scope = Path(__file__).resolve().parent.parent / "config" / "scope.json"
 
     defaults = {

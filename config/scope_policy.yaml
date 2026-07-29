@@ -1,0 +1,50 @@
+# KerrOS scope_gate policy — declarative allow/deny rules (README P4).
+# Loaded by tools/scope_gate.py at import/check time.
+# Fail-closed: unknown tools are not gated as offensive/deploy unless listed here.
+
+version: 1
+
+defaults:
+  fail_closed: true
+  require_explicit_authorization: true
+  deploy_arm_minutes: 5
+  # If true, tools not listed under any class are treated as passive (allowed).
+  unknown_tools_are_passive: true
+
+# Tools that touch real network targets — require target allowlist (scope.json).
+offensive_tools:
+  - nmap
+  - nikto
+  - osint
+  - recon
+  - geoip
+  - geoint
+  - dnsenum
+  - reversedns
+  - email_osint
+  - sigint
+  - headers
+  - cert
+  - whois
+  - dig
+  - ping
+  - traceroute
+
+# Tools that mutate remote infra/repos/payments — require armed deploy window.
+deploy_tools:
+  - github_create_repo
+  - github_push
+  - supabase_migrate
+  - vercel_deploy
+  - netlify_deploy
+  - railway_deploy
+  - cloudflare_deploy
+  - stripe_trigger
+
+messages:
+  deploy_denied: >
+    BLOCKED: '{tool}' requires an armed deploy window.
+    Use /scope arm-deploy <minutes> to authorize, then retry.
+  scope_denied: >
+    BLOCKED: '{target}' is not in the authorized scope.
+    Use /scope add {target} to explicitly authorize it first.

@@ -184,9 +184,9 @@ def main():
             print(f"  {GR}[ ✓ ] Removed{R}" if removed else f"  {GY}Not in scope.{R}")
 
         elif user.startswith("/scope arm-deploy"):
-            from tools.scope_gate import arm_deploy
+            from tools.scope_gate import arm_deploy, load_policy
             parts = user.split()
-            minutes = 5
+            minutes = int(load_policy()["defaults"].get("deploy_arm_minutes", 5))
             if len(parts) >= 3:
                 try:
                     minutes = int(parts[2])
@@ -201,12 +201,24 @@ def main():
                 else:
                     print(f"  {GY}Cancelled.{R}")
 
+        elif user == "/scope policy":
+            from tools.scope_gate import policy_summary
+            summary = policy_summary()
+            divider()
+            print(f"  {BL}Source:{R} {summary.get('source')}")
+            print(f"  {BL}Offensive ({len(summary['offensive_tools'])}):{R} {', '.join(summary['offensive_tools'])}")
+            print(f"  {BL}Deploy ({len(summary['deploy_tools'])}):{R} {', '.join(summary['deploy_tools'])}")
+            print(f"  {BL}Defaults:{R} {summary.get('defaults')}")
+            divider()
+
         elif user=="/scope":
-            from tools.scope_gate import list_scope
+            from tools.scope_gate import list_scope, policy_summary
             targets, cidrs = list_scope()
+            summary = policy_summary()
             divider()
             print(f"  {BL}Authorized targets:{R} {', '.join(targets) if targets else 'none'}")
             print(f"  {BL}Authorized CIDRs:{R} {', '.join(cidrs) if cidrs else 'none'}")
+            print(f"  {BL}Policy:{R} {summary.get('source')}  (use /scope policy)")
             divider()
 
         elif user=="/apistatus":
@@ -262,10 +274,9 @@ def main():
                 ("/scope",             "Show authorized scan/recon targets"),
                 ("/scope add <t>",     "Authorize a target for active tools"),
                 ("/scope remove <t>",  "Remove a target from scope"),
+                ("/scope arm-deploy",  "Arm deploy tools for N minutes"),
+                ("/scope policy",      "Show declarative scope_policy.yaml"),
                 ("/apistatus",         "Show online API health/dead status"),
-                ("/scope",             "Show authorized scan/recon targets"),
-                ("/scope add <t>",     "Authorize a target for active tools"),
-                ("/scope remove <t>",  "Remove a target from scope"),
                 ("/setkey groq <key>", "Set Groq API key"),
                 ("/switch small|large","Switch local model"),
                 ("/react <task>",      "ReAct agent — multi-step reasoning"),

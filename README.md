@@ -111,8 +111,9 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 
 ### P4 — Security
 **Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
-- [ ] Formalize rules as declarative data (tool → permission level → confirmation required)
+- [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
 - [ ] Full audit checklist in §6
+- [ ] Confirm DevOps tokens are scoped least-privilege per service
 
 ### P5 — Storage
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
@@ -138,8 +139,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Shell exec uses `shell=False` + metachar rejection; `_calc` uses AST safe math (no `eval`)
 
 ## 7. Immediate next actions
-1. Expand P1 capability manifests (agents, DevOps tools, LLM providers) and OmniRoute as one meta-capability
-2. Declarative scope_gate policy data (P4) — YAML rules instead of inline Python
+1. Generate docs/status from capability manifests (Documentation as Code)
+2. Confirm DevOps tokens are scoped least-privilege per service (P4 leftover)
 3. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
 4. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
 5. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
