@@ -38,7 +38,7 @@ Provider selection:
 
 **Negative:**
 - In-process scheduler does not survive process restart
-- Workflow state is in-memory only (no persistence yet)
+- Workflow **definitions** still require re-registration after restart (callables are not persisted); run **state** now checkpoints to SQLite (`runtime/workflow_store.py`)
 - Local adapters require reachable OpenAI-compatible endpoints
 
 ## Alternatives considered

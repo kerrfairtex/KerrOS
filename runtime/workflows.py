@@ -3,7 +3,8 @@ runtime/workflows.py
 ====================
 Workflow execution engine (Phase 3).
 
-Runs DAGs of steps with event bus integration and decision log audit.
+Runs DAGs of steps with event bus integration, decision log audit, and
+optional SQLite persistence so incomplete runs can resume after restart.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING
 
 from runtime.event_bus import EventBus
+from runtime.workflow_store import WorkflowRunStore
 
 if TYPE_CHECKING:
     from kernel.capability_registry import CapabilityRegistry
@@ -66,10 +68,16 @@ class WorkflowRun:
 class WorkflowEngine:
     bus: EventBus | None = None
     catalog_path: Path | None = None
+    store_path: Path | None = None
     capability_registry: "CapabilityRegistry | None" = None
     _definitions: dict[str, WorkflowDefinition] = field(default_factory=dict)
     _runs: dict[str, WorkflowRun] = field(default_factory=dict)
     _catalog: dict[str, dict[str, Any]] = field(default_factory=dict)
+    _store: WorkflowRunStore | None = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.store_path is not None:
+            self._store = WorkflowRunStore(Path(self.store_path))
 
     def register(self, definition: WorkflowDefinition) -> None:
         self._validate_definition(definition)
@@ -105,6 +113,29 @@ class WorkflowEngine:
         self._load_catalog()
         return [self._catalog[name] for name in sorted(self._catalog.keys())]
 
+    def list_runs(
+        self,
+        *,
+        limit: int = 20,
+        state: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return recent persisted runs (falls back to in-memory if no store)."""
+        if self._store is not None:
+            return self._store.list_recent(limit=limit, state=state)
+        runs = sorted(
+            self._runs.values(),
+            key=lambda r: r.finished_at or r.started_at or 0,
+            reverse=True,
+        )
+        out = []
+        for run in runs:
+            if state and run.state.value != state:
+                continue
+            out.append(self.status(run.id) or {})
+            if len(out) >= limit:
+                break
+        return out
+
     def run(
         self,
         name: str,
@@ -132,10 +163,12 @@ class WorkflowEngine:
 
         run.state = WorkflowState.RUNNING
         run.started_at = time.time()
+        self._checkpoint(run, completed_steps=[])
 
         try:
-            self._execute(definition, run)
+            self._execute(definition, run, completed=set())
             run.state = WorkflowState.COMPLETED
+            run.error = ""
             if self.bus:
                 self.bus.publish(
                     "workflow.completed",
@@ -154,11 +187,102 @@ class WorkflowEngine:
             raise
         finally:
             run.finished_at = time.time()
+            self._checkpoint(run, completed_steps=list(run.results.keys()))
+
+        return run
+
+    def resume(self, run_id: str) -> WorkflowRun:
+        """Continue a pending/running/failed run, skipping completed steps.
+
+        Requires the workflow definition to still be registered (callables are
+        not stored in SQLite — only JSON-serializable step results).
+        """
+        run = self._load_run(run_id)
+        if run is None:
+            raise KeyError(f"workflow run not found: {run_id}")
+        if run.state == WorkflowState.COMPLETED:
+            raise ValueError(f"workflow run already completed: {run_id}")
+
+        definition = self._definitions.get(run.workflow)
+        if not definition:
+            raise KeyError(
+                f"workflow definition not registered for resume: {run.workflow}"
+            )
+
+        completed = set(run.results.keys())
+        # Prefer store's completed_steps if present and richer.
+        stored = self._store.get(run_id) if self._store else None
+        if stored:
+            completed |= set(stored.get("completed_steps") or [])
+
+        run.state = WorkflowState.RUNNING
+        run.error = ""
+        run.finished_at = None
+        if run.started_at is None:
+            run.started_at = time.time()
+        self._runs[run.id] = run
+        self._checkpoint(run, completed_steps=list(completed))
+
+        if self.bus:
+            self.bus.publish(
+                "workflow.started",
+                {"run_id": run.id, "workflow": run.workflow, "resume": True},
+                source="workflow",
+            )
+
+        try:
+            self._execute(definition, run, completed=completed)
+            run.state = WorkflowState.COMPLETED
+            run.error = ""
+            if self.bus:
+                self.bus.publish(
+                    "workflow.completed",
+                    {
+                        "run_id": run.id,
+                        "workflow": run.workflow,
+                        "results": run.results,
+                        "resume": True,
+                    },
+                    source="workflow",
+                )
+        except Exception as exc:
+            run.state = WorkflowState.FAILED
+            run.error = str(exc)
+            if self.bus:
+                self.bus.publish(
+                    "workflow.failed",
+                    {
+                        "run_id": run.id,
+                        "workflow": run.workflow,
+                        "error": run.error,
+                        "resume": True,
+                    },
+                    source="workflow",
+                )
+            raise
+        finally:
+            run.finished_at = time.time()
+            self._checkpoint(run, completed_steps=list(run.results.keys()))
 
         return run
 
     def status(self, run_id: str) -> dict[str, Any] | None:
         run = self._runs.get(run_id)
+        if run is None and self._store is not None:
+            row = self._store.get(run_id)
+            if not row:
+                return None
+            return {
+                "id": row["id"],
+                "workflow": row["workflow"],
+                "state": row["state"],
+                "results": row["results"],
+                "completed_steps": row.get("completed_steps") or [],
+                "error": row["error"],
+                "started_at": row["started_at"],
+                "finished_at": row["finished_at"],
+                "context": row.get("context") or {},
+            }
         if not run:
             return None
         return {
@@ -166,21 +290,82 @@ class WorkflowEngine:
             "workflow": run.workflow,
             "state": run.state.value,
             "results": run.results,
+            "completed_steps": list(run.results.keys()),
             "error": run.error,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
+            "context": run.context,
         }
 
-    def _execute(self, definition: WorkflowDefinition, run: WorkflowRun) -> None:
-        completed: set[str] = set()
-        steps_by_id = {s.id: s for s in definition.steps}
+    def _load_run(self, run_id: str) -> WorkflowRun | None:
+        if run_id in self._runs:
+            return self._runs[run_id]
+        if self._store is None:
+            return None
+        row = self._store.get(run_id)
+        if not row:
+            return None
+        run = WorkflowRun(
+            id=row["id"],
+            workflow=row["workflow"],
+            state=WorkflowState(row["state"]),
+            context=dict(row.get("context") or {}),
+            results=dict(row.get("results") or {}),
+            started_at=row.get("started_at"),
+            finished_at=row.get("finished_at"),
+            error=row.get("error") or "",
+        )
+        self._runs[run.id] = run
+        return run
 
-        while len(completed) < len(definition.steps):
+    def _checkpoint(
+        self,
+        run: WorkflowRun,
+        *,
+        completed_steps: list[str] | None = None,
+    ) -> None:
+        if self._store is None:
+            return
+        steps = (
+            list(completed_steps)
+            if completed_steps is not None
+            else list(run.results.keys())
+        )
+        try:
+            self._store.upsert(
+                run_id=run.id,
+                workflow=run.workflow,
+                state=run.state.value,
+                context=run.context,
+                results=run.results,
+                completed_steps=steps,
+                error=run.error,
+                started_at=run.started_at,
+                finished_at=run.finished_at,
+            )
+        except Exception:
+            # Persistence must not crash the workflow path.
+            pass
+
+    def _execute(
+        self,
+        definition: WorkflowDefinition,
+        run: WorkflowRun,
+        *,
+        completed: set[str] | None = None,
+    ) -> None:
+        done: set[str] = set(completed or ())
+        # Ensure results already recorded for resumed steps.
+        for step_id in list(done):
+            if step_id not in run.results:
+                run.results[step_id] = None
+
+        while len(done) < len(definition.steps):
             progressed = False
             for step in definition.steps:
-                if step.id in completed:
+                if step.id in done:
                     continue
-                if not all(dep in completed for dep in step.depends_on):
+                if not all(dep in done for dep in step.depends_on):
                     continue
 
                 if self.bus:
@@ -197,8 +382,9 @@ class WorkflowEngine:
                 ctx = {**run.context, **run.results}
                 result = step.action(ctx)
                 run.results[step.id] = result
-                completed.add(step.id)
+                done.add(step.id)
                 progressed = True
+                self._checkpoint(run, completed_steps=list(done))
 
                 if self.bus:
                     self.bus.publish(
@@ -212,7 +398,7 @@ class WorkflowEngine:
                     )
 
             if not progressed:
-                missing = [s.id for s in definition.steps if s.id not in completed]
+                missing = [s.id for s in definition.steps if s.id not in done]
                 raise RuntimeError(f"workflow deadlock - unresolved steps: {missing}")
 
     def _topo_order(self, definition: WorkflowDefinition) -> list[WorkflowStep]:

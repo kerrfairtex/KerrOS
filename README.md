@@ -104,16 +104,18 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 ### P3 — Event Infrastructure
 **Status: foundation implemented** (`docs/PHASE3.md`, ADR-006).
 - [x] General-purpose `EventBus` (separate from decision-log audit trail)
-- [x] Scheduler + workflow DAG engine
+- [x] Scheduler + workflow DAG engine (+ SQLite run persistence / resume)
 - [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
-- [ ] Persistent workflow state / cron expressions / distributed event mesh — deferred
+- [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
+- [ ] Cron expressions / distributed event mesh — deferred
 - [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
 
 ### P4 — Security
 **Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
 - [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
 - [x] Generate scope policy docs — `scripts/render_scope_policy.py` → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md)
-- [x] Full audit checklist in §6 (OmniRoute bind/AES/promptfoo + DevOps tokens)- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
+- [x] Full audit checklist in §6 (OmniRoute bind/AES/promptfoo + DevOps tokens)
+- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
 
 ### P5 — Storage
 **Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
@@ -142,7 +144,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. Re-provision the DigitalOcean droplet; run the loopback Docker kit — [`deploy/omniroute/`](deploy/omniroute/) + `scripts/omniroute_droplet.sh` (host bind `127.0.0.1:20128` only)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
+4. [x] Persist workflow state / resume (`data/workflows/runs.db`); cron / event mesh still deferred
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

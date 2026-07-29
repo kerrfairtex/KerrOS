@@ -321,7 +321,7 @@ def main():
                 ("/services",          "Show managed service status"),
                 ("/events [n]",        "Show recent event bus events"),
                 ("/schedule",          "List scheduled jobs"),
-                ("/workflows",         "List registered workflows"),
+                ("/workflows",         "List workflows; runs [n]; resume <id>"),
                 ("/llm",               "Show LLM provider status"),
                 ("/capabilities [kind]", "List capability registry entries"),
                 ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),
@@ -520,15 +520,38 @@ def main():
                 print(f"  {RE}Scheduler unavailable: {e}{R}")
             divider()
 
-        elif user == "/workflows":
+        elif user.startswith("/workflows"):
             divider()
             try:
+                parts = user.split()
                 wf = resolve("workflow_engine")
-                names = wf.list_workflows()
-                if not names:
-                    print(f"  {GY}No workflows registered.{R}")
-                for name in names:
-                    print(f"  {GO}{name}{R}")
+                if len(parts) >= 3 and parts[1] == "resume":
+                    run = wf.resume(parts[2])
+                    print(
+                        f"  {GO}resumed{R} {run.id[:8]}…  "
+                        f"{run.workflow}  state={run.state.value}"
+                    )
+                elif len(parts) >= 2 and parts[1] == "runs":
+                    limit = int(parts[2]) if len(parts) > 2 else 10
+                    runs = wf.list_runs(limit=limit)
+                    if not runs:
+                        print(f"  {GY}No persisted workflow runs.{R}")
+                    for row in runs:
+                        rid = str(row.get("id", ""))[:8]
+                        print(
+                            f"  {GO}{row.get('workflow')}{R}  "
+                            f"id={rid}…  state={row.get('state')}  "
+                            f"err={row.get('error') or '-'}"
+                        )
+                else:
+                    names = wf.list_workflows()
+                    if not names:
+                        print(f"  {GY}No workflows registered.{R}")
+                    for name in names:
+                        print(f"  {GO}{name}{R}")
+                    print(
+                        f"  {GY}/workflows runs [n] · /workflows resume <id>{R}"
+                    )
             except Exception as e:
                 print(f"  {RE}Workflows unavailable: {e}{R}")
             divider()

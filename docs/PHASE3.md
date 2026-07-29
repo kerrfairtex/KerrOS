@@ -9,7 +9,8 @@
 |-----------|--------|-------------|
 | **Event bus** | `runtime/event_bus.py` | Typed pub/sub with history and wildcards |
 | **Scheduler** | `runtime/scheduler.py` | One-shot and interval jobs |
-| **Workflow engine** | `runtime/workflows.py` | DAG step execution |
+| **Workflow engine** | `runtime/workflows.py` | DAG step execution + SQLite run persistence/resume |
+| **Workflow run store** | `runtime/workflow_store.py` | `data/workflows/runs.db` checkpoints |
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
 | **Composite LLM** | `adapters/llm/composite_adapter.py` | Local-first with cloud fallback |
@@ -70,7 +71,7 @@ Or pass `provider_hint` in `llm_complete()` / `LLMPort.complete()`.
 
 - `/events [n]` — recent event bus events
 - `/schedule` — list scheduled jobs
-- `/workflows` — list registered workflows
+- `/workflows` — registered workflows; `/workflows runs [n]`; `/workflows resume <id>`
 - `/llm` — provider availability status
 
 ## Kernel integration
@@ -99,5 +100,11 @@ changing the `LLMPort.complete() -> str` contract. Inspect via `/events`.
 
 - Distributed event mesh across nodes (C-16)
 - Cron expression parsing
-- Persistent workflow state / resume
 - Workflow YAML definitions
+
+## Persistent workflow state
+
+Runs checkpoint to SQLite (`data/workflows/runs.db` by default) after each step.
+`WorkflowEngine.list_runs()` / `resume(run_id)` reload state across process
+restarts. Step **callables** are not serialized — the workflow definition must
+be re-registered before resume. CLI: `/workflows runs`, `/workflows resume <id>`.

@@ -55,5 +55,7 @@ data/tasks/
 data/*.bak
 *.crt
 data/decision_log.db
+data/workflows/*.db
+data/workflows/*.db-*
 deploy/omniroute/data/
 deploy/omniroute/.env

@@ -172,9 +172,18 @@ class Kernel:
                 )
             )
         )
+        workflow_store_path = Path(
+            str(
+                self.config.get(
+                    "workflow_store_path",
+                    self.config.base / "data" / "workflows" / "runs.db",
+                )
+            )
+        )
         workflows = WorkflowEngine(
             bus=bus,
             catalog_path=workflow_catalog_path,
+            store_path=workflow_store_path,
             capability_registry=self.container.resolve(SERVICE_CAPABILITY_REGISTRY),
         )
 

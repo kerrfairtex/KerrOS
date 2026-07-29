@@ -97,8 +97,120 @@ class WorkflowEngineTest(unittest.TestCase):
             entries = engine.list_catalog()
             self.assertTrue(any(e["name"] == "build.docs" for e in entries))
 
+    def test_run_persists_to_sqlite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "runs.db"
+            engine = WorkflowEngine(store_path=db)
+            engine.register(
+                WorkflowDefinition(
+                    name="persist.demo",
+                    steps=[
+                        WorkflowStep("a", action=lambda ctx: 1),
+                        WorkflowStep("b", action=lambda ctx: ctx["a"] + 1, depends_on=["a"]),
+                    ],
+                )
+            )
+            run = engine.run("persist.demo")
+            self.assertEqual(run.state, WorkflowState.COMPLETED)
 
-class KernelPhase3Test(unittest.TestCase):
+            engine2 = WorkflowEngine(store_path=db)
+            rows = engine2.list_runs(limit=5)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["state"], "completed")
+            self.assertEqual(rows[0]["results"]["b"], 2)
+            status = engine2.status(run.id)
+            self.assertIsNotNone(status)
+            self.assertEqual(status["workflow"], "persist.demo")
+
+    def test_list_runs_filter_by_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "runs.db"
+            engine = WorkflowEngine(store_path=db)
+            engine.register(
+                WorkflowDefinition(
+                    name="ok.flow",
+                    steps=[WorkflowStep("a", action=lambda ctx: "x")],
+                )
+            )
+            engine.run("ok.flow")
+            completed = engine.list_runs(state="completed")
+            failed = engine.list_runs(state="failed")
+            self.assertEqual(len(completed), 1)
+            self.assertEqual(failed, [])
+
+    def test_resume_skips_completed_steps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "runs.db"
+            calls = {"a": 0, "b": 0}
+
+            def step_a(ctx):
+                calls["a"] += 1
+                return 10
+
+            def step_b(ctx):
+                calls["b"] += 1
+                if calls["b"] == 1:
+                    raise RuntimeError("boom")
+                return ctx["a"] + 5
+
+            engine = WorkflowEngine(store_path=db)
+            engine.register(
+                WorkflowDefinition(
+                    name="resume.demo",
+                    steps=[
+                        WorkflowStep("a", action=step_a),
+                        WorkflowStep("b", action=step_b, depends_on=["a"]),
+                    ],
+                )
+            )
+            with self.assertRaises(RuntimeError):
+                engine.run("resume.demo")
+            self.assertEqual(calls["a"], 1)
+            self.assertEqual(calls["b"], 1)
+
+            # New engine process, same DB + re-registered definition.
+            engine2 = WorkflowEngine(store_path=db)
+            engine2.register(
+                WorkflowDefinition(
+                    name="resume.demo",
+                    steps=[
+                        WorkflowStep("a", action=step_a),
+                        WorkflowStep("b", action=step_b, depends_on=["a"]),
+                    ],
+                )
+            )
+            rows = engine2.list_runs(state="failed")
+            self.assertEqual(len(rows), 1)
+            run = engine2.resume(rows[0]["id"])
+            self.assertEqual(run.state, WorkflowState.COMPLETED)
+            self.assertEqual(run.results["b"], 15)
+            self.assertEqual(calls["a"], 1)  # not re-run
+            self.assertEqual(calls["b"], 2)
+
+    def test_resume_missing_definition_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "runs.db"
+            engine = WorkflowEngine(store_path=db)
+            engine.register(
+                WorkflowDefinition(
+                    name="need.def",
+                    steps=[WorkflowStep("a", action=lambda ctx: 1)],
+                )
+            )
+            run = engine.run("need.def")
+            engine2 = WorkflowEngine(store_path=db)
+            # Force a failed row for resume attempt without definition.
+            engine2._store.upsert(
+                run_id="orphan-1",
+                workflow="need.def",
+                state="failed",
+                results={"a": 1},
+                completed_steps=["a"],
+                error="stopped",
+            )
+            with self.assertRaises(KeyError):
+                engine2.resume("orphan-1")
+            self.assertEqual(run.state, WorkflowState.COMPLETED)
     def setUp(self):
         shutdown()
         boot()
