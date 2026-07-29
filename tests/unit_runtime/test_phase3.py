@@ -51,6 +51,49 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(len(jobs), 1)
         self.assertTrue(sched.cancel(job_id))
 
+    def test_schedule_cron_lists_expr(self):
+        sched = Scheduler()
+        job_id = sched.schedule_cron("hourly", "0 * * * *")
+        jobs = sched.list_jobs()
+        self.assertEqual(len(jobs), 1)
+        self.assertEqual(jobs[0]["cron"], "0 * * * *")
+        self.assertIsNotNone(jobs[0]["run_at"])
+        self.assertTrue(sched.cancel(job_id[:8]))
+
+    def test_schedule_cron_invalid_raises(self):
+        sched = Scheduler()
+        with self.assertRaises(Exception):
+            sched.schedule_cron("bad", "not a cron")
+
+
+class CronParserTest(unittest.TestCase):
+    def test_parse_and_next_run(self):
+        from datetime import datetime, timezone
+
+        from runtime.cron import next_run, parse_cron
+
+        cron = parse_cron("*/5 * * * *")
+        self.assertIn(0, cron.minutes)
+        self.assertIn(5, cron.minutes)
+        after = datetime(2026, 1, 1, 0, 0, tzinfo=timezone.utc).timestamp()
+        nxt = next_run(cron, after)
+        # Next should be 00:05 UTC
+        self.assertEqual(int(nxt - after), 300)
+
+    def test_named_dow_month(self):
+        from runtime.cron import parse_cron
+
+        cron = parse_cron("0 9 * jan mon")
+        self.assertEqual(cron.hours, frozenset([9]))
+        self.assertEqual(cron.months, frozenset([1]))
+        self.assertEqual(cron.dows, frozenset([1]))
+
+    def test_invalid_field_count(self):
+        from runtime.cron import CronError, parse_cron
+
+        with self.assertRaises(CronError):
+            parse_cron("* * *")
+
 
 class WorkflowEngineTest(unittest.TestCase):
     def test_dag_execution(self):

@@ -8,7 +8,8 @@
 | Component | Module | Description |
 |-----------|--------|-------------|
 | **Event bus** | `runtime/event_bus.py` | Typed pub/sub with history and wildcards |
-| **Scheduler** | `runtime/scheduler.py` | One-shot and interval jobs |
+| **Scheduler** | `runtime/scheduler.py` | One-shot, interval, and 5-field cron jobs |
+| **Cron parser** | `runtime/cron.py` | Zero-dep 5-field expression → next run |
 | **Workflow engine** | `runtime/workflows.py` | DAG step execution + SQLite run persistence/resume |
 | **Workflow run store** | `runtime/workflow_store.py` | `data/workflows/runs.db` checkpoints |
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
@@ -70,7 +71,7 @@ Or pass `provider_hint` in `llm_complete()` / `LLMPort.complete()`.
 ## CLI
 
 - `/events [n]` — recent event bus events
-- `/schedule` — list scheduled jobs
+- `/schedule` — list jobs; `/schedule cron <name> <expr>`; `/schedule cancel <id>`
 - `/workflows` — registered workflows; `/workflows runs [n]`; `/workflows resume <id>`
 - `/llm` — provider availability status
 
@@ -112,8 +113,18 @@ Events: `llm.circuit.*` on the kernel EventBus.
 ## Deferred
 
 - Distributed event mesh across nodes (C-16)
-- Cron expression parsing
 - Workflow YAML definitions
+
+## Cron scheduling
+
+5-field cron (`m h dom mon dow`) via `runtime/cron.py` — no extra dependencies.
+
+```python
+sched = resolve("scheduler")
+sched.schedule_cron("hourly", "0 * * * *", callback=lambda: "tick")
+```
+
+CLI: `/schedule cron <name> <expr>`, `/schedule cancel <id>`.
 
 ## Persistent workflow state
 

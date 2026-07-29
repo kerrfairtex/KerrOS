@@ -3,7 +3,8 @@ runtime/scheduler.py
 ====================
 In-process job scheduler (Phase 3).
 
-Supports one-shot and interval jobs. Fires events on the kernel EventBus.
+Supports one-shot, interval, and 5-field cron jobs. Fires events on the
+kernel EventBus.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from runtime.cron import CronError, next_run, validate_cron
 from runtime.event_bus import EventBus
 
 
@@ -25,6 +27,7 @@ class ScheduledJob:
     id: str
     name: str
     interval_s: float | None = None
+    cron_expr: str | None = None
     run_at: float | None = None
     callback: JobFn | None = None
     enabled: bool = True
@@ -97,9 +100,49 @@ class Scheduler:
             )
         return job_id
 
+    def schedule_cron(
+        self,
+        name: str,
+        expr: str,
+        callback: JobFn | None = None,
+        *,
+        payload: dict[str, Any] | None = None,
+    ) -> str:
+        """Schedule a recurring job from a 5-field cron expression."""
+        normalized = validate_cron(expr)
+        job_id = str(uuid.uuid4())
+        job = ScheduledJob(
+            id=job_id,
+            name=name,
+            cron_expr=normalized,
+            run_at=next_run(normalized, time.time()),
+            callback=callback,
+        )
+        with self._lock:
+            self._jobs[job_id] = job
+        if self.bus:
+            self.bus.publish(
+                "scheduler.job.scheduled",
+                {
+                    "job_id": job_id,
+                    "name": name,
+                    "cron": normalized,
+                    "run_at": job.run_at,
+                    **(payload or {}),
+                },
+                source="scheduler",
+            )
+        return job_id
+
     def cancel(self, job_id: str) -> bool:
         with self._lock:
+            # Allow short-id prefix match for CLI convenience.
             job = self._jobs.pop(job_id, None)
+            if job is None and len(job_id) >= 4:
+                matches = [j for j in self._jobs if j.startswith(job_id)]
+                if len(matches) == 1:
+                    job = self._jobs.pop(matches[0], None)
+                    job_id = matches[0] if job else job_id
         if job and self.bus:
             self.bus.publish(
                 "scheduler.job.cancelled",
@@ -116,6 +159,7 @@ class Scheduler:
                 "id": j.id,
                 "name": j.name,
                 "interval_s": j.interval_s,
+                "cron": j.cron_expr,
                 "run_at": j.run_at,
                 "enabled": j.enabled,
                 "last_run": j.last_run,
@@ -182,6 +226,7 @@ class Scheduler:
                 {
                     "job_id": job.id,
                     "name": job.name,
+                    "cron": job.cron_expr,
                     "result": str(result)[:500] if result is not None else None,
                     "error": error or None,
                 },
@@ -189,7 +234,14 @@ class Scheduler:
             )
 
         with self._lock:
-            if job.interval_s:
+            if job.cron_expr:
+                try:
+                    job.run_at = next_run(job.cron_expr, time.time())
+                    job.last_error = "" if not error else job.last_error
+                except CronError as exc:
+                    job.last_error = str(exc)
+                    self._jobs.pop(job.id, None)
+            elif job.interval_s:
                 job.run_at = time.time() + job.interval_s
             else:
                 self._jobs.pop(job.id, None)

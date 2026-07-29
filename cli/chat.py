@@ -320,7 +320,7 @@ def main():
                 ("/health",            "Show runtime health report"),
                 ("/services",          "Show managed service status"),
                 ("/events [n]",        "Show recent event bus events"),
-                ("/schedule",          "List scheduled jobs"),
+                ("/schedule",          "List jobs; cron <name> <expr>; cancel <id>"),
                 ("/workflows",         "List workflows; runs [n]; resume <id>"),
                 ("/reflect",           "Review episodes → lessons (Reflection Agent)"),
                 ("/reflections",       "Show saved reflection lessons"),
@@ -505,18 +505,49 @@ def main():
                 print(f"  {RE}Events unavailable: {e}{R}")
             divider()
 
-        elif user == "/schedule":
+        elif user.startswith("/schedule"):
             divider()
             try:
+                parts = user.split()
                 sched = resolve("scheduler")
-                jobs = sched.list_jobs()
-                if not jobs:
-                    print(f"  {GY}No scheduled jobs.{R}")
-                for job in jobs:
+                if len(parts) >= 2 and parts[1] == "cron":
+                    # /schedule cron <name> <m> <h> <dom> <mon> <dow>
+                    if len(parts) < 8:
+                        print(
+                            f"  {GY}Usage: /schedule cron <name> <m h dom mon dow>{R}\n"
+                            f"  {GY}Example: /schedule cron heartbeat */5 * * * *{R}"
+                        )
+                    else:
+                        name = parts[2]
+                        expr = " ".join(parts[3:8])
+                        job_id = sched.schedule_cron(name, expr)
+                        print(
+                            f"  {GR}[ ✓ ]{R} cron job {GO}{name}{R} "
+                            f"id={job_id[:8]}…  expr={expr}"
+                        )
+                elif len(parts) >= 3 and parts[1] == "cancel":
+                    ok = sched.cancel(parts[2])
+                    if ok:
+                        print(f"  {GR}[ ✓ ]{R} cancelled {parts[2]}")
+                    else:
+                        print(f"  {RE}No job matched id prefix {parts[2]}{R}")
+                else:
+                    jobs = sched.list_jobs()
+                    if not jobs:
+                        print(f"  {GY}No scheduled jobs.{R}")
+                    for job in jobs:
+                        when = "-"
+                        if job.get("cron"):
+                            when = f"cron={job['cron']}"
+                        elif job.get("interval_s"):
+                            when = f"interval={job['interval_s']}"
+                        print(
+                            f"  {GO}{job['name']}{R} id={job['id'][:8]} "
+                            f"runs={job['run_count']} {when}"
+                        )
                     print(
-                        f"  {GO}{job['name']}{R} id={job['id'][:8]} "
-                        f"runs={job['run_count']} "
-                        f"interval={job.get('interval_s') or '-'}"
+                        f"  {GY}/schedule cron <name> <expr> · "
+                        f"/schedule cancel <id>{R}"
                     )
             except Exception as e:
                 print(f"  {RE}Scheduler unavailable: {e}{R}")
