@@ -299,6 +299,7 @@ def main():
                 ("/workflows",         "List registered workflows"),
                 ("/llm",               "Show LLM provider status"),
                 ("/capabilities [kind]", "List capability registry entries"),
+                ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),
                 ("/decisions",         "Show recent decision log entries"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
@@ -502,18 +503,37 @@ def main():
             divider()
             try:
                 parts = user.split()
-                kind = parts[1] if len(parts) > 1 else None
-                registry = resolve("capability_registry")
-                caps = registry.list(kind=kind)
-                if not caps:
-                    print(f"  {GY}No capabilities registered{(' for kind=' + kind) if kind else ''}.{R}")
+                sub = parts[1] if len(parts) > 1 else None
+                if sub in ("export", "docs", "render"):
+                    import subprocess
+                    import sys
+                    from pathlib import Path
+                    script = Path(__file__).resolve().parent.parent / "scripts" / "render_capabilities.py"
+                    result = subprocess.run(
+                        [sys.executable, str(script)],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    out = (result.stdout or result.stderr or "").strip()
+                    if result.returncode == 0:
+                        print(f"  {GR}[ ✓ ]{R} {out or 'docs/CAPABILITIES.md regenerated'}")
+                    else:
+                        print(f"  {RE}Export failed:{R} {out}")
                 else:
-                    print(f"  {BL}Count:{R} {len(caps)}" + (f"  kind={kind}" if kind else ""))
-                    for cap in caps:
-                        print(
-                            f"  {GO}{cap.name}{R}  [{cap.kind}]  "
-                            f"{cap.setup_state}  perms={','.join(cap.permissions) or '-'}"
-                        )
+                    kind = sub
+                    registry = resolve("capability_registry")
+                    caps = registry.list(kind=kind)
+                    if not caps:
+                        print(f"  {GY}No capabilities registered{(' for kind=' + kind) if kind else ''}.{R}")
+                    else:
+                        print(f"  {BL}Count:{R} {len(caps)}" + (f"  kind={kind}" if kind else ""))
+                        for cap in caps:
+                            print(
+                                f"  {GO}{cap.name}{R}  [{cap.kind}]  "
+                                f"{cap.setup_state}  perms={','.join(cap.permissions) or '-'}"
+                            )
+                        print(f"  {GY}Tip: /capabilities export → docs/CAPABILITIES.md{R}")
             except Exception as e:
                 print(f"  {RE}Capabilities unavailable: {e}{R}")
             divider()

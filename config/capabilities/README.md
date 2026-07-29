@@ -26,3 +26,12 @@ capabilities:
 ```
 
 CLI: `/capabilities` or `/capabilities provider`
+
+## Generated docs
+
+```bash
+python3 scripts/render_capabilities.py          # writes docs/CAPABILITIES.md
+python3 scripts/render_capabilities.py --check  # CI drift check
+```
+
+Or in chat: `/capabilities export`

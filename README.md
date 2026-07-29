@@ -45,7 +45,7 @@ Checked against what's actually built on `main` (July 2026):
 | Capability Driven | 🟡 Partial | `kernel/capability_registry.py` + `config/capabilities/*.yaml` bootstrapped (~10 tool capabilities); manifests for agents/providers still thin |
 | Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good); docs are not yet generated from capability manifests |
 | Deterministic Behavior (config-driven) | 🟡 Partial | `kernel/config.py` + `config.json` / env; tool detection still largely code-driven |
-| Documentation as Code | ❌ Gap | Same root cause — registry exists, but no doc generator from it yet |
+| Documentation as Code | 🟡 Partial | `scripts/render_capabilities.py` generates [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) from YAML; ADRs remain hand-written |
 
 Net: P0 kernel, P2 runtime, and P3 event infrastructure foundations are in place. **P1 Capability Registry is started but incomplete** (schema + claw tool bootstrap exist; broader agent/provider manifests and doc generation remain).
 
@@ -92,7 +92,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Boot registers `capability_registry` and bootstraps claw tool definitions
 - [x] Write manifests for agents, DevOps tools, and LLM providers
 - [x] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
-- [ ] Generate docs/status from manifests (Documentation as Code)
+- [x] Generate docs/status from manifests (Documentation as Code) — `scripts/render_capabilities.py` → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md)
 
 ### P2 — Runtime (`kerrd`, service manager, IPC, health)
 **Status: foundation implemented** (`docs/PHASE2.md`, ADR-005).
@@ -139,11 +139,11 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Shell exec uses `shell=False` + metachar rejection; `_calc` uses AST safe math (no `eval`)
 
 ## 7. Immediate next actions
-1. Generate docs/status from capability manifests (Documentation as Code)
-2. Confirm DevOps tokens are scoped least-privilege per service (P4 leftover)
-3. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
-4. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
-5. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
+1. Confirm DevOps tokens are scoped least-privilege per service (P4 leftover)
+2. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
+3. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
+4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
+5. Extend Documentation as Code beyond capabilities (e.g. scope_policy → docs table)
 
 ## 8. Open decisions log — don't resolve these silently
 - Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)

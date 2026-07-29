@@ -22,3 +22,6 @@ jobs:
 
       - name: Run tests
         run: python -m unittest discover -s tests -p 'test_*.py' -t .
+
+      - name: Check capability docs are current
+        run: python scripts/render_capabilities.py --check
