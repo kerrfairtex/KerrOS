@@ -50,8 +50,8 @@ health = resolve("health_monitor")
 
 ## Deferred (multi-node / scale triggers)
 
-- IPC actor-mesh (nng/socket) — C-16
-- Docker server deployment — C-17
+- IPC actor-mesh (nng/socket) — C-16 full
+- ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - pgvector → Qdrant migration — C-18
 - LGU audit immutability extensions — Phase 2 governance follow-up
 

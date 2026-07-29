@@ -213,7 +213,7 @@ class Kernel:
         self.container.register(SERVICE_SCHEDULER, scheduler, singleton=True)
         self.container.register(SERVICE_WORKFLOW_ENGINE, workflows, singleton=True)
 
-        # Optional event mesh (off by default). nng/Docker multi-node still deferred.
+        # Optional event mesh (off by default). HTTP listen via KERROS_EVENT_MESH_LISTEN.
         try:
             from runtime.event_mesh import build_event_mesh
 

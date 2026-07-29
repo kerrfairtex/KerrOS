@@ -1,0 +1,19 @@
+# Build context is the KerrOS repo root (see deploy/event_mesh/Dockerfile).
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+.pytest_cache
+data/
+models/
+*.gguf
+.env
+**/.env
+node_modules/
+.venv/
+venv/
+*.db
+*.db-*
+.cursor/
+/tmp/

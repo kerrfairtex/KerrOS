@@ -19,6 +19,7 @@
 | **OmniRoute telemetry** | `adapters/llm/omniroute_telemetry.py` | Parse `X-OmniRoute-*` cost/usage headers → `omniroute.usage` EventBus events |
 | **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP stubs (ADR-008) |
 | **Mesh broker** | `runtime/event_mesh_broker.py` | Durable SQLite broker + file/SQL peer discovery (ADR-009) |
+| **Mesh HTTP** | `runtime/event_mesh_http.py` | Ingest listener for Docker multi-node (ADR-011) |
 
 ## Usage
 
@@ -115,7 +116,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- nng actor mesh / Docker multi-node deploy (C-16 full, C-17)
+- nng actor mesh (C-16 full)
 
 ## Workflow YAML definitions
 
@@ -152,7 +153,18 @@ steps:
 
 or `KERROS_EVENT_MESH=1`. Peer discovery: file heartbeats under `discovery_dir`
 (auto-on for durable) + `mesh_peers` in the broker DB. Ingest remote events with
-`mesh.poll()`. See [`ADR-008`](adr/ADR-008-event-mesh-foundation.md) and
+`mesh.poll()` (durable/file) or HTTP `/mesh/ingest` (Docker).
+
+### Docker multi-node (C-17)
+
+```bash
+./scripts/event_mesh_docker.sh up
+./scripts/event_mesh_docker.sh verify
+```
+
+See [`deploy/event_mesh/`](../deploy/event_mesh/) and
+[`ADR-011`](adr/ADR-011-docker-event-mesh.md). ADRs:
+[`ADR-008`](adr/ADR-008-event-mesh-foundation.md),
 [`ADR-009`](adr/ADR-009-event-mesh-transport.md).
 
 ## Cron scheduling

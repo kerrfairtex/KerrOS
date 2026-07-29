@@ -21,7 +21,7 @@ Extend the mesh with a **transport layer** (not a network mesh):
 4. **`LocalEventMesh.poll()` / `peers()` / `heartbeat()`** for ingest + discovery
 5. Config: `transport: "durable"`, `broker_db`, `discovery` / `discovery_dir`
 
-nng actor IPC and Docker multi-node (C-17) stay deferred.
+nng actor IPC stays deferred. Docker multi-node HTTP kit is ADR-011.
 
 ## Alternatives considered
 
@@ -41,6 +41,6 @@ Backpressure and exactly-once semantics are out of scope.
 
 ## Revisit when
 
-A second physical node or Docker mesh (C-17) is required, or message volume
-makes SQLite WAL contention measurable — then evaluate NATS/nng behind the
-same Protocol.
+Message volume makes SQLite WAL contention measurable, or authenticated WAN
+exposure is required — then evaluate NATS/nng behind the same Protocol
+(Docker HTTP foundation: ADR-011).

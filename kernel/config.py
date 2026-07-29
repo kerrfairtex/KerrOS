@@ -121,6 +121,8 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "transport": "null",  # null | file | http | durable
             "file_dir": "data/event_mesh",
             "http_peers": [],
+            "http_listen": None,  # e.g. "0.0.0.0:8787" (Docker / ADR-011)
+            "http_timeout_s": 2.0,
             "broker_db": "data/event_mesh/broker.db",
             "discovery": None,  # None=auto for durable; file | none
             "discovery_dir": "data/event_mesh/peers",

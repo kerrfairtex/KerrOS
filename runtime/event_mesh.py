@@ -1,13 +1,14 @@
 """
 runtime/event_mesh.py
 =====================
-Event mesh foundation + transport layer (P3 / C-16 seam).
+Event mesh foundation + transport layer (P3 / C-16–C-17 seam).
 
 Joins local EventBuses and optionally forwards serialized Events through a
 pluggable transport. ADR-008: Protocol + LocalEventMesh + null/file/http stubs.
 ADR-009: durable SQLite broker + file/SQL peer discovery.
+ADR-011: HTTP ingest listener + Docker Compose multi-node kit.
 
-nng/socket actor meshes and Docker multi-node deploy (C-17) remain deferred.
+nng/socket actor meshes remain deferred (C-16 full).
 """
 
 from __future__ import annotations
@@ -109,10 +110,10 @@ class FileEventMeshTransport:
 
 @dataclass
 class HttpEventMeshTransport:
-    """Stub HTTP transport: POST event JSON to configured peer URLs.
+    """HTTP transport: POST event JSON to configured peer ingest URLs.
 
-    Receive path is intentionally out of scope (use LocalEventMesh.ingest in
-    tests / future webhook). Failures are soft so chat never breaks.
+    Receive path is ``EventMeshHttpServer`` (``/mesh/ingest``) — used by the
+    Docker multi-node kit (ADR-011). Failures are soft so chat never breaks.
     """
 
     peers: list[str] = field(default_factory=list)
@@ -146,6 +147,7 @@ class LocalEventMesh:
     buses: list[EventBus] = field(default_factory=list)
     transport: EventMeshTransport | None = None
     discovery: FilePeerRegistry | None = None
+    http_server: Any = None
     _seen: set[str] = field(default_factory=set)
     _handlers: dict[int, Handler] = field(default_factory=dict)
     _attached: bool = False
@@ -177,6 +179,12 @@ class LocalEventMesh:
                 except Exception:
                     pass
         self._attached = False
+        if self.http_server is not None:
+            try:
+                self.http_server.stop()
+            except Exception:
+                pass
+            self.http_server = None
         if self.discovery is not None:
             try:
                 self.discovery.close()
@@ -331,6 +339,11 @@ class LocalEventMesh:
             "pending": pending,
             "transport": type(self.transport).__name__ if self.transport else None,
             "discovery": type(self.discovery).__name__ if self.discovery else None,
+            "http_listen": (
+                f"{self.http_server.host}:{self.http_server.port}"
+                if self.http_server is not None
+                else None
+            ),
         }
 
 
@@ -339,6 +352,16 @@ def _resolve_under(root: Path, value: Any, default: Path) -> Path:
     if not path.is_absolute():
         path = root / path
     return path
+
+
+def _parse_http_peers(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [p.strip() for p in raw.split(",") if p.strip()]
+    if isinstance(raw, (list, tuple)):
+        return [str(p).strip() for p in raw if str(p).strip()]
+    return []
 
 
 def build_event_mesh(
@@ -363,7 +386,10 @@ def build_event_mesh(
         os.environ.get("KERROS_NODE_ID")
         or str(data.get("node_id") or "local")
     ).strip() or "local"
-    transport_name = str(data.get("transport") or "null").strip().lower()
+    transport_name = (
+        os.environ.get("KERROS_EVENT_MESH_TRANSPORT")
+        or str(data.get("transport") or "null")
+    ).strip().lower()
     ttl_s = float(data.get("discovery_ttl_s") or 60)
 
     discovery_raw = data.get("discovery", None)
@@ -394,8 +420,17 @@ def build_event_mesh(
         )
         transport = FileEventMeshTransport(directory=directory, node_id=node_id)
     elif transport_name == "http":
-        peers = list(data.get("http_peers") or [])
-        transport = HttpEventMeshTransport(peers=peers)
+        peers = _parse_http_peers(
+            os.environ.get("KERROS_EVENT_MESH_HTTP_PEERS")
+            if os.environ.get("KERROS_EVENT_MESH_HTTP_PEERS") is not None
+            else data.get("http_peers")
+        )
+        timeout_s = float(
+            os.environ.get("KERROS_EVENT_MESH_HTTP_TIMEOUT")
+            or data.get("http_timeout_s")
+            or 2.0
+        )
+        transport = HttpEventMeshTransport(peers=peers, timeout_s=timeout_s)
     elif transport_name == "durable":
         broker_db = _resolve_under(
             root,
@@ -418,4 +453,19 @@ def build_event_mesh(
         discovery=discovery,
     )
     mesh.attach()
+
+    # HTTP listen (Docker / multi-node receive). Opt-in via config or env.
+    listen = (
+        os.environ.get("KERROS_EVENT_MESH_LISTEN")
+        if os.environ.get("KERROS_EVENT_MESH_LISTEN") is not None
+        else data.get("http_listen")
+    )
+    if listen not in (None, "", False, "0", "false", "no", "off"):
+        try:
+            from runtime.event_mesh_http import start_mesh_http_server
+
+            mesh.http_server = start_mesh_http_server(mesh, listen=listen)
+        except Exception:
+            pass
+
     return mesh

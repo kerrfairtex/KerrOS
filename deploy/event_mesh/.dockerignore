@@ -1,0 +1,18 @@
+# Ignore bulky / secret paths when building deploy/event_mesh image.
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+data/
+models/
+*.gguf
+.env
+**/.env
+deploy/omniroute/.env
+node_modules/
+.venv/
+venv/
+*.db
+*.db-*
+.cursor/

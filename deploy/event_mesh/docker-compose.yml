@@ -1,0 +1,76 @@
+# KerrOS Docker event mesh — two HTTP nodes on a private network (C-17 / ADR-011).
+#
+# Host ports bind to 127.0.0.1 only (same policy as deploy/omniroute).
+# Inter-node traffic uses the Compose network (node-a ↔ node-b), not the host.
+#
+# Usage (from repo root):
+#   ./scripts/event_mesh_docker.sh up
+#   ./scripts/event_mesh_docker.sh verify
+
+services:
+  node-a:
+    build:
+      context: ../..
+      dockerfile: deploy/event_mesh/Dockerfile
+    image: ${KERROS_MESH_IMAGE:-kerros-event-mesh:local}
+    container_name: kerros-mesh-node-a
+    restart: unless-stopped
+    environment:
+      KERROS_NODE_ID: node-a
+      KERROS_EVENT_MESH: "1"
+      KERROS_EVENT_MESH_TRANSPORT: http
+      KERROS_EVENT_MESH_LISTEN: "0.0.0.0:8787"
+      KERROS_EVENT_MESH_HTTP_PEERS: http://node-b:8787/mesh/ingest
+      KERROS_BASE: /app
+    ports:
+      - "127.0.0.1:${MESH_HOST_PORT_A:-8787}:8787"
+    networks:
+      - mesh
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2)",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  node-b:
+    build:
+      context: ../..
+      dockerfile: deploy/event_mesh/Dockerfile
+    image: ${KERROS_MESH_IMAGE:-kerros-event-mesh:local}
+    container_name: kerros-mesh-node-b
+    restart: unless-stopped
+    environment:
+      KERROS_NODE_ID: node-b
+      KERROS_EVENT_MESH: "1"
+      KERROS_EVENT_MESH_TRANSPORT: http
+      KERROS_EVENT_MESH_LISTEN: "0.0.0.0:8787"
+      KERROS_EVENT_MESH_HTTP_PEERS: http://node-a:8787/mesh/ingest
+      KERROS_BASE: /app
+    ports:
+      - "127.0.0.1:${MESH_HOST_PORT_B:-8788}:8787"
+    networks:
+      - mesh
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2)",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+networks:
+  mesh:
+    name: kerros-event-mesh
+    driver: bridge
