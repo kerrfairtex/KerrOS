@@ -34,20 +34,20 @@ Everything below works under either path — only the *timing* changes. Given yo
 
 ## 2. Principle-by-principle reality check
 
-Your README's 8 Core Principles, checked against what's actually built (all 🔒, internal state):
+Checked against what's actually built on `main` (July 2026):
 
 | Principle | Status | Evidence |
 |---|---|---|
-| Least Privilege | ✅ Strong | `scope_gate.py` fail-closed blocking, explicit-command gating, time-limited arm/disarm on deploy tools |
-| Loose Coupling | 🟡 Partial | Ports pattern (LLM/Memory/Tool) achieves this for 3 abstracted surfaces, not system-wide |
-| High Cohesion | 🟡 Likely | Single-responsibility agent split (Knowledge/Security/Code/Research/Planner/Reflection/Document); unverified at code level |
-| Kernel First | 🟡 Partial | True for security/dispatch decisions; explicitly *not* true for agent orchestration — agents stay userspace by design |
-| Capability Driven | ❌ Gap | No formal manifest/metadata per component — `router.py` dispatch isn't a capability registry |
-| Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good), but nothing generates from structured metadata |
-| Deterministic Behavior (config-driven) | ❌ Gap | No centralized config system mentioned; behavior lives in code (`detect_tool()`, explicit-command checks) |
-| Documentation as Code | ❌ Gap | Same root cause — no registry to generate from |
+| Least Privilege | ✅ Strong | `scope_gate.py` fail-closed blocking, explicit-command gating, time-limited arm/disarm on deploy tools; `shell=False` + `safe_commands` for exec |
+| Loose Coupling | 🟡 Partial | Ports pattern (LLM/Memory/Tool/Storage/DB/Embedding/Search) + `kernel/access.py`; residual direct imports in batch `import_*.py` scripts |
+| High Cohesion | 🟡 Likely | Single-responsibility agent split (Knowledge/Security/Code/Research/Planner/Reflection/Document) |
+| Kernel First | 🟡 Partial | True for security/dispatch decisions; agents stay userspace by design (`kernel/access` facades) |
+| Capability Driven | 🟡 Partial | `kernel/capability_registry.py` + `config/capabilities/*.yaml` bootstrapped (~10 tool capabilities); manifests for agents/providers still thin |
+| Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good); docs are not yet generated from capability manifests |
+| Deterministic Behavior (config-driven) | 🟡 Partial | `kernel/config.py` + `config.json` / env; tool detection still largely code-driven |
+| Documentation as Code | ❌ Gap | Same root cause — registry exists, but no doc generator from it yet |
 
-Net: security posture and module boundaries are ahead of what the README's status table implies; the metadata/registry/config layer is behind it. That means **P1 (Capability Registry) is the actual bottleneck, not P0** — P0's substance already mostly exists.
+Net: P0 kernel, P2 runtime, and P3 event infrastructure foundations are in place. **P1 Capability Registry is started but incomplete** (schema + claw tool bootstrap exist; broader agent/provider manifests and doc generation remain).
 
 ## 3. Unified repo structure
 
@@ -59,13 +59,13 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 | `agents/` | Knowledge, Security, Code, Research, Planner, Reflection, Document agents | ReactAgent pattern, from scratch |
 | `tools/` | `tools/router.py` dispatch, `tools/scope_gate.py`, `tools/code_saver.py`, 8 DevOps tools | |
 | `providers/` | `multi_api.py` (Groq primary, NVIDIA NIM, 8-API fallback) | **OmniRoute becomes a new entry here** — §5, P1 |
-| `registry/` | — doesn't exist yet | **this is P1**, the real gap |
+| `registry/` | `kernel/capability_registry.py`, `config/capabilities/` | P1 foundation — expand manifests beyond claw tools |
 | `knowledge/` | RAG store: 238K chunks, 13 categories (NIST/CWE/CVE/Sigma/YARA/CISA KEV) | |
-| `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation | |
-| `workflows/` | implicit in agent orchestration, not formalized | overlaps P3 gap |
-| `services/` | `run_daemon.py` + watchdog | |
-| `skills/` | — | human-facing docs, if any |
-| `docs/`, `docs/adr/` | 3 ADRs (planned/backfilled): Groq-primary fallback, 120-word/30-overlap RAG chunking, scope_gate fail-closed+arm/disarm | |
+| `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation, hybrid memory adapter | |
+| `workflows/` | `runtime/workflows.py` DAG engine | P3 foundation; YAML defs / persistence still deferred |
+| `services/` | `kerrd`, `runtime/services.py`, `kernel/watchdog.py` | |
+| `skills/` | progressive-disclosure skills (ADR-007) | |
+| `docs/`, `docs/adr/` | ADR-001..007 (Accepted) + PHASE2/PHASE3 docs | |
 
 ## 4. OmniRoute — verified, condensed (🌐)
 
@@ -80,36 +80,44 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 ## 5. Roadmap: P0 → P6
 
 ### P0 — Kernel Foundation
-**Status: mostly done, under the ADR's narrower scope.**
-- [x] Kernel contract exists de facto: `router.py` + 3 Ports + watchdog + scope_gate log
-- [ ] Write the ADR that makes this contract explicit as your P0 deliverable — don't treat P0 as not-started
-- [ ] Add a real config module (`core/config.py`) to centralize env/secrets/flags — the one genuine P0 gap
+**Status: done (foundation).**
+- [x] Kernel contract, boot lifecycle, DI — `kernel/contract.py`, `boot.py`, `container.py` (ADR-004)
+- [x] Config module — `kernel/config.py` (+ `core/config.py` legacy)
+- [x] Decision log + scope_gate / verify_* audit wiring (KOS-008..010)
+- [x] Watchdog + Code Agent subprocess IPC (KOS-011, KOS-012)
 
 ### P1 — Capability Registry
-**Status: the actual bottleneck. Start here, not P0.**
-- [ ] Define a minimal manifest schema (YAML/JSON): name, version, required permissions, dependencies
-- [ ] Write manifests for what already exists first — 7 agents, 8 DevOps tools, LLM providers — before writing new registry code
+**Status: started (foundation).** Schema + bootstrap exist; expand coverage next.
+- [x] Minimal manifest schema + registry — `kernel/capability_registry.py`, `config/capabilities/core_tools.yaml`
+- [x] Boot registers `capability_registry` and bootstraps claw tool definitions
+- [ ] Write manifests for agents, DevOps tools, and LLM providers
 - [ ] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
+- [ ] Generate docs/status from manifests (Documentation as Code)
 
 ### P2 — Runtime (`kerrd`, service manager, IPC, health)
-**Status: partial.** `run_daemon.py` + watchdog exists; Code Agent → own subprocess + watchdog is already active Phase-1 work.
-- [ ] Generalize the Code-Agent-subprocess pattern into a reusable service-manager primitive instead of one-off code
-- [ ] OmniRoute touchpoint: once deployed, health-check the droplet's `/v1` the same way you'd health-check any managed service — the most natural integration point in the whole roadmap
+**Status: foundation implemented** (`docs/PHASE2.md`, ADR-005).
+- [x] `kerrd` + `ServiceManager` + `HealthMonitor` + in-process service bus
+- [x] Code Agent IPC worker (`runtime/ipc.py`, `agents/code/subprocess_runner.py`)
+- [ ] Multi-node IPC mesh / Docker server deploy — deferred (C-16, C-17)
+- [ ] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service
 
 ### P3 — Event Infrastructure
-**Status: narrow, not general.** Event sourcing exists, but scoped only to scope_gate/offensive-tool decisions + identity-verification audit trail.
-- [ ] ADR: generalize the existing audit log into a real pub/sub bus, or keep it audit-only and add a separate lightweight mechanism for non-security events — don't let audit-log scope silently creep
-- [ ] OmniRoute touchpoint: once this exists, its `X-OmniRoute-*` cost/usage headers become event sources; until then, log them straight into the existing scope_gate-style log
+**Status: foundation implemented** (`docs/PHASE3.md`, ADR-006).
+- [x] General-purpose `EventBus` (separate from decision-log audit trail)
+- [x] Scheduler + workflow DAG engine
+- [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
+- [ ] Persistent workflow state / cron expressions / distributed event mesh — deferred
+- [ ] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources
 
 ### P4 — Security
-**Status: ahead of the README's own status table.** `scope_gate.py` is already a working fail-closed policy engine in substance.
-- [ ] Formalize its rules as declarative data (tool → permission level → confirmation required) instead of inline logic — satisfies "Policy Engine" without a rewrite
+**Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
+- [ ] Formalize rules as declarative data (tool → permission level → confirmation required)
 - [ ] Full audit checklist in §6
 
 ### P5 — Storage
-**Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, episodic→semantic consolidation.
-- [ ] Confirm whether `store.py` scoring is lexical (phrase-match) or true vector search — the README specifically calls for "vector indexing," worth checking this isn't overstated
-- [ ] Keep OmniRoute's own FTS5+vector memory (its routing/session state) separate from your RAG — different jobs, don't merge
+**Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
+- [x] Lexical phrase-match scoring in `rag/store.py`; hybrid/vector path via adapters
+- [ ] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — different jobs, don't merge
 
 ### P6 — Autonomous Runtime
 **Status: earliest-stage, correctly sequenced last.**
@@ -124,19 +132,20 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [ ] Run their `promptfoo` red-team suite against your *own* RAG-injected prompts specifically — their eval suite tests their injection surface, not yours
 
 **KerrOS side (independent of OmniRoute):**
-- [ ] `scope_gate.py`'s fail-closed default is good; confirm the arm/disarm window for `DEPLOY_TOOLS` actually expires server-side, not just client-side
-- [ ] `verify_identity`/`verify_business` tools handle third-party data even if publicly-sourced — worth an explicit retention/logging policy now that the event-sourced audit trail records lookups
-- [ ] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) means one compromised credential has a wide blast radius — confirm each token is scoped least-privilege, not one shared key
+- [x] `scope_gate.py` fail-closed default; deploy arm window expires server-side (`deploy_armed_until`)
+- [x] `verify_identity`/`verify_business` log SHA-256 digests, not raw PII (KOS-010)
+- [ ] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) — confirm each token is scoped least-privilege, not one shared key
+- [x] Shell exec uses `shell=False` + metachar rejection; `_calc` uses AST safe math (no `eval`)
 
 ## 7. Immediate next actions
-1. Decide A vs. B from §1, log it as an ADR
-2. Write the P0 "kernel contract" ADR — documents what already exists, near-zero new work
-3. Start P1 manifests for what's already built — highest-leverage gap
-4. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
-5. Build `omniroute_adapter.py` under `LLMPort` once the droplet is stable
+1. Expand P1 capability manifests (agents, DevOps tools, LLM providers) and OmniRoute as one meta-capability
+2. Declarative scope_gate policy data (P4) — YAML rules instead of inline Python
+3. Re-provision the DigitalOcean droplet, deploy OmniRoute via Docker, bound to loopback
+4. Wire OmniRoute health into `HealthMonitor` / kerrd once the droplet is stable
+5. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
 
 ## 8. Open decisions log — don't resolve these silently
-- Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1
-- Event bus: generalize the audit log vs. keep it audit-only — P3
-- Vector vs. lexical RAG scoring — P5
+- Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)
+- ~~Event bus: generalize the audit log vs. keep it audit-only~~ — **resolved (ADR-006):** separate `EventBus` for runtime events; decision log stays audit-only
+- Vector vs. lexical RAG scoring — P5; both exist (lexical default + hybrid/Qdrant adapters)
 - ~~LGU/government audit-grade vs. general-purpose scoping~~ — **resolved (KOS-013):** general-purpose scope adopted, see [`docs/decisions/scope-lgu-vs-general.md`](docs/decisions/scope-lgu-vs-general.md)
