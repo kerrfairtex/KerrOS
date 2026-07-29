@@ -143,7 +143,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 
 ## 7. Immediate next actions
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
-2. Re-provision the DigitalOcean droplet; run the loopback Docker kit — [`deploy/omniroute/`](deploy/omniroute/) + `scripts/omniroute_droplet.sh` (host bind `127.0.0.1:20128` only)
+2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
 4. [x] Persist workflow state / resume; [x] cron expressions (`schedule_cron`); event mesh still deferred
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))

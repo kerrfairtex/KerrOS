@@ -12,6 +12,8 @@ droplet remains an operator step (script provided).
 
 Static CI guard: `python3 scripts/check_omniroute_security.py`
 
+Operator droplet flow: [`DROPLET_RUNBOOK.md`](DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`).
+
 ---
 
 ## 1. Bind / reverse proxy

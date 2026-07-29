@@ -2,6 +2,8 @@
 
 Reproducible Docker deploy for README §7 #2 and §6 (never bind OmniRoute beyond `127.0.0.1` without a reverse proxy).
 
+**Full operator guide:** [`docs/DROPLET_RUNBOOK.md`](../../docs/DROPLET_RUNBOOK.md) (re-provision → Docker → secrets → verify).
+
 This kit does **not** provision DigitalOcean itself — run it on the droplet (or any Linux host with Docker) after the VM exists.
 
 ## Prerequisites
@@ -13,9 +15,10 @@ This kit does **not** provision DigitalOcean itself — run it on the droplet (o
 
 ```bash
 cd deploy/omniroute
-cp .env.example .env   # optional
+cp .env.example .env   # set STORAGE_ENCRYPTION_KEY / JWT_SECRET / API_KEY_SECRET for prod
 ../../scripts/omniroute_droplet.sh up
 ../../scripts/omniroute_droplet.sh probe
+../../scripts/omniroute_droplet.sh verify   # fail-closed acceptance
 ../../scripts/omniroute_droplet.sh env
 ```
 
@@ -28,9 +31,8 @@ http://127.0.0.1:20128/v1
 Wire KerrOS (same shell or `config.json`):
 
 ```bash
-export OMNIROUTE_ENDPOINT=http://127.0.0.1:20128/v1
-export KERROS_USE_OMNIROUTE=1
-python3 cli/chat.py
+eval "$(../../scripts/omniroute_droplet.sh env)"
+python3 ../../cli/chat.py
 # then /health — expect components.omniroute status=ok when enabled
 ```
 
@@ -44,6 +46,8 @@ python3 cli/chat.py
 | `probe` | `GET /v1/models` on the loopback endpoint |
 | `env` | Print KerrOS env exports |
 | `check` | Static check that compose publishes only `127.0.0.1` |
+| `doctor` | Host checklist (warnings allowed) |
+| `verify` | Fail-closed acceptance (secrets + probe + loopback + static guards) |
 
 ## Security notes
 
@@ -58,10 +62,11 @@ Full checklist: [`docs/OMNIROUTE_SECURITY_AUDIT.md`](../../docs/OMNIROUTE_SECURI
 
 ## Droplet checklist
 
+See [`docs/DROPLET_RUNBOOK.md`](../../docs/DROPLET_RUNBOOK.md) for the full re-provision flow. Short form:
+
 1. Create/re-provision DigitalOcean droplet (Ubuntu LTS, Docker installed).
 2. Clone KerrOS; copy `.env.example` → `.env` and set encryption/auth secrets.
-3. Run this kit on the droplet (`omniroute_droplet.sh up`).
+3. `scripts/omniroute_droplet.sh up && verify`.
 4. Confirm `ss -lntp | grep 20128` shows `127.0.0.1` only.
-5. Point KerrOS `OMNIROUTE_ENDPOINT` / `omniroute_url` at loopback `/v1`.
-6. `/health` or `python3 -m runtime.kerrd health` shows `omniroute` ok when enabled.
-7. Run `scripts/check_omniroute_security.py` and (optional) RAG promptfoo eval.
+5. Point KerrOS `OMNIROUTE_ENDPOINT` at loopback `/v1`.
+6. `/health` shows `omniroute` ok when enabled.
