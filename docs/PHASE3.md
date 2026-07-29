@@ -13,6 +13,7 @@
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
 | **Composite LLM** | `adapters/llm/composite_adapter.py` | Local-first with cloud fallback |
+| **OmniRoute telemetry** | `adapters/llm/omniroute_telemetry.py` | Parse `X-OmniRoute-*` cost/usage headers → `omniroute.usage` EventBus events |
 
 ## Usage
 
@@ -86,6 +87,13 @@ Boot registers:
 `ServiceBus` remains for service lifecycle events (`service.crashed`, etc.).
 `EventBus` is the general-purpose infrastructure for workflows, scheduler,
 and cross-component reactions.
+
+### OmniRoute cost/usage events
+
+Non-streaming OmniRoute responses carry `X-OmniRoute-*` headers (cost, tokens,
+model, provider, latency, cache). `OpenAICompatClient` (provider `omniroute`)
+publishes them on the kernel EventBus as topic `omniroute.usage` without
+changing the `LLMPort.complete() -> str` contract. Inspect via `/events`.
 
 ## Deferred
 

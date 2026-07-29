@@ -107,7 +107,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Scheduler + workflow DAG engine
 - [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
 - [ ] Persistent workflow state / cron expressions / distributed event mesh — deferred
-- [ ] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources
+- [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
 
 ### P4 — Security
 **Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
@@ -145,7 +145,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
 4. Persist workflow state / expand scheduler (P3 deferred items) when automation demand appears
 5. Complete remaining §6 security audit checklist items
-6. P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources
+6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 
 ## 8. Open decisions log — don't resolve these silently
 - Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)
