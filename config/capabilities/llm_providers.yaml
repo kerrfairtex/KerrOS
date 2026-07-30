@@ -1,5 +1,18 @@
 version: 1
+# LLM providers behind LLMPort. OmniRoute stays a single meta-provider
+# (omniroute.yaml) — do not expand its ~290 upstream catalog here.
 capabilities:
+  - name: "provider:composite"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["provider:cloud"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      role: "llm_port"
+      adapter: "adapters.llm.composite_adapter"
+      notes: "Boot-registered llm_port; local-first when KERROS_LOCAL_LLM=1, else cloud/OmniRoute."
+
   - name: "provider:groq"
     kind: "provider"
     permissions: ["standard"]
@@ -9,6 +22,7 @@ capabilities:
     metadata:
       role: "primary"
       adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
       notes: "Cloud primary per ADR-001."
 
   - name: "provider:cloud"
@@ -20,7 +34,107 @@ capabilities:
     metadata:
       role: "fallback_chain"
       adapter: "adapters.llm.multi_api_adapter"
-      notes: "Multi-API fallback chain (Groq → NVIDIA → OpenRouter → …)."
+      notes: "Multi-API fallback chain entry point (Groq → NVIDIA → OpenRouter → …)."
+
+  - name: "provider:anthropic"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:ANTHROPIC_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:nvidia"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:NVIDIA_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+      notes: "NVIDIA NIM (incl. Llama 405B route in MultiAPIEngine)."
+
+  - name: "provider:deepseek"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:DEEPSEEK_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:kimi"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:KIMI_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:hunyuan"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:HUNYUAN_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:cohere"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:COHERE_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:openrouter"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:OPENROUTER_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:huggingface"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:HUGGINGFACE_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
+
+  - name: "provider:gemini"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:GEMINI_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      adapter: "adapters.llm.multi_api_adapter"
+      chain: "multi_api"
 
   - name: "provider:ollama"
     kind: "provider"
@@ -31,7 +145,8 @@ capabilities:
     metadata:
       role: "local"
       adapter: "adapters.llm.ollama_adapter"
-      default_endpoint: "http://localhost:11434/v1"
+      default_endpoint: "http://127.0.0.1:11434/v1"
+      notes: "C-19 ops kit: deploy/ollama/ + ADR-016."
 
   - name: "provider:vllm"
     kind: "provider"
@@ -42,7 +157,8 @@ capabilities:
     metadata:
       role: "local"
       adapter: "adapters.llm.vllm_adapter"
-      default_endpoint: "http://localhost:8000/v1"
+      default_endpoint: "http://127.0.0.1:8000/v1"
+      notes: "BYO GPU endpoint; same OpenAI-compat probe as Ollama (ADR-016)."
 
   - name: "provider:litellm"
     kind: "provider"
@@ -53,7 +169,8 @@ capabilities:
     metadata:
       role: "proxy"
       adapter: "adapters.llm.litellm_adapter"
-      default_endpoint: "http://localhost:4000"
+      default_endpoint: "http://127.0.0.1:4000"
+      notes: "Also reachable via MultiAPIEngine when LITELLM_ENDPOINT is set."
 
   - name: "provider:unsloth"
     kind: "provider"

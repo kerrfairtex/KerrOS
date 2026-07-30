@@ -96,3 +96,73 @@ capabilities:
       token_scope: "sk_test_ or rk_test_ only"
       forbidden_prefixes: ["sk_live_", "rk_live_"]
       notes: "Triggers Stripe test events; live keys are refused by devops_tokens."
+
+  # ── Extra DevOpsAgent surfaces (not all are scope_gate deploy_tools) ──
+  - name: "tool:github_open_pr"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:gh", "env:GITHUB_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      token_env: "GITHUB_TOKEN"
+      module: "tools.devops_agent"
+      notes: "Open a pull request via gh; uses devops gate()."
+
+  - name: "tool:supabase_link"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:supabase", "env:SUPABASE_ACCESS_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      token_env: "SUPABASE_ACCESS_TOKEN"
+      module: "tools.devops_agent"
+
+  - name: "tool:supabase_deploy_function"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["cli:supabase", "env:SUPABASE_ACCESS_TOKEN"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      token_env: "SUPABASE_ACCESS_TOKEN"
+      module: "tools.devops_agent"
+
+  - name: "tool:supabase_status"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: ["cli:supabase"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "read"
+      module: "tools.devops_agent"
+      notes: "Read-only Supabase project status."
+
+  - name: "tool:stripe_listen"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: ["cli:stripe", "env:STRIPE_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "read"
+      token_env: "STRIPE_API_KEY"
+      module: "tools.devops_agent"
+      notes: "Forward Stripe webhooks locally (test mode)."
+
+  - name: "tool:resend_send_test_email"
+    kind: "tool"
+    permissions: ["deploy"]
+    dependencies: ["env:RESEND_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "deploy"
+      token_env: "RESEND_API_KEY"
+      module: "tools.devops_agent"
+      notes: "Stub/test email send via Resend."

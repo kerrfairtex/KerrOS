@@ -83,3 +83,14 @@ capabilities:
     metadata:
       module: "agents.react"
       role: "ReAct loop orchestration"
+
+  - name: "agent:devops"
+    kind: "agent"
+    permissions: ["deploy"]
+    dependencies: ["tool:scope_gate", "cli:gh"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      module: "tools.devops_agent"
+      role: "Deploy pipeline orchestration (GitHub/Supabase/Vercel/…)"
+      notes: "Not a ReactAgent; DevOpsAgent methods gated by scope_gate DEPLOY_TOOLS."

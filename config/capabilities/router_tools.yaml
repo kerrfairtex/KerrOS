@@ -1,0 +1,190 @@
+version: 1
+# Router surface (kernel/router.py) aligned with config/scope_policy.yaml.
+# Offensive tools require target allowlist; passive tools are always allowed.
+capabilities:
+  # ── Offensive / recon (scope_gate offensive_tools) ──
+  - name: "tool:nmap"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:nikto"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:osint"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:recon"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:geoip"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:geoint"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:dnsenum"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:reversedns"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:email_osint"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:sigint"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:headers"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:cert"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:whois"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:dig"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:ping"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  - name: "tool:traceroute"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["tool:scope_gate"]
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "offensive", module: "kernel.router"}
+
+  # ── High-value passive router tools ──
+  - name: "tool:calc"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      gate: "passive"
+      module: "kernel.router"
+      notes: "AST-safe math (no eval); used by workflow YAML tool action."
+
+  - name: "tool:sysinfo"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "passive", module: "kernel.router"}
+
+  - name: "tool:bash"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: ["safe_commands"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      gate: "passive"
+      module: "kernel.router"
+      notes: "Legacy router shell path; prefer tool:exec (claw) when available."
+
+  - name: "tool:file_read"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "passive", module: "kernel.router"}
+
+  - name: "tool:file_write"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata: {gate: "passive", module: "kernel.router"}
+
+  - name: "tool:scope_gate"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      gate: "policy"
+      module: "tools.scope_gate"
+      notes: "Fail-closed policy engine; not a user-facing router tool, listed as a dependency target."

@@ -1,5 +1,51 @@
 version: 1
+# Claw workspace tools (tools.registry.TOOL_DEFINITIONS). Boot also bootstraps
+# these from TOOL_DEFINITIONS; YAML keeps docs/CAPABILITIES.md in sync.
 capabilities:
+  - name: "tool:read"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "Read a file from the KerrOS workspace (numbered lines)."
+
+  - name: "tool:write"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "Create or overwrite a workspace file."
+
+  - name: "tool:edit"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "Replace text in a workspace file."
+
+  - name: "tool:list"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "List files and directories in the workspace."
+
   - name: "tool:exec"
     kind: "tool"
     permissions: ["elevated"]
@@ -7,7 +53,31 @@ capabilities:
     setup_required: true
     setup_state: "needs_setup"
     metadata:
+      module: "tools.claw_tools"
+      role: "workspace_exec"
       notes: "Shell execution requires safe_commands configuration."
+
+  - name: "tool:apply_patch"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "Apply a unified diff patch to workspace files."
+
+  - name: "tool:remove"
+    kind: "tool"
+    permissions: ["elevated"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "workspace_fs"
+      notes: "Delete a file or directory in the workspace."
 
   - name: "tool:skills_list"
     kind: "tool"
@@ -15,6 +85,10 @@ capabilities:
     dependencies: []
     setup_required: false
     setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "skills"
+      notes: "Compact index of available skills."
 
   - name: "tool:skill_view"
     kind: "tool"
@@ -22,6 +96,10 @@ capabilities:
     dependencies: []
     setup_required: false
     setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "skills"
+      notes: "Load full skill content by name."
 
   - name: "tool:skill_manage"
     kind: "tool"
@@ -29,3 +107,7 @@ capabilities:
     dependencies: ["skills_workspace"]
     setup_required: false
     setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "skills"
+      notes: "Create, update, or delete a skill."

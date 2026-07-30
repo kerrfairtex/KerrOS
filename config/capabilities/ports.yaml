@@ -1,0 +1,62 @@
+version: 1
+# Kernel ports / runtime services exposed via DI (not user-facing tools).
+capabilities:
+  - name: "port:llm"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: ["provider:composite"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "llm_port"
+      adapter: "adapters.llm.composite_adapter"
+      notes: "LLMPort resolved at boot."
+
+  - name: "port:memory"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "memory_port"
+      notes: "KerrOS RAG / hybrid memory — not OmniRoute memory (P5)."
+
+  - name: "port:tool"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "tool_port"
+      notes: "ToolPort over router / claw dispatch."
+
+  - name: "port:dispatch"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: ["port:tool"]
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "dispatch_port"
+
+  - name: "port:search"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "search_port"
+      adapter: "adapters.search.duckduckgo_adapter"
+
+  - name: "port:storage"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "storage_port"
+      adapter: "adapters.storage.local_fs_adapter"

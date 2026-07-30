@@ -19,7 +19,7 @@ class RenderCapabilitiesTest(unittest.TestCase):
         self.assertIn("agent:knowledge", names)
         self.assertIn("provider:omniroute", names)
         self.assertIn("tool:vercel_deploy", names)
-        self.assertGreaterEqual(len(caps), 20)
+        self.assertGreaterEqual(len(caps), 50)
 
     def test_render_contains_tables(self):
         caps = load_capabilities(Path("config/capabilities"))

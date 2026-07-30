@@ -42,12 +42,12 @@ Checked against what's actually built on `main` (July 2026):
 | Loose Coupling | 🟡 Partial | Ports pattern (LLM/Memory/Tool/Storage/DB/Embedding/Search) + `kernel/access.py`; residual direct imports in batch `import_*.py` scripts |
 | High Cohesion | 🟡 Likely | Single-responsibility agent split (Knowledge/Security/Code/Research/Planner/Reflection/Document) |
 | Kernel First | 🟡 Partial | True for security/dispatch decisions; agents stay userspace by design (`kernel/access` facades) |
-| Capability Driven | 🟡 Partial | `kernel/capability_registry.py` + `config/capabilities/*.yaml` bootstrapped (~10 tool capabilities); manifests for agents/providers still thin |
-| Single Source of Truth (docs from manifests) | ❌ Gap | ADRs are hand-written (good); docs are not yet generated from capability manifests |
+| Capability Driven | ✅ Strong | `kernel/capability_registry.py` + manifests for claw, router (scope_policy), devops, agents, multi_api providers, ports; OmniRoute stays one meta-provider |
+| Single Source of Truth (docs from manifests) | ✅ Strong | `scripts/render_capabilities.py` → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) (`--check` for drift) |
 | Deterministic Behavior (config-driven) | 🟡 Partial | `kernel/config.py` + `config.json` / env; tool detection still largely code-driven |
-| Documentation as Code | 🟡 Partial | Capability + scope policy docs generated (`docs/CAPABILITIES.md`, `docs/SCOPE_POLICY.md`); ADRs remain hand-written |
+| Documentation as Code | ✅ Strong | Capability + scope policy docs generated (`docs/CAPABILITIES.md`, `docs/SCOPE_POLICY.md`); ADRs remain hand-written |
 
-Net: P0 kernel, P2 runtime, and P3 event infrastructure foundations are in place. **P1 Capability Registry is started but incomplete** (schema + claw tool bootstrap exist; broader agent/provider manifests and doc generation remain).
+Net: P0–P3 foundations are in place. **P1 Capability Registry covers claw, scope-gated router tools, devops, agents, multi_api providers, and ports** — regenerate docs after manifest edits.
 
 ## 3. Unified repo structure
 
@@ -59,7 +59,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 | `agents/` | Knowledge, Security, Code, Research, Planner, Reflection, Document agents | ReactAgent pattern, from scratch |
 | `tools/` | `tools/router.py` dispatch, `tools/scope_gate.py`, `tools/code_saver.py`, 8 DevOps tools | |
 | `providers/` | `multi_api.py` (Groq primary, NVIDIA NIM, 8-API fallback) | **OmniRoute becomes a new entry here** — §5, P1 |
-| `registry/` | `kernel/capability_registry.py`, `config/capabilities/` | P1 foundation — expand manifests beyond claw tools |
+| `registry/` | `kernel/capability_registry.py`, `config/capabilities/` | P1 — manifests + generated [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
 | `knowledge/` | RAG store: 238K chunks, 13 categories (NIST/CWE/CVE/Sigma/YARA/CISA KEV) | |
 | `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation, hybrid memory adapter | |
 | `workflows/` | `runtime/workflows.py` DAG engine + YAML defs | P3; [`ADR-010`](docs/adr/ADR-010-workflow-yaml.md) |
@@ -87,12 +87,13 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Watchdog + Code Agent subprocess IPC (KOS-011, KOS-012)
 
 ### P1 — Capability Registry
-**Status: started (foundation).** Schema + bootstrap exist; expand coverage next.
-- [x] Minimal manifest schema + registry — `kernel/capability_registry.py`, `config/capabilities/core_tools.yaml`
+**Status: foundation complete (expanded coverage).**
+- [x] Minimal manifest schema + registry — `kernel/capability_registry.py`, `config/capabilities/`
 - [x] Boot registers `capability_registry` and bootstraps claw tool definitions
-- [x] Write manifests for agents, DevOps tools, and LLM providers
+- [x] Manifests for claw FS tools, scope_policy router tools, agents, DevOps (+ extras), multi_api providers, ports
 - [x] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
 - [x] Generate docs/status from manifests (Documentation as Code) — `scripts/render_capabilities.py` → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md)
+- [x] Parity tests — claw / `scope_policy` / multi_api keys ↔ manifests (`tests/unit_kernel/test_capability_manifest_parity.py`)
 
 ### P2 — Runtime (`kerrd`, service manager, IPC, health)
 **Status: foundation implemented** (`docs/PHASE2.md`, ADR-005).

@@ -102,9 +102,11 @@ class KernelBootTest(unittest.TestCase):
         self.assertEqual(omni.kind, "provider")
         self.assertEqual(omni.metadata.get("role"), "meta_provider")
         agents = registry.list(kind="agent")
-        self.assertGreaterEqual(len(agents), 7)
+        self.assertGreaterEqual(len(agents), 8)
         providers = registry.list(kind="provider")
-        self.assertGreaterEqual(len(providers), 5)
+        self.assertGreaterEqual(len(providers), 12)
+        self.assertIn("port:llm", names)
+        self.assertIn("tool:read", names)
 
     def test_shutdown_resets_phase(self):
         k = boot()
