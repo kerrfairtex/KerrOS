@@ -420,6 +420,7 @@ class ActorMesh:
     (ADR-014).
 
     ADR-018 adds named actors, routes, request/reply, and ``add_peer``.
+    ADR-020 adds optional local supervision (``supervisor``).
     """
 
     node_id: str
@@ -427,6 +428,7 @@ class ActorMesh:
     backend: ActorMeshBackend
     auth: MeshAuth = field(default_factory=MeshAuth)
     routes: dict[str, str] = field(default_factory=dict)
+    supervisor: Any = None  # optional ActorSupervisor (ADR-020)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -453,8 +455,23 @@ class ActorMesh:
         )
         self._thread.start()
         self._attached = True
+        if self.supervisor is not None:
+            # Auto ping actor for remote liveness probes (ADR-020).
+            cfg = getattr(self.supervisor, "config", None)
+            if cfg is not None and getattr(cfg, "auto_register_ping", False):
+                if "_sys.ping" not in self._handlers:
+                    self.register("_sys.ping", self._sys_ping_handler)
+            try:
+                self.supervisor.attach()
+            except Exception:
+                pass
 
     def detach(self) -> None:
+        if self.supervisor is not None:
+            try:
+                self.supervisor.detach()
+            except Exception:
+                pass
         self._stop.set()
         self._attached = False
         try:
@@ -470,6 +487,14 @@ class ActorMesh:
                 event.set()
             self._pending.clear()
 
+    def _sys_ping_handler(self, msg: ActorMessage) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "node_id": self.node_id,
+            "handlers": sorted(self._handlers),
+            "ts": time.time(),
+        }
+
     def register(self, name: str, handler: ActorHandler) -> None:
         key = str(name or "").strip()
         if not key:
@@ -477,9 +502,20 @@ class ActorMesh:
         if not callable(handler):
             raise TypeError("handler must be callable")
         self._handlers[key] = handler
+        if self.supervisor is not None:
+            try:
+                self.supervisor.observe(key, node_id=self.node_id)
+            except Exception:
+                pass
 
     def unregister(self, name: str) -> None:
-        self._handlers.pop(str(name or "").strip(), None)
+        key = str(name or "").strip()
+        self._handlers.pop(key, None)
+        if self.supervisor is not None:
+            try:
+                self.supervisor.forget(key)
+            except Exception:
+                pass
 
     def set_route(self, name: str, node_id: str) -> None:
         key = str(name or "").strip()
@@ -702,6 +738,9 @@ class ActorMesh:
             "routes": dict(self.routes),
             "seen": len(self._seen),
             "endpoints": self.backend.endpoints(),
+            "supervision": (
+                self.supervisor.stats() if self.supervisor is not None else None
+            ),
         }
 
 
@@ -793,5 +832,12 @@ def build_actor_mesh(
         auth=auth,
         routes=routes,
     )
+
+    from runtime.actor_supervision import ActorSupervisor, SupervisionConfig
+
+    sup_cfg = SupervisionConfig.from_mapping(data.get("supervision") or {})
+    if sup_cfg.enabled:
+        mesh.supervisor = ActorSupervisor(mesh=mesh, config=sup_cfg)
+
     mesh.attach()
     return mesh

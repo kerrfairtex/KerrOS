@@ -42,5 +42,6 @@ fans frames to all connections (receivers filter on `target_node`).
 
 ## Revisit when
 
+~~Local actor heartbeats / liveness~~ — **ADR-020.**
 Multi-tenant WAN needs mTLS or a broker (NATS), or supervision of remote
-actor processes is funded.
+actor *processes* (OTP-style trees) when funded.

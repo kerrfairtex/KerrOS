@@ -164,6 +164,15 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "auth_required": False,
             # When True, non-loopback listen refuses empty token (WAN-safe).
             "auth_required_non_loopback": False,
+            # ADR-020: local actor liveness (off by default).
+            "supervision": {
+                "enabled": False,
+                "heartbeat_interval_s": 0,
+                "ttl_s": 30.0,
+                "suspect_after_s": 15.0,
+                "ping_timeout_s": 2.0,
+                "auto_register_ping": True,
+            },
         },
     }
     merged = {**defaults, **raw}
