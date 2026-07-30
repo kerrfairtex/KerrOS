@@ -328,6 +328,8 @@ def main():
                 ("/capabilities [kind]", "List capability registry entries"),
                 ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),
                 ("/decisions",         "Show recent decision log entries"),
+                ("/decisions verify",  "Verify decision_log hash chain (ADR-017)"),
+                ("/decisions export [path]", "Export decision_log JSONL"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -708,29 +710,56 @@ def main():
                 print(f"  {RE}Capabilities unavailable: {e}{R}")
             divider()
 
-        elif user=="/decisions":
+        elif user == "/decisions" or user.startswith("/decisions "):
             divider()
+            parts = user.split(None, 2)
+            sub = parts[1].strip().lower() if len(parts) > 1 else ""
             try:
                 log = resolve("decision_log")
-                rows = log.read_recent(15)
-                if not rows:
-                    print(f"  {GY}No decision log entries yet.{R}")
-                for row in rows:
-                    print(
-                        f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
-                        f"{row.outcome} — {row.input_summary[:60]}"
-                    )
+                if sub == "verify":
+                    result = log.verify_chain()
+                    if result.get("ok"):
+                        print(
+                            f"  {GR}[ ✓ ]{R} chain ok  checked={result.get('checked')}  "
+                            f"tip={(result.get('tip') or '')[:16]}…"
+                        )
+                    else:
+                        print(
+                            f"  {RE}[ ✗ ]{R} chain broken at #{result.get('broken_at')}: "
+                            f"{result.get('error')}"
+                        )
+                elif sub == "export":
+                    from pathlib import Path as _Path
+                    from adapters.audit.decision_log_export import export_decision_log_jsonl
+
+                    if len(parts) > 2 and parts[2].strip():
+                        dest = parts[2].strip()
+                    else:
+                        base = resolve("config").base
+                        dest = str(_Path(base) / "data" / "audit_export" / "decision_log.jsonl")
+                    out = export_decision_log_jsonl(dest, log=log)
+                    if out.get("ok"):
+                        print(
+                            f"  {GR}[ ✓ ]{R} exported {out.get('exported')} → {out.get('path')}"
+                            + (" (hmac)" if out.get("hmac") else "")
+                        )
+                    else:
+                        print(f"  {RE}Export failed:{R} {out.get('error') or out}")
+                else:
+                    rows = log.read_recent(15)
+                    if not rows:
+                        print(f"  {GY}No decision log entries yet.{R}")
+                    for row in rows:
+                        digest = (getattr(row, "entry_hash", "") or "")[:12]
+                        suffix = f"  {GY}{digest}…{R}" if digest else ""
+                        print(
+                            f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
+                            f"{row.outcome} — {row.input_summary[:60]}{suffix}"
+                        )
+                    print(f"  {GY}Tip: /decisions verify | /decisions export [path]{R}")
             except Exception as e:
                 print(f"  {RE}Decision log unavailable: {e}{R}")
             divider()
-
-            from agents.document import DocumentAgent
-            topic = user.split(" ",1)[1].strip()
-            spinner.stop()
-            doc, path = DocumentAgent(engine).run(topic, stream=True)
-            if path:
-                print(f"  {GR}[saved]{R} {path}")
-            add_message("assistant", f"Document generated and saved to {path}" if path else "Document generated.")
 
         elif user == "/reflect":
             from agents.reflection import ReflectionAgent

@@ -55,6 +55,8 @@ data/tasks/
 data/*.bak
 *.crt
 data/decision_log.db
+data/decision_log.db-*
+data/audit_export/
 data/workflows/*.db
 data/workflows/*.db-*
 data/event_mesh/

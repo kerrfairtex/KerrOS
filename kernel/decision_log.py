@@ -1,21 +1,29 @@
 """
 kernel/decision_log.py
 ======================
-Append-only SQLite decision log (KOS-008).
+Append-only SQLite decision log (KOS-008) with tamper-evidence hash chain
+and export helpers (ADR-017 / LGU foundation).
 
-Records scope gate, deploy arm/disarm, verification, and watchdog events.
-No UPDATE or DELETE API — audit trail is immutable.
+Records scope gate, deploy arm/disarm, verification, watchdog, and
+port-level audit events. No public UPDATE or DELETE API — audit trail is
+append-only at the application layer. Schema migration may one-time
+backfill hashes for pre-ADR-017 rows (user_version < 2).
 """
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from kernel.config import load_config
+
+GENESIS_HASH = "0" * 64
+# v2 = prev_hash / entry_hash columns + one-time chain backfill (ADR-017)
+SCHEMA_USER_VERSION = 2
 
 
 @dataclass
@@ -27,10 +35,32 @@ class DecisionRecord:
     input_summary: str
     outcome: str
     reason: str
+    prev_hash: str = ""
+    entry_hash: str = ""
+
+
+def canonical_payload(
+    timestamp: float,
+    actor: str,
+    decision_type: str,
+    input_summary: str,
+    outcome: str,
+    reason: str,
+) -> str:
+    """Stable string used as the hash preimage (excluding id / hashes)."""
+    return (
+        f"{float(timestamp):.6f}|{actor}|{decision_type}|"
+        f"{input_summary}|{outcome}|{reason}"
+    )
+
+
+def compute_entry_hash(prev_hash: str, payload: str) -> str:
+    material = f"{prev_hash or GENESIS_HASH}|{payload}".encode("utf-8")
+    return hashlib.sha256(material).hexdigest()
 
 
 class DecisionLog:
-    """Append-only decision log backed by SQLite WAL."""
+    """Append-only decision log backed by SQLite WAL + hash chain."""
 
     def __init__(self, db_path: Path | str | None = None) -> None:
         if db_path is None:
@@ -52,7 +82,8 @@ class DecisionLog:
             if schema_path.exists():
                 conn.executescript(schema_path.read_text())
             else:
-                conn.execute("""
+                conn.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS decisions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp REAL NOT NULL,
@@ -60,10 +91,79 @@ class DecisionLog:
                         decision_type TEXT NOT NULL,
                         input_summary TEXT NOT NULL,
                         outcome TEXT NOT NULL,
-                        reason TEXT NOT NULL DEFAULT ''
+                        reason TEXT NOT NULL DEFAULT '',
+                        prev_hash TEXT NOT NULL DEFAULT '',
+                        entry_hash TEXT NOT NULL DEFAULT ''
                     )
-                """)
+                    """
+                )
+            self._migrate_hash_columns(conn)
+            ver = int(conn.execute("PRAGMA user_version").fetchone()[0])
+            if ver < SCHEMA_USER_VERSION:
+                self._backfill_hash_chain(conn)
+                conn.execute(f"PRAGMA user_version = {SCHEMA_USER_VERSION}")
             conn.commit()
+
+    @staticmethod
+    def _migrate_hash_columns(conn: sqlite3.Connection) -> None:
+        cols = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(decisions)").fetchall()
+        }
+        if "prev_hash" not in cols:
+            conn.execute(
+                "ALTER TABLE decisions ADD COLUMN prev_hash TEXT NOT NULL DEFAULT ''"
+            )
+        if "entry_hash" not in cols:
+            conn.execute(
+                "ALTER TABLE decisions ADD COLUMN entry_hash TEXT NOT NULL DEFAULT ''"
+            )
+
+    @staticmethod
+    def _backfill_hash_chain(conn: sqlite3.Connection) -> None:
+        """One-time migration: fill hashes for pre-ADR-017 rows."""
+        rows = conn.execute(
+            """
+            SELECT id, timestamp, actor, decision_type, input_summary,
+                   outcome, reason
+            FROM decisions
+            ORDER BY id ASC
+            """
+        ).fetchall()
+        prev = GENESIS_HASH
+        for row in rows:
+            payload = canonical_payload(
+                row["timestamp"],
+                row["actor"],
+                row["decision_type"],
+                row["input_summary"],
+                row["outcome"],
+                row["reason"],
+            )
+            entry = compute_entry_hash(prev, payload)
+            conn.execute(
+                """
+                UPDATE decisions
+                SET prev_hash = ?, entry_hash = ?
+                WHERE id = ?
+                """,
+                (prev, entry, row["id"]),
+            )
+            prev = entry
+
+    def _row_to_record(self, row: sqlite3.Row) -> DecisionRecord:
+        keys = row.keys()
+        return DecisionRecord(
+            id=row["id"],
+            timestamp=row["timestamp"],
+            actor=row["actor"],
+            decision_type=row["decision_type"],
+            input_summary=row["input_summary"],
+            outcome=row["outcome"],
+            reason=row["reason"],
+            prev_hash=row["prev_hash"] if "prev_hash" in keys else "",
+            entry_hash=row["entry_hash"] if "entry_hash" in keys else "",
+        )
 
     def record(
         self,
@@ -78,13 +178,39 @@ class DecisionLog:
         """Append a decision record. Returns the new row id."""
         ts = timestamp if timestamp is not None else time.time()
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            last = conn.execute(
+                """
+                SELECT entry_hash FROM decisions
+                ORDER BY id DESC LIMIT 1
+                """
+            ).fetchone()
+            prev = (
+                last["entry_hash"]
+                if last and last["entry_hash"]
+                else GENESIS_HASH
+            )
+            payload = canonical_payload(
+                ts, actor, decision_type, input_summary, outcome, reason
+            )
+            entry = compute_entry_hash(prev, payload)
             cur = conn.execute(
                 """
                 INSERT INTO decisions
-                    (timestamp, actor, decision_type, input_summary, outcome, reason)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (timestamp, actor, decision_type, input_summary,
+                     outcome, reason, prev_hash, entry_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (ts, actor, decision_type, input_summary, outcome, reason),
+                (
+                    ts,
+                    actor,
+                    decision_type,
+                    input_summary,
+                    outcome,
+                    reason,
+                    prev,
+                    entry,
+                ),
             )
             conn.commit()
             return int(cur.lastrowid)
@@ -93,30 +219,91 @@ class DecisionLog:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT id, timestamp, actor, decision_type, input_summary, outcome, reason
+                SELECT id, timestamp, actor, decision_type, input_summary,
+                       outcome, reason, prev_hash, entry_hash
                 FROM decisions
                 ORDER BY id DESC
                 LIMIT ?
                 """,
                 (max(1, int(limit)),),
             ).fetchall()
-        return [
-            DecisionRecord(
-                id=row["id"],
-                timestamp=row["timestamp"],
-                actor=row["actor"],
-                decision_type=row["decision_type"],
-                input_summary=row["input_summary"],
-                outcome=row["outcome"],
-                reason=row["reason"],
-            )
-            for row in rows
-        ]
+        return [self._row_to_record(row) for row in rows]
+
+    def iter_from(self, since_id: int = 0) -> Iterator[DecisionRecord]:
+        """Yield records with id > since_id in ascending id order (export)."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, timestamp, actor, decision_type, input_summary,
+                       outcome, reason, prev_hash, entry_hash
+                FROM decisions
+                WHERE id > ?
+                ORDER BY id ASC
+                """,
+                (int(since_id),),
+            ).fetchall()
+        for row in rows:
+            yield self._row_to_record(row)
 
     def count(self) -> int:
         with self._connect() as conn:
             row = conn.execute("SELECT COUNT(*) AS n FROM decisions").fetchone()
         return int(row["n"])
+
+    def verify_chain(self) -> dict[str, Any]:
+        """
+        Walk the hash chain. Returns ok + first failure detail if any.
+
+        Empty log is valid. Detects payload tampering and broken links.
+        """
+        checked = 0
+        expected_prev = GENESIS_HASH
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, timestamp, actor, decision_type, input_summary,
+                       outcome, reason, prev_hash, entry_hash
+                FROM decisions
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        for row in rows:
+            checked += 1
+            prev = row["prev_hash"] or GENESIS_HASH
+            if prev != expected_prev:
+                return {
+                    "ok": False,
+                    "checked": checked,
+                    "broken_at": row["id"],
+                    "error": "prev_hash mismatch",
+                    "expected_prev": expected_prev,
+                    "actual_prev": prev,
+                }
+            payload = canonical_payload(
+                row["timestamp"],
+                row["actor"],
+                row["decision_type"],
+                row["input_summary"],
+                row["outcome"],
+                row["reason"],
+            )
+            expected = compute_entry_hash(prev, payload)
+            actual = row["entry_hash"] or ""
+            if actual != expected:
+                return {
+                    "ok": False,
+                    "checked": checked,
+                    "broken_at": row["id"],
+                    "error": "entry_hash mismatch",
+                    "expected_hash": expected,
+                    "actual_hash": actual,
+                }
+            expected_prev = actual
+        return {
+            "ok": True,
+            "checked": checked,
+            "tip": expected_prev if checked else GENESIS_HASH,
+        }
 
     def to_dicts(self, limit: int = 50) -> list[dict[str, Any]]:
         return [
@@ -128,6 +315,8 @@ class DecisionLog:
                 "input_summary": r.input_summary,
                 "outcome": r.outcome,
                 "reason": r.reason,
+                "prev_hash": r.prev_hash,
+                "entry_hash": r.entry_hash,
             }
             for r in self.read_recent(limit)
         ]

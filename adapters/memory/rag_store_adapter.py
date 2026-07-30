@@ -24,6 +24,19 @@ class RagStoreAdapter:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         rag_store.ingest_text(text, source)
+        # ADR-017: MemoryPort mutation audit (best-effort; no raw text logged).
+        try:
+            from kernel.decision_log import record_decision
+
+            record_decision(
+                "memory_port",
+                "upsert",
+                f"source:{source}",
+                "ok",
+                f"chars:{len(text or '')}",
+            )
+        except Exception:
+            pass
 
     def list_sources(self) -> list[str]:
         return rag_store.list_sources()

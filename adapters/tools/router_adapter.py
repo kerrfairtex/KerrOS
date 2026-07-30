@@ -32,9 +32,9 @@ class RouterAdapter:
             return kernel_router.detect_tool(str(payload or ""))
         if intent == "run_tool":
             if isinstance(payload, dict):
-                return kernel_router.run_tool(payload.get("tool"), payload.get("args"))
+                return self.run_tool(payload.get("tool"), payload.get("args"))
             if isinstance(payload, (list, tuple)) and len(payload) == 2:
-                return kernel_router.run_tool(payload[0], payload[1])
+                return self.run_tool(payload[0], payload[1])
             raise ValueError("run_tool payload must be {tool, args} or (tool, args)")
         if intent == "detect_domain":
             return kernel_router.detect_domain(str(payload or ""))
@@ -44,6 +44,19 @@ class RouterAdapter:
         return kernel_router.detect_tool(text, bypass_gate=bypass_gate)
 
     def run_tool(self, tool: str, args: Any):
+        # ADR-017: ToolPort audit for elevated dispatch (best-effort).
+        try:
+            from kernel.decision_log import record_decision
+
+            record_decision(
+                "tool_port",
+                "run_tool",
+                f"tool:{tool}",
+                "dispatched",
+                "",
+            )
+        except Exception:
+            pass
         return kernel_router.run_tool(tool, args)
 
     def detect_domain(self, text: str):
