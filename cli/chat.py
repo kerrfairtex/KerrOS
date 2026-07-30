@@ -101,6 +101,12 @@ def main():
         bind_engine(engine)
     except Exception:
         pass
+    try:
+        from gateway.channels.bridge import bind_channel_engine
+
+        bind_channel_engine(engine)
+    except Exception:
+        pass
     spinner = Spinner()
 
     mode = ask_mode(engine, spinner)
