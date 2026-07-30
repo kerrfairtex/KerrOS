@@ -190,10 +190,39 @@ def channels_cmd(action: str, raw: str = "") -> str:
         from gateway.channels.tool_agent import tool_reply_once
 
         return json.dumps(tool_reply_once(), indent=2)
+    if action in ("tool-loop", "tool_loop", "loop-reply"):
+        from gateway.channels.tool_loop import tool_loop_reply_once
+
+        return json.dumps(tool_loop_reply_once(), indent=2)
     if action in ("trace", "trace-list"):
         from gateway.channels.trace import format_trace
 
         return format_trace(limit=30)
+    if action in ("trace-export", "export-trace"):
+        from gateway.channels.export import export_trace
+
+        fmt = parts[0] if parts else "json"
+        return json.dumps(export_trace(format=fmt), indent=2)
+    if action in ("identity", "id") and parts:
+        from gateway.channels import identity as ident
+
+        sub = parts[0].lower()
+        rest = parts[1:]
+        if sub == "list":
+            return json.dumps(ident.list_identities(), indent=2)
+        if sub == "link" and len(rest) >= 2:
+            # identity link telegram alice [id-xxx]
+            ch, sender = rest[0], rest[1]
+            iid = rest[2] if len(rest) > 2 else None
+            return json.dumps(ident.link_identity(ch, sender, identity_id=iid), indent=2)
+        if sub == "unlink" and len(rest) >= 2:
+            return json.dumps(ident.unlink_alias(rest[0], rest[1]), indent=2)
+        if sub == "resolve" and len(rest) >= 2:
+            return json.dumps(
+                {"ok": True, "identity_id": ident.resolve_identity(rest[0], rest[1])},
+                indent=2,
+            )
+        return "[identity] link <ch> <sender> [id] | unlink <ch> <sender> | resolve <ch> <sender> | list"
     if action in ("slash", "slash-dispatch", "discord-slash") and parts:
         from gateway.channels.slash import handle_slash_command
 
@@ -276,7 +305,8 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
-        "stream-reply|tool-reply|trace|slash <name> [json]|"
+        "stream-reply|tool-reply|tool-loop|trace|trace-export [json|cef]|"
+        "identity link|unlink|resolve|list|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"

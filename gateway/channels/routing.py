@@ -51,6 +51,8 @@ def session_id_for(
     Stable session id for a channel conversation.
 
     Format: ch-<channel>-<short_hash> (readable + collision-resistant).
+    When ADR-088 identity links exist, sender is replaced by identity id so
+    cross-channel threads can share a session key (chat_id still scopes).
     """
     if not routing_enabled() and not force:
         try:
@@ -59,12 +61,26 @@ def session_id_for(
             return get_current_session_id()
         except Exception:
             pass
-    key = route_key(channel, chat_id, sender)
+    route_channel = channel
+    try:
+        from gateway.channels.identity import resolve_identity, routed_sender
+
+        iid = resolve_identity(channel, sender)
+        if iid:
+            # Cross-channel Soft continuity: drop platform from key when linked
+            sender = iid
+            route_channel = "id"
+        else:
+            sender = routed_sender(channel, sender)
+    except Exception:
+        pass
+    key = route_key(route_channel, chat_id, sender)
     with _lock:
         if key in _cache:
             return _cache[key]
         digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:10]
-        sid = f"ch-{_slug(channel)}-{digest}"
+        label = _slug(route_channel if route_channel != "id" else "id")
+        sid = f"ch-{label}-{digest}"
         _cache[key] = sid
         return sid
 
