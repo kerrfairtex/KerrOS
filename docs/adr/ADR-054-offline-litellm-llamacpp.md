@@ -27,6 +27,27 @@ use `LITELLM_ENDPOINT` / `LLAMA_CPP_SERVER_ENDPOINT` without cloud.
 Out of scope: public bind, production TLS seal, bundling GGUF in the
 image, requiring Docker in CI.
 
+## Pending — until live containers
+
+Phase E is **compose + Fake plan only** until an operator (or funded
+host) actually runs the stack:
+
+```bash
+./scripts/llama_cpp_docker.sh up --litellm   # live llama.cpp + LiteLLM
+./scripts/llama_cpp_docker.sh probe          # GET /v1/models must succeed
+```
+
+Until then:
+
+| Claim | Status |
+|-------|--------|
+| Compose YAML / loopback guards / `plan` | True (CI-covered) |
+| Live OpenAI `/v1` completions via LiteLLM | **Not true** — needs running containers + GGUF |
+| `production_gateway` | Always False (even after soft `allow_live` probe) |
+
+Do not treat the offline combo as “gateway verified” until probe
+against live containers passes on a named host.
+
 ## Alternatives considered
 
 | Option | Rejected because |
@@ -39,9 +60,11 @@ image, requiring Docker in CI.
 
 **Positive:** Offline Combo has a documented OpenAI `/v1` gateway.
 
-**Negative:** Operator must supply GGUF + Docker; image tags may drift.
+**Negative:** Operator must supply GGUF + Docker; image tags may drift;
+live gateway is unproven until containers are up.
 
 ## Revisit when
 
-A funded deploy needs public LiteLLM/TLS, multi-node llama.cpp, or
-reranker wiring on the same gateway.
+Live containers are brought up and `llama_cpp_docker.sh probe` passes
+on a named host; or a funded deploy needs public LiteLLM/TLS,
+multi-node llama.cpp, or reranker wiring on the same gateway.

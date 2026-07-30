@@ -38,7 +38,10 @@ class LlamaCppComposeTest(unittest.TestCase):
         self.assertTrue(LITELLM_CFG.is_file())
         self.assertTrue(PROXY.is_file())
         self.assertTrue(SCRIPT.read_text(encoding="utf-8").startswith("#!/"))
-        self.assertIn("ADR-054", ADR.read_text(encoding="utf-8"))
+        adr = ADR.read_text(encoding="utf-8")
+        self.assertIn("ADR-054", adr)
+        self.assertIn("Pending — until live containers", adr)
+        self.assertIn("not live", README.read_text(encoding="utf-8").lower())
 
     def test_loopback_ports_profiles_and_pinned_images(self):
         text = COMPOSE.read_text(encoding="utf-8")

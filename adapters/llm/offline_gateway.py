@@ -5,7 +5,8 @@ Offline LiteLLM + llama.cpp gateway planner (Phase E / ADR-054).
 
 Default-off Fake plan for CI. Documents loopback compose intent without
 starting containers. Soft probe only when ``allow_live``.
-``production_gateway`` stays False.
+``production_gateway`` stays False until a funded live-container
+deploy is verified (see ADR-054 “Pending — until live containers”).
 """
 
 from __future__ import annotations

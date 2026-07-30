@@ -4,6 +4,10 @@ Soft OpenAI-compatible gateway for the offline Qwen 0.5B profile.
 Weights stay on the host (`models/qwen0.5b-q4.gguf`). Compose profiles are
 default-off so bare `docker compose up` is a no-op.
 
+**Status:** Fake `plan` + compose are shipped; the gateway is **not live**
+until you start containers (`up --litellm`) and `probe` succeeds. See
+ADR-054 “Pending — until live containers.”
+
 Related: [`ADR-050`](../../docs/adr/ADR-050-offline-qwen05-profile.md),
 [`ADR-054`](../../docs/adr/ADR-054-offline-litellm-llamacpp.md),
 [`deploy/ollama/`](../ollama/), [`deploy/vllm/`](../vllm/).
