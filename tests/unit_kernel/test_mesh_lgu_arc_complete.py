@@ -24,11 +24,13 @@ class MeshLguArcCompleteTest(unittest.TestCase):
         self.assertIn("Contract-only", text)
         self.assertIn("HSM-backed xmlsec", text)
         self.assertIn("Accredited ISO", text)
+        self.assertIn("ADR-047", text)
 
     def test_phase2_deferred_points_at_arc(self):
         phase2 = (ROOT / "docs" / "PHASE2.md").read_text(encoding="utf-8")
         self.assertIn("ADR-046", phase2)
-        self.assertIn("contract-only", phase2)
+        self.assertIn("ADR-047", phase2)
+        self.assertIn("contract-gated", phase2)
 
 
 if __name__ == "__main__":

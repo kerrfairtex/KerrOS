@@ -54,6 +54,8 @@ remain unimplemented until contracted.
 
 ## Revisit when
 
-A funded contract specifies one or more of: shipped Go/Helm operator
-images, vendor-issued partnership certificates, public apt/yum mirrors,
-accredited ISO certificates, or HSM-backed XMLDSig.
+~~Explicit soft on-ramps for the five residuals~~ — **ADR-047**
+(operator-requested post-freeze stubs; still not production seals).
+
+A funded contract turns on public push, vendor seal, CAB accreditation,
+or HSM custody for a named deploy.

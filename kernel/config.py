@@ -283,6 +283,31 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "key_path": "",
             "allow_encryption": False,
         },
+        # ADR-047: accredited ISO certificate facade (off by default).
+        "iso_certificate": {
+            "enabled": False,
+            "backend": "fake",  # fake | http
+            "allow_live": False,
+            "allow_write": False,
+            "allow_accredited": False,
+            "org_name": "KerrOS",
+            "standard": "ISO/IEC 27001:2022",
+            "cab_name": "Fake CAB",
+            "cab_url": "",
+            "token": "",
+            "output_dir": "data/soa/iso",
+        },
+        # ADR-047: HSM-backed xmlsec (off by default).
+        "hsm_xmlsec": {
+            "enabled": False,
+            "backend": "fake",  # fake | pkcs11
+            "allow_live": False,
+            "allow_hsm": False,
+            "module_path": "",
+            "pin": "",
+            "key_label": "kerros-sig",
+            "allow_encryption": False,
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,
@@ -596,6 +621,29 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "token": "",
                     "org_name": "KerrOS",
                 },
+                # ADR-047: Go/Helm shipped image foundation.
+                "helm_images": {
+                    "enabled": False,
+                    "chart_dir": "deploy/k8s/operator/helm/kerros-nats-operator",
+                    "repository": "kerros/nats-operator",
+                    "tag": "0.1.0",
+                    "version": "0.1.0",
+                    "registry": "",
+                    "allow_write": False,
+                    "allow_package": False,
+                    "allow_push": False,
+                },
+                # ADR-047: vendor-issued partnership certificates.
+                "vendor_issued": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | http
+                    "allow_live": False,
+                    "allow_write": False,
+                    "output_dir": "data/vendor_issued",
+                    "url_template": "",
+                    "token": "",
+                    "org_name": "KerrOS",
+                },
             },
             # ADR-039: systemd timer packaging (off by default; under actor_mesh root).
             "systemd_timers": {
@@ -646,6 +694,16 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "token": "",
                 "allow_remote": False,
                 "allow_write": False,
+            },
+            # ADR-047: public apt/yum mirror publish.
+            "public_mirror": {
+                "enabled": False,
+                "backend": "fake",  # fake | rsync | http
+                "staging_dir": "deploy/packaging/public",
+                "public_url": "",
+                "token": "",
+                "allow_write": False,
+                "allow_public": False,
             },
         },
     }

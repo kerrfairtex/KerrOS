@@ -87,8 +87,8 @@ Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md) (see [mesh-lgu-foundation-arc.md](decisions/mesh-lgu-foundation-arc.md)); Go/Helm image publish / vendor certs / public mirrors stay contract-only
-- ~~LGU audit immutability extensions~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md); accredited ISO certs / HSM xmlsec stay contract-only
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md); production soft on-ramps in [ADR-047](adr/ADR-047-prod-onramps-helm-iso-hsm.md); public seals stay contract-gated
+- ~~LGU audit immutability extensions~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md); ISO/HSM soft on-ramps in [ADR-047](adr/ADR-047-prod-onramps-helm-iso-hsm.md); accreditation/HSM custody stay contract-gated
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

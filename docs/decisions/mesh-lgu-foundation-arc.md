@@ -14,12 +14,15 @@ See [ADR-046](../adr/ADR-046-mesh-lgu-foundation-arc-complete.md).
 - LGU decision-log / WORM / privacy / SoA / SAML / auditor cert /
   XMLDSig foundations (ADR-017…027, 034, 036, 041, 044, 045)
 
-## Contract-only (not pursued as soft stubs)
+## Contract-only (production seals — soft on-ramps in ADR-047)
+
+Soft Fake/gated stubs exist ([ADR-047](../adr/ADR-047-prod-onramps-helm-iso-hsm.md)).
+Production seals still require a funded deploy:
 
 - Shipped Go/Helm operator images to public registries
-- Vendor-issued partnership certificates
+- Vendor-issued partnership certificates (vendor-sealed)
 - Public apt/yum mirror publish automation
 - Accredited ISO/IEC 27001 certificates of conformity
 - HSM-backed xmlsec XMLDSig / XML encryption
 
-Revisit only when a funded deploy names one of the contract-only items.
+Revisit only when a funded deploy names one of the production seals.

@@ -464,6 +464,7 @@ class ActorMesh:
     ADR-040 adds CRD/operator-sdk stubs + commercial CMDB + distro packages.
     ADR-042 adds live operator-sdk controller + vendor CMDB SDKs + apt/yum publish.
     ADR-043 adds Go operator binaries + certified vendor partnerships + remote mirrors.
+    ADR-047 adds Helm image publish + vendor-issued certs + public mirrors.
     """
 
     node_id: str
@@ -505,6 +506,9 @@ class ActorMesh:
     go_operator: Any = None  # optional GoOperatorPackager (ADR-043)
     vendor_cert: Any = None  # optional VendorCertRegistry (ADR-043)
     remote_mirror: Any = None  # optional RemoteMirrorPublisher (ADR-043)
+    helm_images: Any = None  # optional HelmImagePublisher (ADR-047)
+    vendor_issued: Any = None  # optional VendorIssuedRegistry (ADR-047)
+    public_mirror: Any = None  # optional PublicMirrorPublisher (ADR-047)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -988,6 +992,21 @@ class ActorMesh:
                 if self.remote_mirror is not None
                 else None
             ),
+            "helm_images": (
+                self.helm_images.stats()
+                if self.helm_images is not None
+                else None
+            ),
+            "vendor_issued": (
+                self.vendor_issued.stats()
+                if self.vendor_issued is not None
+                else None
+            ),
+            "public_mirror": (
+                self.public_mirror.stats()
+                if self.public_mirror is not None
+                else None
+            ),
         }
 
 
@@ -1406,6 +1425,20 @@ def build_actor_mesh(
     if vcert is not None:
         mesh.vendor_cert = vcert
 
+    # ADR-047: Helm / OCI image publish foundation.
+    from runtime.k8s_helm_images import build_helm_images
+
+    helm = build_helm_images(sc_raw.get("helm_images") or {})
+    if helm is not None:
+        mesh.helm_images = helm
+
+    # ADR-047: vendor-issued partnership certificates.
+    from runtime.cmdb_vendor_issued import build_vendor_issued
+
+    vissued = build_vendor_issued(sc_raw.get("vendor_issued") or {})
+    if vissued is not None:
+        mesh.vendor_issued = vissued
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1524,6 +1557,13 @@ def build_actor_mesh(
     mirror = build_remote_mirror(data.get("remote_mirror") or {})
     if mirror is not None:
         mesh.remote_mirror = mirror
+
+    # ADR-047: public apt/yum mirror publish.
+    from runtime.distro_public_mirror import build_public_mirror
+
+    pub_m = build_public_mirror(data.get("public_mirror") or {})
+    if pub_m is not None:
+        mesh.public_mirror = pub_m
 
     mesh.attach()
     return mesh

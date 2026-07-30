@@ -63,7 +63,7 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
 ~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
 ~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
-Contract-only (not soft-stubbed further): shipped Go/Helm images,
-vendor-issued partnership certificates, public apt/yum mirrors,
-accredited ISO certs, HSM xmlsec — see
+~~Production soft on-ramps (Helm/ISO/HSM)~~ — **ADR-047.**
+Production seals (public push / vendor seal / CAB accreditation / HSM custody)
+stay contract-gated — see
 [mesh-lgu-foundation-arc.md](../decisions/mesh-lgu-foundation-arc.md).
