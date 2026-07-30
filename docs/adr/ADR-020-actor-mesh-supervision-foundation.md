@@ -42,4 +42,5 @@ auto-restarted unless the operator supplies `on_dead`.
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
+~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
 Remaining: richer OTP strategies when funded.

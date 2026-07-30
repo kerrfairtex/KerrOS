@@ -454,6 +454,7 @@ class ActorMesh:
     ADR-028 adds optional JetStream soft client, OTP tree, CA reload holder.
     ADR-029 adds JetStream cluster failover + ACME live-dir watch.
     ADR-030 adds Supercluster topology registry + ACME HTTP-01 solver.
+    ADR-031 adds Supercluster topology ops + ACME account/DNS-01.
     """
 
     node_id: str
@@ -469,6 +470,9 @@ class ActorMesh:
     acme_watcher: Any = None  # optional AcmeCertWatcher (ADR-029)
     supercluster: Any = None  # optional SuperclusterTopology (ADR-030)
     acme_http01: Any = None  # optional AcmeHttp01Solver (ADR-030)
+    supercluster_ops: Any = None  # optional SuperclusterOps (ADR-031)
+    acme_account: Any = None  # optional AcmeAccountRegistry (ADR-031)
+    acme_dns01: Any = None  # optional AcmeDns01Solver (ADR-031)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -811,6 +815,17 @@ class ActorMesh:
             "acme_http01": (
                 self.acme_http01.stats() if self.acme_http01 is not None else None
             ),
+            "supercluster_ops": (
+                self.supercluster_ops.stats()
+                if self.supercluster_ops is not None
+                else None
+            ),
+            "acme_account": (
+                self.acme_account.stats() if self.acme_account is not None else None
+            ),
+            "acme_dns01": (
+                self.acme_dns01.stats() if self.acme_dns01 is not None else None
+            ),
         }
 
 
@@ -1091,11 +1106,21 @@ def build_actor_mesh(
 
     # ADR-030: Supercluster topology registry (in-memory; does not start NATS).
     from runtime.nats_supercluster import build_supercluster_topology
+    from runtime.nats_supercluster_ops import build_supercluster_ops
 
-    topo = build_supercluster_topology(data.get("supercluster") or {})
+    sc_raw = dict(data.get("supercluster") or {})
+    topo = build_supercluster_topology(sc_raw)
     if topo is not None:
         topo.validate()
         mesh.supercluster = topo
+
+    # ADR-031: Supercluster topology ops (plan/probe/apply ledger).
+    ops = build_supercluster_ops(sc_raw, topology=mesh.supercluster)
+    if ops is not None:
+        ops.plan()
+        mesh.supercluster_ops = ops
+        if mesh.supercluster is None:
+            mesh.supercluster = ops.topology
 
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
@@ -1111,6 +1136,22 @@ def build_actor_mesh(
             except Exception:
                 pass
             mesh.acme_http01 = None
+
+    # ADR-031: ACME account registry + DNS-01 solver.
+    from runtime.acme_account import build_acme_account_registry
+    from runtime.acme_dns01 import build_acme_dns01_solver
+
+    account = build_acme_account_registry(acme_raw.get("account") or {})
+    if account is not None:
+        try:
+            account.register()
+        except Exception:
+            pass
+        mesh.acme_account = account
+
+    dns01 = build_acme_dns01_solver(acme_raw.get("dns01") or {})
+    if dns01 is not None:
+        mesh.acme_dns01 = dns01
 
     mesh.attach()
     return mesh

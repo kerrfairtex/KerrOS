@@ -47,4 +47,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
-Remaining: Supercluster topology ops / ACME account+DNS-01 when funded.
+~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
+Remaining: live Supercluster control-plane / ACME newAccount+cloud DNS when funded.

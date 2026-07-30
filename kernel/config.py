@@ -268,7 +268,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     },
                 },
             },
-            # ADR-029/030: ACME live-dir watch + optional HTTP-01 solver (off by default).
+            # ADR-029/030/031: ACME watch + HTTP-01 + account/DNS-01 (off by default).
             "acme": {
                 "enabled": False,
                 "live_dir": "",
@@ -281,14 +281,31 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "port": 0,
                     "path_prefix": "/.well-known/acme-challenge",
                 },
+                "account": {
+                    "enabled": False,
+                    "directory_url": "https://acme-staging-v02.api.letsencrypt.org/directory",
+                    "contact_email": "",
+                    "account_dir": "data/acme_account",
+                    "dry_run": True,
+                    "allow_directory_probe": False,
+                },
+                "dns01": {
+                    "enabled": False,
+                    "provider": "memory",
+                },
             },
-            # ADR-030: Supercluster / gateway / leafnode topology registry (off by default).
+            # ADR-030/031: Supercluster topology registry + ops (off by default).
             "supercluster": {
                 "enabled": False,
                 "name": "kerros",
                 "clusters": [],
                 "gateways": [],
                 "leafnodes": [],
+                "ops": {
+                    "enabled": False,
+                    "probe_timeout_s": 1.0,
+                    "allow_probe": False,
+                },
             },
         },
     }

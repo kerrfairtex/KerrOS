@@ -45,5 +45,7 @@ does not issue certs — only serves challenge tokens.
 
 ## Revisit when
 
-A funded deploy needs Supercluster topology ops, ACME account + DNS-01
-issuance, IdP portals, or hardware WORM / sealed-cold crypto-shred.
+~~Supercluster topology ops / ACME account + DNS-01~~ — **ADR-031.**
+A funded deploy needs live Supercluster control-plane, ACME newAccount /
+order issuance, cloud DNS providers, IdP portals, or hardware WORM /
+sealed-cold crypto-shred.

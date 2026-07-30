@@ -43,5 +43,6 @@ does not issue certs — only watches / optionally probes renew.
 ## Revisit when
 
 ~~Supercluster topology / ACME HTTP-01 solvers~~ — **ADR-030.**
-A funded deploy needs Supercluster topology ops, ACME account+DNS-01
-automation, or IdP / hardware WORM workstreams.
+~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
+A funded deploy needs live Supercluster control-plane, ACME newAccount+cloud
+DNS, or IdP / hardware WORM workstreams.

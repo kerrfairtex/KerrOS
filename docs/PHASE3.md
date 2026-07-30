@@ -125,7 +125,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-030](adr/ADR-030-supercluster-http01.md)
+- ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-031](adr/ADR-031-supercluster-ops-dns01.md)
 - In-repo `deploy/vllm/` GPU compose (probe/env only until a funded GPU host)
 
 ## Workflow YAML definitions

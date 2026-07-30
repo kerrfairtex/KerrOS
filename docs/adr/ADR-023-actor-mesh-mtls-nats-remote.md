@@ -47,4 +47,5 @@ supervision tree.
 
 ~~JetStream cluster failover + ACME live-dir watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01 solvers~~ — **ADR-030.**
-Remaining: Supercluster topology ops / ACME account+DNS-01 when funded.
+~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
+Remaining: live Supercluster control-plane / ACME newAccount+cloud DNS when funded.
