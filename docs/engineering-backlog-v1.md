@@ -25,7 +25,7 @@
 | C-16 | IPC actor-mesh (nng/socket) | Runtime | §1 Phase 2 | Foundation — ADR-012 + orchestrator ADR-018 + supervision ADR-020 |
 | C-17 | Docker (server-side) | Deployment | §1 Phase 2 | Foundation — ADR-011 (`deploy/event_mesh/`) |
 | C-18 | pgvector → Qdrant migration | Storage | §3, §6 Phase 2 | Foundation — ADR-015 (`deploy/qdrant/`, optional hybrid sidecar) |
-| C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Foundation — ADR-016 + ADR-048 + ADR-049; offline Qwen0.5B llama.cpp profile ADR-050 (Phase A) |
+| C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Foundation — ADR-016–050; offline RAG Phase B ADR-051 (nomic + FAISS / FTS) |
 
 **Missing specifications flagged:** exact current path of `scope_gate.py`, `store.py`, and `multi_api.py` were not confirmed in prior repo scans — each Phase-1 issue below that touches these must begin with a path-confirmation step before editing.
 

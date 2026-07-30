@@ -106,6 +106,13 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "qdrant_url": "http://127.0.0.1:6333",
         # KerrOS-only collection — do not reuse OmniRoute vector namespaces (P5).
         "qdrant_collection": "kerros_memory",
+        # ADR-051: embeddings + optional FAISS (SQLite FTS remains primary).
+        "embedding_model": "",  # resolve: env / offline profile / MiniLM
+        "embedding_dim": None,
+        "embedding_query_prefix": "",
+        "embedding_document_prefix": "",
+        "faiss_enabled": False,
+        "faiss_index_path": "data/faiss/kerros_memory.npz",
         # C-19: self-hosted LLMs — off by default; also via KERROS_LOCAL_LLM / KERROS_*_ENABLED.
         "ollama_enabled": False,
         "vllm_enabled": False,

@@ -177,6 +177,26 @@ class HealthMonitor:
             }
             self.record("ollama", "error", str(exc))
 
+        try:
+            from adapters.memory.faiss_vector_store import probe_faiss
+
+            faiss_comp = probe_faiss()
+            report["components"]["faiss"] = faiss_comp
+            self.record(
+                "faiss",
+                faiss_comp.get("status", "unknown"),
+                faiss_comp.get("path", ""),
+            )
+            if faiss_comp.get("enabled") and faiss_comp.get("status") != "ok":
+                report["healthy"] = False
+        except Exception as exc:
+            report["components"]["faiss"] = {
+                "status": "error",
+                "component": "faiss",
+                "error": str(exc),
+            }
+            self.record("faiss", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:

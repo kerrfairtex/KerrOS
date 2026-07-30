@@ -278,7 +278,9 @@ class Kernel:
         )
         self.container.register(
             SERVICE_EMBEDDING_PORT,
-            lambda: SentenceTransformersAdapter(),
+            lambda: SentenceTransformersAdapter(
+                config=self.config.values if self.config else None
+            ),
             singleton=True,
         )
         self.container.register(

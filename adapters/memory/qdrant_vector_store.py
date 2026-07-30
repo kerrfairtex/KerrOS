@@ -126,7 +126,13 @@ class QdrantVectorStore:
         self.api_key = resolve_qdrant_api_key(cfg)
         self.timeout = float(cfg.get("qdrant_timeout_s", 5))
         self._embedder = SentenceTransformersAdapter(
-            model_name=str(cfg.get("qdrant_embedding_model", "all-MiniLM-L6-v2"))
+            model_name=str(
+                cfg.get("qdrant_embedding_model")
+                or cfg.get("embedding_model")
+                or ""
+            )
+            or None,
+            config=cfg,
         )
         self._ready = False
         self.last_error = ""

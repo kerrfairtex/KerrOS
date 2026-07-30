@@ -1,16 +1,19 @@
 """
 adapters/memory/hybrid_memory_adapter.py
 ========================================
-MemoryPort adapter with hybrid recall: SQLite keyword/FTS + optional Qdrant vectors.
+MemoryPort adapter with hybrid recall: SQLite FTS primary + optional vectors.
+
+Vector backends (ADR-015 Qdrant, ADR-051 FAISS) are additive and default-off.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from adapters.memory.faiss_vector_store import FaissVectorStore
+from adapters.memory.qdrant_vector_store import QdrantVectorStore
 from kernel.config import load_config
 from rag import store as rag_store
-from adapters.memory.qdrant_vector_store import QdrantVectorStore
 
 VECTOR_SCORE_WEIGHT = 10.0
 
@@ -18,15 +21,22 @@ VECTOR_SCORE_WEIGHT = 10.0
 class HybridMemoryAdapter:
     """MemoryPort implementation using deterministic keyword + semantic vector recall."""
 
-    def __init__(self) -> None:
-        self._cfg = load_config().values
-        self._vector = QdrantVectorStore(self._cfg)
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
+        self._cfg = dict(config) if config is not None else load_config().values
+        self._qdrant = QdrantVectorStore(self._cfg)
+        self._faiss = FaissVectorStore(self._cfg)
+
+    def _vector_hits(self, text: str, top_k: int) -> list[tuple[float, str, str]]:
+        hits: list[tuple[float, str, str]] = []
+        hits.extend(self._faiss.query(text, top_k=top_k))
+        hits.extend(self._qdrant.query(text, top_k=top_k))
+        return hits
 
     def query(self, text: str, *, top_k: int = 5) -> list[tuple[int, str, str]]:
         keyword_hits = rag_store.search_fts(text, top_k=max(top_k * 2, 6))
         if not keyword_hits:
             keyword_hits = rag_store.search(text, top_k=max(top_k * 2, 6))
-        vector_hits = self._vector.query(text, top_k=max(top_k * 2, 6))
+        vector_hits = self._vector_hits(text, top_k=max(top_k * 2, 6))
 
         merged: dict[tuple[str, str], float] = {}
         for score, chunk, source in keyword_hits:
@@ -51,7 +61,8 @@ class HybridMemoryAdapter:
     ) -> None:
         rag_store.ingest_text(text, source)
         chunks = rag_store.chunk_text(text)
-        self._vector.upsert(chunks, source=source, metadata=metadata)
+        self._faiss.upsert(chunks, source=source, metadata=metadata)
+        self._qdrant.upsert(chunks, source=source, metadata=metadata)
         # ADR-017: MemoryPort mutation audit (best-effort; no raw text logged).
         try:
             from kernel.decision_log import record_decision
@@ -85,5 +96,11 @@ class HybridMemoryAdapter:
     def status(self) -> dict[str, Any]:
         return {
             "keyword_store": "sqlite_rag",
-            "vector_store": self._vector.status(),
+            "vector_primary": "sqlite_fts",
+            "vector_stores": {
+                "faiss": self._faiss.status(),
+                "qdrant": self._qdrant.status(),
+            },
+            # Back-compat for older /status consumers.
+            "vector_store": self._qdrant.status(),
         }

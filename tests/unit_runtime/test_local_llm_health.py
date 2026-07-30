@@ -10,13 +10,14 @@ from runtime.health import HealthMonitor
 
 
 class LocalLLMHealthTest(unittest.TestCase):
+    @patch("adapters.memory.faiss_vector_store.probe_faiss")
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
     @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
     def test_ollama_fail_fails_overall_when_enabled(
-        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant
+        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant, mock_faiss
     ):
         shutdown()
         boot()
@@ -27,6 +28,11 @@ class LocalLLMHealthTest(unittest.TestCase):
         }
         mock_qdrant.return_value = {
             "component": "qdrant",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_faiss.return_value = {
+            "component": "faiss",
             "enabled": False,
             "status": "disabled",
         }
@@ -55,13 +61,14 @@ class LocalLLMHealthTest(unittest.TestCase):
         finally:
             shutdown()
 
+    @patch("adapters.memory.faiss_vector_store.probe_faiss")
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
     @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
     def test_disabled_local_llm_does_not_fail_health(
-        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant
+        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant, mock_faiss
     ):
         shutdown()
         boot()
@@ -74,6 +81,12 @@ class LocalLLMHealthTest(unittest.TestCase):
             "component": "qdrant",
             "enabled": False,
             "status": "disabled",
+        }
+        mock_faiss.return_value = {
+            "component": "faiss",
+            "enabled": False,
+            "status": "disabled",
+            "available": False,
         }
         mock_llama.return_value = {
             "provider": "llama_cpp",
@@ -99,9 +112,9 @@ class LocalLLMHealthTest(unittest.TestCase):
             self.assertEqual(report["components"]["ollama"]["status"], "disabled")
             self.assertEqual(report["components"]["vllm"]["status"], "disabled")
             self.assertEqual(report["components"]["llama_cpp"]["status"], "disabled")
+            self.assertEqual(report["components"]["faiss"]["status"], "disabled")
         finally:
             shutdown()
-
 
 if __name__ == "__main__":
     unittest.main()

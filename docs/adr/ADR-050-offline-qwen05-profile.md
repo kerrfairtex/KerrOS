@@ -44,5 +44,6 @@ coding index, LiteLLM gateway compose, reranker.
 
 ## Revisit when
 
-Phase B (embeddings/vector), Phase C (coding index), Phase D (Unsloth
-export), or Phase E (LiteLLM + llama.cpp server compose).
+Phase B embeddings/vector — **ADR-051** (nomic + FAISS / FTS).
+Phase C (coding index), Phase D (Unsloth export), or Phase E
+(LiteLLM + llama.cpp server compose).

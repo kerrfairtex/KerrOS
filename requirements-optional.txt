@@ -44,3 +44,15 @@ JetStream soft client (ADR-028) also uses nats-py when
 
 Stdlib ``ssl`` only — no extra package. PEM paths via `actor_mesh.tls` /
 `KERROS_ACTOR_MESH_TLS_*`.
+
+## Offline RAG embeddings + FAISS (ADR-051)
+
+```bash
+pip install sentence-transformers   # nomic / MiniLM / bge
+pip install faiss-cpu               # optional; numpy Fake index works without it
+# numpy is usually already present via sentence-transformers
+```
+
+Without sentence-transformers, KerrOS uses deterministic hash mock embeddings.
+Without faiss-cpu, FAISS soft store uses a numpy cosine index under
+`data/faiss/kerros_memory.npz`. SQLite FTS remains primary either way.

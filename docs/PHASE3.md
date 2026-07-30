@@ -75,7 +75,9 @@ multi-node / model pull), and offline Qwen 0.5B + llama.cpp
 export KERROS_OFFLINE_PROFILE=offline_qwen05
 export LLAMA_BIN=~/llama.cpp/build/bin/llama-cli   # or llama-simple-chat
 export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
-python3 cli/chat.py   # /llm shows llama_cpp
+# Phase B RAG: nomic embed + FAISS soft (FTS still primary)
+# pip install sentence-transformers faiss-cpu  # optional
+python3 cli/chat.py   # /llm shows llama_cpp; memory uses FTS (+ FAISS if enabled)
 
 ./scripts/local_llm_docker.sh up
 ./scripts/local_llm_docker.sh pull llama3.2
@@ -145,7 +147,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 - ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
 - ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
-- Offline RAG / coding / Unsloth export / LiteLLM gateway — Phase B–E after [ADR-050](adr/ADR-050-offline-qwen05-profile.md)
+- ~~Offline RAG (nomic + FAISS / FTS)~~ — [ADR-051](adr/ADR-051-offline-rag-faiss.md); coding index / Unsloth / LiteLLM / reranker remain Phase C–E
 
 ## Workflow YAML definitions
 
