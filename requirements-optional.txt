@@ -1,13 +1,27 @@
-# Optional dependencies — IPC actor-mesh (C-16 / ADR-012)
+# Optional dependencies
+
+## IPC actor-mesh (C-16 / ADR-012)
 
 Install only when you want the native nng backend:
 
 ```bash
-pip install -r requirements-optional.txt
-# or: pip install pynng
+pip install pynng
 ```
 
 Without pynng, KerrOS still provides `backend: socket` (stdlib TCP).
 Config `actor_mesh.backend: nng` soft-falls back to socket if pynng is missing.
 
 pynng>=0.8.0
+
+## S3 Object Lock mirror (ADR-022)
+
+Install only when `audit_object_lock.backend: s3_object_lock` is enabled:
+
+```bash
+pip install boto3
+```
+
+Without boto3, the default `local_mirror` backend still works; `s3_object_lock`
+soft-fails (or fails the seal when `strict: true`).
+
+# boto3>=1.28.0

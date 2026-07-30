@@ -39,5 +39,6 @@ with no retry queue.
 
 ## Revisit when
 
-An LGU contract funds IdP integration, durable SIEM pipelines, hardware
-WORM / Object Lock, or a compliance-mapping ADR.
+~~Object Lock soft path + ISO audit map~~ — **ADR-022.**
+An LGU contract funds IdP integration, durable SIEM pipelines, or a
+hardware WORM appliance / full SoA.

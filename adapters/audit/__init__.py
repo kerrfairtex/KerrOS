@@ -1,6 +1,7 @@
-"""Audit export / WORM / retention / RBAC / SIEM (ADR-017/019/021)."""
+"""Audit export / WORM / retention / RBAC / SIEM / Object Lock (ADR-017..022)."""
 
 from adapters.audit.decision_log_export import export_decision_log_jsonl
+from adapters.audit.object_lock import mirror_after_seal, mirror_sealed_segment
 from adapters.audit.rbac import AuditRbacError, require_audit_action
 from adapters.audit.retention import apply_retention
 from adapters.audit.siem_forwarder import SiemForwarder, get_siem_forwarder
@@ -14,4 +15,6 @@ __all__ = [
     "AuditRbacError",
     "SiemForwarder",
     "get_siem_forwarder",
+    "mirror_after_seal",
+    "mirror_sealed_segment",
 ]

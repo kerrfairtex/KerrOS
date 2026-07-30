@@ -191,6 +191,18 @@ class WormStore:
             )
         except Exception:
             pass
+        try:
+            from adapters.audit.object_lock import ObjectLockError, mirror_after_seal
+
+            mirrored = mirror_after_seal(result)
+            result["object_lock"] = mirrored
+            if mirrored.get("ok") is False and not mirrored.get("skipped"):
+                # Non-strict failures already returned skipped; strict raises.
+                pass
+        except ObjectLockError as exc:
+            raise WormStoreError(f"object lock mirror failed: {exc}") from exc
+        except Exception:
+            result["object_lock"] = {"ok": False, "skipped": True, "error": "mirror error"}
         return result
 
     def verify_segment(

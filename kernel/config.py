@@ -165,6 +165,20 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "forward_on_record": True,
             "forward_on_seal": True,
         },
+        # ADR-022: optional Object Lock / compliance mirror (off by default).
+        "audit_object_lock": {
+            "enabled": False,
+            "backend": "local_mirror",  # local_mirror | s3_object_lock
+            "strict": False,
+            "mirror_dir": "data/audit_worm/object_lock_mirror",
+            "endpoint_url": "",
+            "bucket": "",
+            "prefix": "kerros/audit_worm/",
+            "region": "us-east-1",
+            "object_lock_mode": "GOVERNANCE",
+            "retain_days": 365,
+            "legal_hold": False,
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

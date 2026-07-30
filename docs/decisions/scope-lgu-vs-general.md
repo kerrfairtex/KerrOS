@@ -33,9 +33,9 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 
 **Phase 2 (trigger: LGU or regulated client contract):**
 - ~~Add `MemoryPort` / `ToolPort` audit-immutability extensions~~ — foundation in ADR-017 (`tool_port` / `memory_port` decision_log hooks)
-- ~~External audit export (signed JSONL or SIEM feed)~~ — JSONL + optional HMAC (`scripts/export_decision_log.py`); SIEM push still deferred
-- ~~Retention policy engine~~ — foundation in ADR-019 (`audit_retention` + software-WORM); role-based log access still deferred
-- ADR for LGU compliance mapping (ISO 27001, local data privacy acts) — still deferred
+- ~~External audit export (signed JSONL or SIEM feed)~~ — JSONL + optional HMAC (`scripts/export_decision_log.py`); SIEM push in ADR-021
+- ~~Retention policy engine~~ — foundation in ADR-019 (`audit_retention` + software-WORM); RBAC in ADR-021
+- ~~ADR for LGU compliance mapping (ISO 27001)~~ — informative map in ADR-022; local data privacy acts still deferred
 
 ## Alternatives considered
 
@@ -52,4 +52,5 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - Document data residency requirements per jurisdiction — still deferred
 - ~~WORM storage, retention engine~~ — software-WORM segments + retention in [ADR-019](../adr/ADR-019-decision-log-worm-retention.md)
 - ~~Role-based log access / SIEM~~ — foundation in [ADR-021](../adr/ADR-021-decision-log-rbac-siem.md)
-- Hardware WORM / Object Lock / ISO mapping — still deferred until funded LGU deploy
+- ~~Object Lock soft path + ISO audit map~~ — [ADR-022](../adr/ADR-022-decision-log-object-lock-iso-map.md)
+- Hardware WORM appliance / full SoA / jurisdiction privacy — still deferred until funded LGU deploy
