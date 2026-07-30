@@ -41,6 +41,7 @@ class DiscordAdapter:
         self._last_message_id: Optional[str] = None
         self._soft_inbox: list[InboundMessage] = []
         self._soft_outbox: list[OutboundMessage] = []
+        self._soft_edits: list[dict[str, Any]] = []
 
     def _enabled(self) -> bool:
         return _truthy(os.environ.get("KERROS_DISCORD"))
@@ -200,6 +201,27 @@ class DiscordAdapter:
                 )
             )
         return messages
+
+    def soft_edit(self, message_id: str, text: str, *, chat_id: str = "soft") -> dict[str, Any]:
+        """ADR-102 Soft progressive edit (live PATCH when enabled)."""
+        entry = {"message_id": message_id, "chat_id": chat_id, "text": (text or "")[:2000]}
+        self._soft_edits.append(entry)
+        if not self._live():
+            return {"ok": True, "mode": "soft", "edits": len(self._soft_edits)}
+        channel_id = (chat_id or self._default_channel() or "").strip()
+        if not channel_id or str(message_id).startswith("soft-"):
+            return {"ok": True, "mode": "soft", "edits": len(self._soft_edits)}
+        res = self._api(
+            "PATCH",
+            f"/channels/{channel_id}/messages/{message_id}",
+            body={"content": (text or "")[:2000]},
+        )
+        return {
+            "ok": bool(res.get("ok")),
+            "mode": "live",
+            "result": res.get("result"),
+            "error": res.get("error"),
+        }
 
     def send(self, msg: OutboundMessage) -> dict[str, Any]:
         if not self._live():

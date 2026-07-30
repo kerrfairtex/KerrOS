@@ -249,6 +249,35 @@ def channels_cmd(action: str, raw: str = "") -> str:
         from gateway.channels.structured_plan import structured_plan_reply_once
 
         return json.dumps(structured_plan_reply_once(), indent=2)
+    if action in ("stream-edit", "stream_edit", "edit-reply"):
+        from gateway.channels.stream_edit import stream_edit_reply_once
+
+        return json.dumps(stream_edit_reply_once(), indent=2)
+    if action in ("health", "probe"):
+        from gateway.channels.health import probe_channels
+
+        return json.dumps(probe_channels(), indent=2)
+    if action in ("secret", "secrets") and parts:
+        from gateway.channels import secrets as sec
+
+        sub = parts[0].lower()
+        rest = parts[1:]
+        if sub == "list":
+            return json.dumps(sec.list_secrets(), indent=2)
+        if sub == "set" and len(rest) >= 2:
+            return json.dumps(sec.set_secret(rest[0], " ".join(rest[1:])), indent=2)
+        if sub == "get" and rest:
+            # never print full secret — only presence
+            val = sec.get_secret(rest[0], "")
+            return json.dumps(
+                {"ok": True, "name": rest[0], "present": bool(val), "length": len(val)},
+                indent=2,
+            )
+        if sub == "delete" and rest:
+            return json.dumps(sec.delete_secret(rest[0]), indent=2)
+        if sub == "apply":
+            return json.dumps(sec.apply_vault_to_environ(), indent=2)
+        return "[secrets] list|set <name> <value>|get <name>|delete <name>|apply"
     if action in ("identity", "id") and parts:
         from gateway.channels import identity as ident
 
@@ -351,8 +380,10 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
-        "stream-reply|tool-reply|tool-loop|plan-reply|json-plan|signal-ingest <json>|"
+        "stream-reply|stream-edit|tool-reply|tool-loop|plan-reply|json-plan|"
+        "signal-ingest <json>|health|"
         "trace|trace-export [json|cef]|siem-push [json|cef]|siem-flush|"
+        "secret list|set|get|delete|apply|"
         "identity link|unlink|resolve|list|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"

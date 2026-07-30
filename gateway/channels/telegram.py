@@ -38,6 +38,7 @@ class TelegramAdapter:
         self._offset = 0
         self._soft_inbox: list[InboundMessage] = []
         self._soft_outbox: list[OutboundMessage] = []
+        self._soft_edits: list[dict[str, Any]] = []
 
     def _enabled(self) -> bool:
         return _truthy(os.environ.get("KERROS_TELEGRAM", os.environ.get("KERROS_GATEWAY")))
@@ -133,6 +134,27 @@ class TelegramAdapter:
                 )
             )
         return messages
+
+    def soft_edit(self, message_id: str, text: str, *, chat_id: str = "soft") -> dict[str, Any]:
+        """ADR-102 Soft progressive edit record (and live editMessageText when live)."""
+        entry = {
+            "message_id": message_id,
+            "chat_id": chat_id,
+            "text": (text or "")[:4000],
+        }
+        self._soft_edits.append(entry)
+        if not self._live():
+            return {"ok": True, "mode": "soft", "edits": len(self._soft_edits)}
+        res = self._api(
+            "editMessageText",
+            {"chat_id": chat_id, "message_id": message_id, "text": (text or "")[:4000]},
+        )
+        return {
+            "ok": bool(res.get("ok")),
+            "mode": "live",
+            "result": res.get("result"),
+            "error": res.get("description") or res.get("error"),
+        }
 
     def send(self, msg: OutboundMessage) -> dict[str, Any]:
         if not self._live():
