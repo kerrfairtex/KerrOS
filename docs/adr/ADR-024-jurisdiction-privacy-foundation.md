@@ -39,6 +39,6 @@ privacy theme map; chain verify remains on raw store.
 
 ## Revisit when
 
-~~Sealed-cold erasure review + cross-border transfer ledger~~ — **ADR-026.**
+~~Automated transfer pipeline~~ — **ADR-027.**
 A funded jurisdiction deploy specifies DPIA/SoA, destroying sealed cold
-bytes, automated transfer pipelines, or a hardware WORM appliance.
+bytes (crypto-shred), IdP portals, or a hardware WORM appliance.

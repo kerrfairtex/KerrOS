@@ -20,7 +20,7 @@ to KerrOS audit artifacts. Jurisdiction-specific legal advice is out of scope.
 ## Explicitly not covered here
 
 - ~~Lawful erasure vs WORM conflict resolution~~ — request ledger [ADR-025](../adr/ADR-025-residency-erasure-ledger.md); sealed-cold review [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md); **destroying sealed cold bytes** still deferred  
-- ~~Cross-border transfer mechanisms~~ — intent ledger + map [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md); automated pipelines still deferred  
+- ~~Cross-border transfer mechanisms~~ — intent ledger [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md); execute pipeline [ADR-027](../adr/ADR-027-automated-transfer-pipeline.md); brokered HA still deferred  
 - Hardware WORM appliances / full SoA  
 - IdP-backed data-subject access portals  
 

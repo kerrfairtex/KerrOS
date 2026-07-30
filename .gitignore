@@ -62,6 +62,7 @@ data/erasure_requests.db
 data/erasure_requests.db-*
 data/transfer_requests.db
 data/transfer_requests.db-*
+data/transfer_outbox/
 data/workflows/*.db
 data/workflows/*.db-*
 data/event_mesh/

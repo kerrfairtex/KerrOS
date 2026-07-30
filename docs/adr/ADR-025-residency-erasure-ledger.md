@@ -41,6 +41,6 @@ hardware WORM / full residency transfer mechanisms still out of scope.
 
 ## Revisit when
 
-~~Sealed-cold erasure review + cross-border transfer ledger~~ — **ADR-026.**
-A funded deploy specifies hardware WORM, automated transfer pipelines, or
+~~Automated transfer pipeline~~ — **ADR-027.**
+A funded deploy specifies hardware WORM, sealed-cold crypto-shred, or
 IdP-backed data-subject portals.

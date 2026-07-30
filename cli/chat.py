@@ -338,6 +338,7 @@ def main():
                 ("/decisions erasure <ref> [ids]", "Record erasure request (ADR-025)"),
                 ("/decisions erasure-review <id> <outcome>", "Sealed-cold review (ADR-026)"),
                 ("/decisions transfer <to> <mechanism>", "Record transfer intent (ADR-026)"),
+                ("/decisions transfer-exec <id>", "Execute transfer copy pipeline (ADR-027)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -858,6 +859,27 @@ def main():
                             )
                         else:
                             print(f"  {RE}Transfer failed:{R} {out.get('error') or out}")
+                elif sub == "transfer-exec":
+                    from adapters.audit.transfer_pipeline import execute_transfer
+
+                    rest = parts[2].strip() if len(parts) > 2 else ""
+                    if not rest or not rest.split()[0].isdigit():
+                        print(f"  {RE}Usage:{R} /decisions transfer-exec <id>")
+                    else:
+                        cfg = resolve("config")
+                        out = execute_transfer(
+                            int(rest.split()[0]),
+                            cfg=cfg.values,
+                            base=cfg.base,
+                        )
+                        if out.get("ok"):
+                            print(
+                                f"  {GR}[ ✓ ]{R} executed transfer #{out.get('request_id')}  "
+                                f"artifacts={len(out.get('artifacts') or [])}  "
+                                f"dest={out.get('dest_dir')}"
+                            )
+                        else:
+                            print(f"  {RE}Execute failed:{R} {out.get('error') or out}")
                 elif sub == "verify":
                     require_audit_action("verify")
                     result = log.verify_chain()
@@ -959,7 +981,7 @@ def main():
                     print(
                         f"  {GY}Tip: /decisions verify | export | seal | retain | "
                         f"whoami | privacy | residency | erasure | "
-                        f"erasure-review | transfer{R}"
+                        f"erasure-review | transfer | transfer-exec{R}"
                     )
             except AuditRbacError as e:
                 print(f"  {RE}Denied:{R} {e}")

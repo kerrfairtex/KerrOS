@@ -200,11 +200,18 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "db_path": "data/erasure_requests.db",
             "worm_dir": "data/audit_worm",
         },
-        # ADR-026: cross-border transfer intent ledger (off by default).
+        # ADR-026/027: cross-border transfer intent + optional execute pipeline.
         "audit_transfers": {
             "enabled": False,
             "db_path": "data/transfer_requests.db",
             "default_from_region": "",  # falls back to audit_residency.region
+            "execute_enabled": False,
+            "backend": "local_copy",  # local_copy | http_put
+            "dest_dir": "data/transfer_outbox",
+            "http_url": "",
+            "http_token": "",
+            "http_timeout_s": 5.0,
+            "sources": ["sealed_segments"],  # + export_jsonl
         },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {

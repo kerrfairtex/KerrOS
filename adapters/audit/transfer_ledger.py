@@ -1,11 +1,11 @@
 """
 adapters/audit/transfer_ledger.py
 =================================
-Cross-border transfer *intent* ledger for decision_log evidence (ADR-026).
+Cross-border transfer *intent* ledger for decision_log evidence (ADR-026)
+plus execution status updates (ADR-027).
 
-Default-off. Append-only side SQLite recording from/to region and transfer
-mechanism (scc | adequacy | consent | derogation | internal). Does not move
-bytes — operators still own the actual transfer channel.
+Default-off. Append-only inserts for intents; ``mark_status`` updates
+execution state after the pipeline copies evidence (sources untouched).
 """
 
 from __future__ import annotations
@@ -164,6 +164,39 @@ class TransferLedger:
         if row is None:
             raise KeyError(f"transfer request {request_id} not found")
         return dict(row)
+
+    def mark_status(
+        self,
+        request_id: int,
+        status: str,
+        *,
+        notes: str = "",
+    ) -> dict[str, Any]:
+        """Update status on an existing intent (ADR-027 execution)."""
+        st = str(status or "").strip().lower()
+        if st not in ("recorded", "executed", "failed", "cancelled"):
+            raise ValueError(f"invalid transfer status: {status!r}")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT notes FROM transfer_requests WHERE id = ?",
+                (int(request_id),),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"transfer request {request_id} not found")
+            prev_notes = str(row["notes"] or "")
+            merged = prev_notes
+            if notes:
+                merged = (prev_notes + " | " if prev_notes else "") + str(notes)
+            conn.execute(
+                """
+                UPDATE transfer_requests
+                SET status = ?, notes = ?
+                WHERE id = ?
+                """,
+                (st, merged, int(request_id)),
+            )
+            conn.commit()
+        return self.get(int(request_id))
 
     def list_recent(self, limit: int = 20) -> list[dict[str, Any]]:
         with self._connect() as conn:

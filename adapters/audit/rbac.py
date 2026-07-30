@@ -31,6 +31,7 @@ ACTION_MIN_ROLE: dict[str, str] = {
     "erasure_request": "admin",
     "erasure_review": "admin",
     "transfer_record": "admin",
+    "transfer_execute": "admin",
     "residency": "reader",
 }
 

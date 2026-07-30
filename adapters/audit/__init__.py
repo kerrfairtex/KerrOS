@@ -1,4 +1,4 @@
-"""Audit adapters ADR-017..026 (export / WORM / privacy / residency / transfers)."""
+"""Audit adapters ADR-017..027 (export / WORM / privacy / residency / transfers)."""
 
 from adapters.audit.decision_log_export import export_decision_log_jsonl
 from adapters.audit.erasure_ledger import (
@@ -13,6 +13,7 @@ from adapters.audit.residency import maybe_stamp_residency, residency_status
 from adapters.audit.retention import apply_retention
 from adapters.audit.siem_forwarder import SiemForwarder, get_siem_forwarder
 from adapters.audit.transfer_ledger import TransferLedger, record_transfer_intent
+from adapters.audit.transfer_pipeline import execute_transfer
 from adapters.audit.worm_store import WormStore
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "review_sealed_erasure",
     "TransferLedger",
     "record_transfer_intent",
+    "execute_transfer",
 ]
