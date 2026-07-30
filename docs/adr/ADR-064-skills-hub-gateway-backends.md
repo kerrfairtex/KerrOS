@@ -19,7 +19,8 @@ surface, and pluggable process backends (local/fake/docker Soft).
 2. **`gateway/webhook.py`** — loopback HTTP webhook (`KERROS_GATEWAY=1`) with
    `/v1/message`, `/v1/inbox`, optional token; no third-party chat SDKs.
 3. **`tools/process_backends.py`** — `local` | `fake` | `docker` Soft
-   (`KERROS_BG_BACKEND`, `KERROS_BG_DOCKER=1` for live docker).
+   (`KERROS_BG_BACKEND`, `KERROS_BG_DOCKER=1` for live docker); remote Soft
+   fleet facade in ADR-077.
 
 ## Consequences
 

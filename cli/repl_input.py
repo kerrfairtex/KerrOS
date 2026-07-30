@@ -102,6 +102,8 @@ def _extra_commands() -> list[str]:
         "gateway channel list",
         "gateway channel start whatsapp",
         "gateway channel soft-reply",
+        "gateway channel llm-reply",
+        "gateway channel gateway-start",
         "list sessions",
         "resume latest",
         "skills hub list",

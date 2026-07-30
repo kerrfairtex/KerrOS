@@ -10,7 +10,8 @@ Default Soft/Fake — no network. Enable live Bot REST with:
   KERROS_DISCORD_CHANNEL=<default channel id>   # optional; send may override
 
 Live path uses HTTPS REST (channel messages). Soft path records inbox/outbox
-in memory for CI and local demos. Full Gateway websocket remains out of scope.
+in memory for CI and local demos. Gateway websocket Soft/live is ADR-075
+(`gateway/channels/discord_gateway.py`).
 """
 
 from __future__ import annotations

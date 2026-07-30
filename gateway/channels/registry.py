@@ -73,6 +73,14 @@ def poll_all() -> list[InboundMessage]:
                 msgs.extend(ad.poll() or [])
             except Exception:
                 pass
+        # ADR-075: Discord Gateway Soft/live inbox
+        try:
+            from gateway.channels.discord_gateway import get_discord_gateway
+
+            gw = get_discord_gateway()
+            msgs.extend(gw.poll_messages() or [])
+        except Exception:
+            pass
         return msgs
 
 
@@ -169,6 +177,35 @@ def channels_cmd(action: str, raw: str = "") -> str:
         return json.dumps(pump_to_webhook_inbox(), indent=2)
     if action in ("soft-reply", "reply-once", "soft_reply"):
         return json.dumps(soft_reply_once(), indent=2)
+    if action in ("llm-reply", "llm_reply", "reply-llm"):
+        from gateway.channels.bridge import llm_reply_once
+
+        return json.dumps(llm_reply_once(), indent=2)
+    if action in ("gateway-start", "discord-gateway-start"):
+        from gateway.channels.discord_gateway import get_discord_gateway
+
+        return json.dumps(get_discord_gateway().start(), indent=2)
+    if action in ("gateway-stop", "discord-gateway-stop"):
+        from gateway.channels.discord_gateway import get_discord_gateway
+
+        return json.dumps(get_discord_gateway().stop(), indent=2)
+    if action in ("gateway-status", "discord-gateway-status"):
+        from gateway.channels.discord_gateway import get_discord_gateway
+
+        return json.dumps(get_discord_gateway().status(), indent=2)
+    if action in ("gateway-dispatch", "discord-gateway-dispatch") and len(parts) >= 2:
+        # gateway-dispatch MESSAGE_CREATE :: {"content":"hi","channel_id":"1","author":{"username":"a"}}
+        from gateway.channels.discord_gateway import get_discord_gateway
+
+        event = parts[0]
+        body = " ".join(parts[1:]).strip()
+        if body.startswith("::"):
+            body = body[2:].strip()
+        try:
+            data = json.loads(body) if body else {}
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": f"invalid json: {exc}"})
+        return json.dumps(get_discord_gateway().soft_dispatch(event, data), indent=2)
     if action == "send" and len(parts) >= 3:
         channel, chat_id = parts[0], parts[1]
         text = " ".join(parts[2:])
@@ -209,7 +246,8 @@ def channels_cmd(action: str, raw: str = "") -> str:
             indent=2,
         )
     return (
-        "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|"
+        "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
+        "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"
     )
