@@ -82,7 +82,7 @@ class KerrTUI:
             return "__EXIT__"
         if text == "/help":
             help_txt = (
-                "Commands: /help /clear /trace /status /exit — "
+                "Commands: /help /clear /trace /status /channel /exit — "
                 "otherwise Soft-echo (or bound LLM)."
             )
             self.lines.append(f"KerrOS › {help_txt}")
@@ -103,6 +103,23 @@ class KerrTUI:
             self.lines.append(f"KerrOS › {self.status_text().splitlines()[0]}")
             self.lines.append("")
             self.trace_event("status", "shown")
+            return None
+        if text == "/channel" or text.startswith("/channel "):
+            # ADR-096: Soft pump + soft-reply from TUI
+            arg = text[len("/channel") :].strip() or "soft-reply"
+            try:
+                from gateway.channels.registry import channels_cmd
+
+                raw = channels_cmd(arg.split()[0], " ".join(arg.split()[1:]))
+                snippet = str(raw)[:500]
+                self.lines.append(f"KerrOS › channel {arg}:")
+                self.lines.append(snippet)
+                self.lines.append("")
+                self.trace_event("channel", arg[:60])
+            except Exception as exc:
+                self.lines.append(f"KerrOS › [channel error] {exc}")
+                self.lines.append("")
+                self.trace_event("error", str(exc)[:60])
             return None
         self.lines.append(f"You › {text}")
         self.trace_event("user", text[:60])

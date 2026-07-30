@@ -121,9 +121,25 @@ def soft_reply_once(*, prefix: str = "[KerrOS]") -> dict[str, Any]:
     from gateway import webhook as gw
     from gateway.channels.routing import index_channel_turn, session_id_for
 
+    from gateway.channels.rate_limit import allow as rate_allow
+
     pulled = poll_all()
     replies: list[dict[str, Any]] = []
     for m in pulled:
+        rate = rate_allow(m.channel, m.chat_id or "", m.sender or "")
+        if not rate.get("allowed"):
+            replies.append(
+                {
+                    "channel": m.channel,
+                    "chat_id": m.chat_id,
+                    "inbound": m.text,
+                    "outbound": "",
+                    "mode": "rate-limited",
+                    "rate": rate,
+                    "send": {"ok": False, "error": "rate limited"},
+                }
+            )
+            continue
         with gw._lock:
             gw._inbox.append(
                 {
@@ -218,6 +234,11 @@ def channels_cmd(action: str, raw: str = "") -> str:
 
         fmt = parts[0] if parts else "json"
         return json.dumps(export_trace(format=fmt), indent=2)
+    if action in ("siem-push", "siem_push", "push-siem"):
+        from gateway.channels.siem_push import push_trace
+
+        fmt = parts[0] if parts else "json"
+        return json.dumps(push_trace(format=fmt), indent=2)
     if action in ("identity", "id") and parts:
         from gateway.channels import identity as ident
 
@@ -321,8 +342,8 @@ def channels_cmd(action: str, raw: str = "") -> str:
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
         "stream-reply|tool-reply|tool-loop|plan-reply|signal-ingest <json>|"
-        "trace|trace-export [json|cef]|identity link|unlink|resolve|list|"
-        "slash <name> [json]|"
+        "trace|trace-export [json|cef]|siem-push [json|cef]|"
+        "identity link|unlink|resolve|list|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"
