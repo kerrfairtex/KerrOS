@@ -237,8 +237,10 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "auto_register_ping": True,
                 "remote_restart": False,
                 "process_map": {},  # actor_name → ServiceManager service name
+                # ADR-028: local OTP-style tree (off by default).
+                "tree": {"enabled": False, "strategy": "one_for_one"},
             },
-            # ADR-023: optional TLS/mTLS for socket backend (off by default).
+            # ADR-023/028: optional TLS/mTLS + CA reload for socket backend.
             "tls": {
                 "enabled": False,
                 "ca_file": "",
@@ -246,11 +248,18 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "key_file": "",
                 "require_client_cert": False,
                 "check_hostname": False,
+                "reload": False,
+                "reload_interval_s": 0,
             },
-            # ADR-023: used when backend: nats (soft nats-py).
+            # ADR-023/028: nats backend + optional JetStream soft client.
             "nats": {
                 "url": "nats://127.0.0.1:4222",
                 "subject_prefix": "kerros.actor",
+                "jetstream": {
+                    "enabled": False,
+                    "stream": "kerros",
+                    "durable": "",
+                },
             },
         },
     }

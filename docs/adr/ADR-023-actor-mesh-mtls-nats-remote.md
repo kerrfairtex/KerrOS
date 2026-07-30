@@ -45,5 +45,5 @@ supervision tree.
 
 ## Revisit when
 
-A funded deploy needs CA rotation, JetStream durability, OTP-style
-remote process trees, or a hardware WORM / residency policy (privacy egress: ADR-024).
+~~JetStream soft client / OTP local tree / CA reload~~ — **ADR-028.**
+Remaining: JetStream cluster HA / ACME automation when funded.

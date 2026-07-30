@@ -35,6 +35,8 @@ pip install nats-py
 ```
 
 Without nats-py, KerrOS soft-falls back to `socket` (same pattern as pynng).
+JetStream soft client (ADR-028) also uses nats-py when
+`actor_mesh.nats.jetstream.enabled` is set; tests inject an in-memory client.
 
 # nats-py>=2.6.0
 

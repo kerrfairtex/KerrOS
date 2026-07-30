@@ -48,5 +48,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Authenticated service mesh~~ — **token envelopes in ADR-014.**
 ~~Named routing / req/reply / WAN dial~~ — **orchestrator foundation in ADR-018.**
 ~~Local actor supervision~~ — **ADR-020.**
-~~TLS/NATS / remote process restart foundation~~ — **ADR-023.**
-Revisit for JetStream HA / OTP trees when multi-tenant WAN requires them.
+~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
+Revisit for JetStream cluster HA / ACME when multi-tenant WAN requires them.

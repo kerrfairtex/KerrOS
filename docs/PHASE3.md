@@ -125,7 +125,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- ~~Authenticated WAN / full actor orchestrator~~ — foundation in Phase 2 ([ADR-018](adr/ADR-018-actor-mesh-orchestrator-foundation.md) + [ADR-020](adr/ADR-020-actor-mesh-supervision-foundation.md) + [ADR-023](adr/ADR-023-actor-mesh-mtls-nats-remote.md)); JetStream HA / OTP trees still deferred
+- ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-028](adr/ADR-028-actor-mesh-jetstream-otp-ca.md); JetStream cluster HA / ACME still deferred
 - In-repo `deploy/vllm/` GPU compose (probe/env only until a funded GPU host)
 
 ## Workflow YAML definitions

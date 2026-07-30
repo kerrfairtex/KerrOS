@@ -44,5 +44,5 @@ fans frames to all connections (receivers filter on `target_node`).
 
 ~~Local actor heartbeats / liveness~~ — **ADR-020.**
 ~~mTLS / NATS / remote process restart hook~~ — **ADR-023.**
-Remaining: JetStream HA / OTP supervision trees / production CA rotation
-when funded.
+~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
+Remaining: JetStream cluster HA / ACME when funded.

@@ -451,6 +451,7 @@ class ActorMesh:
 
     ADR-018 adds named actors, routes, request/reply, and ``add_peer``.
     ADR-020 adds optional local supervision (``supervisor``).
+    ADR-028 adds optional JetStream soft client, OTP tree, CA reload holder.
     """
 
     node_id: str
@@ -459,6 +460,9 @@ class ActorMesh:
     auth: MeshAuth = field(default_factory=MeshAuth)
     routes: dict[str, str] = field(default_factory=dict)
     supervisor: Any = None  # optional ActorSupervisor (ADR-020)
+    jetstream: Any = None  # optional JetStreamSoftClient (ADR-028)
+    supervision_tree: Any = None  # optional SupervisionTree (ADR-028)
+    tls_holder: Any = None  # optional ReloadingTlsHolder (ADR-028)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -771,6 +775,17 @@ class ActorMesh:
             "supervision": (
                 self.supervisor.stats() if self.supervisor is not None else None
             ),
+            "jetstream": (
+                self.jetstream.stats() if self.jetstream is not None else None
+            ),
+            "supervision_tree": (
+                self.supervision_tree.stats()
+                if self.supervision_tree is not None
+                else None
+            ),
+            "tls_reload": (
+                self.tls_holder.stats() if self.tls_holder is not None else None
+            ),
         }
 
 
@@ -881,16 +896,28 @@ def build_actor_mesh(
 
     ssl_server = None
     ssl_client = None
+    tls_holder = None
     tls_raw = data.get("tls") or {}
-    from runtime.actor_mesh_tls import MeshTlsConfig, MeshTlsError, build_client_ssl_context, build_server_ssl_context
+    from runtime.actor_mesh_tls import (
+        MeshTlsConfig,
+        MeshTlsError,
+        ReloadingTlsHolder,
+        build_client_ssl_context,
+        build_server_ssl_context,
+    )
 
     tls_cfg = MeshTlsConfig.from_mapping(tls_raw, base=None)
     if tls_cfg.enabled:
         if backend_name not in ("socket", "tcp"):
             raise MeshTlsError("actor mesh TLS applies only to socket/tcp backend")
         try:
-            ssl_server = build_server_ssl_context(tls_cfg)
-            ssl_client = build_client_ssl_context(tls_cfg)
+            if tls_cfg.reload:
+                tls_holder = ReloadingTlsHolder.from_config(tls_cfg)
+                ssl_server = tls_holder.server_context
+                ssl_client = tls_holder.client_context
+            else:
+                ssl_server = build_server_ssl_context(tls_cfg)
+                ssl_client = build_client_ssl_context(tls_cfg)
         except MeshTlsError:
             raise
         except Exception as exc:
@@ -923,6 +950,7 @@ def build_actor_mesh(
         backend=backend,
         auth=auth,
         routes=routes,
+        tls_holder=tls_holder,
     )
 
     from runtime.actor_supervision import ActorSupervisor, SupervisionConfig
@@ -930,10 +958,12 @@ def build_actor_mesh(
         RemoteSupervisionConfig,
         build_remote_restart_hook,
     )
+    from runtime.actor_supervision_tree import build_supervision_tree
 
-    sup_cfg = SupervisionConfig.from_mapping(data.get("supervision") or {})
+    sup_raw = dict(data.get("supervision") or {})
+    sup_cfg = SupervisionConfig.from_mapping(sup_raw)
     if sup_cfg.enabled:
-        remote_cfg = RemoteSupervisionConfig.from_mapping(data.get("supervision") or {})
+        remote_cfg = RemoteSupervisionConfig.from_mapping(sup_raw)
         on_dead = build_remote_restart_hook(
             cfg=remote_cfg,
             manager=data.get("_service_manager"),
@@ -941,6 +971,37 @@ def build_actor_mesh(
         mesh.supervisor = ActorSupervisor(
             mesh=mesh, config=sup_cfg, on_dead=on_dead
         )
+        tree_raw = dict(sup_raw.get("tree") or {})
+        tree_enabled = tree_raw.get("enabled", False)
+        env_t = os.environ.get("KERROS_ACTOR_MESH_SUPERVISION_TREE")
+        if env_t is not None:
+            tree_enabled = _truthy(env_t)
+        else:
+            tree_enabled = _truthy(tree_enabled)
+        mesh.supervision_tree = build_supervision_tree(
+            enabled=bool(tree_enabled),
+            strategy=str(tree_raw.get("strategy") or "one_for_one"),
+        )
+
+    # ADR-028: optional JetStream soft client (injected or soft nats-py).
+    js_raw = dict(nats_cfg.get("jetstream") or {})
+    js_raw.setdefault("url", nats_url)
+    js_raw.setdefault("subject_prefix", nats_prefix)
+    from dataclasses import replace
+
+    from runtime.nats_jetstream import JetStreamSoftClient, jetstream_config_from
+
+    js_cfg = jetstream_config_from(js_raw)
+    injected_js = data.get("_jetstream_client")
+    if js_cfg.enabled or injected_js is not None:
+        effective = js_cfg if js_cfg.enabled else replace(js_cfg, enabled=True)
+        try:
+            mesh.jetstream = JetStreamSoftClient(cfg=effective, client=injected_js)
+            mesh.jetstream.start()
+        except Exception:
+            if injected_js is not None:
+                raise
+            mesh.jetstream = None
 
     mesh.attach()
     return mesh
