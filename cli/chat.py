@@ -334,6 +334,8 @@ def main():
                 ("/decisions retain",  "Apply retention policy once (ADR-019)"),
                 ("/decisions whoami",  "Show audit RBAC role (ADR-021)"),
                 ("/decisions privacy", "Show audit privacy egress status (ADR-024)"),
+                ("/decisions residency", "Show residency stamp status (ADR-025)"),
+                ("/decisions erasure <ref> [ids]", "Record erasure request (ADR-025)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -746,6 +748,56 @@ def main():
                         f"mode={st['mode']}  fields={','.join(st['fields'])}  "
                         f"apply_on={','.join(st['apply_on'])}"
                     )
+                elif sub == "residency":
+                    from adapters.audit.residency import residency_status
+
+                    require_audit_action("residency")
+                    st = residency_status(resolve("config").values)
+                    print(
+                        f"  {BL}residency:{R} enabled={st['enabled']}  "
+                        f"region={st['region'] or '(unset)'}"
+                    )
+                elif sub == "erasure":
+                    from adapters.audit.erasure_ledger import evaluate_erasure_request
+
+                    # /decisions erasure <subject_ref> [id,id,...]
+                    rest = parts[2].strip() if len(parts) > 2 else ""
+                    if not rest:
+                        print(
+                            f"  {RE}Usage:{R} /decisions erasure <subject_ref> [id,id,...]"
+                        )
+                    else:
+                        bits = rest.split(None, 1)
+                        subject = bits[0]
+                        ids: list[int] = []
+                        if len(bits) > 1:
+                            ids = [
+                                int(x)
+                                for x in bits[1].replace(" ", "").split(",")
+                                if x.strip().isdigit()
+                            ]
+                        cfg = resolve("config")
+                        out = evaluate_erasure_request(
+                            subject_ref=subject,
+                            decision_ids=ids,
+                            actor="cli",
+                            cfg=cfg.values,
+                            base=cfg.base,
+                        )
+                        if out.get("ok"):
+                            req = out.get("request") or {}
+                            print(
+                                f"  {GR}[ ✓ ]{R} erasure #{req.get('id')}  "
+                                f"status={req.get('status')}  "
+                                f"policy={out.get('policy')}"
+                            )
+                            if out.get("overlap_ids"):
+                                print(
+                                    f"  {GY}sealed overlap (not rewritten): "
+                                    f"{out['overlap_ids']}{R}"
+                                )
+                        else:
+                            print(f"  {RE}Erasure failed:{R} {out.get('error') or out}")
                 elif sub == "verify":
                     require_audit_action("verify")
                     result = log.verify_chain()
@@ -821,6 +873,7 @@ def main():
                 else:
                     require_audit_action("read")
                     from adapters.audit.privacy import maybe_redact_record
+                    from adapters.audit.residency import maybe_stamp_residency
 
                     rows = log.read_recent(15)
                     if not rows:
@@ -830,17 +883,22 @@ def main():
                         view = maybe_redact_record(
                             row, channel="cli_read", cfg=cfg_values
                         )
+                        view = maybe_stamp_residency(
+                            view, channel="cli_read", cfg=cfg_values
+                        )
                         digest = (view.get("entry_hash") or "")[:12]
                         suffix = f"  {GY}{digest}…{R}" if digest else ""
                         summary = str(view.get("input_summary") or "")[:60]
+                        region = view.get("residency_region")
+                        region_s = f"  {GY}[{region}]{R}" if region else ""
                         print(
                             f"  {GO}#{view.get('id')}{R} "
                             f"{GY}{view.get('decision_type')}{R} "
-                            f"{view.get('outcome')} — {summary}{suffix}"
+                            f"{view.get('outcome')} — {summary}{suffix}{region_s}"
                         )
                     print(
                         f"  {GY}Tip: /decisions verify | export | seal | retain | "
-                        f"whoami | privacy{R}"
+                        f"whoami | privacy | residency | erasure{R}"
                     )
             except AuditRbacError as e:
                 print(f"  {RE}Denied:{R} {e}")

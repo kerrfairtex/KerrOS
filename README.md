@@ -108,7 +108,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))
 - [x] LGU audit RBAC + SIEM forwarder — token roles + webhook/syslog ([`ADR-021`](docs/adr/ADR-021-decision-log-rbac-siem.md))
 - [x] LGU Object Lock soft + ISO audit map — local/S3 mirror + control map ([`ADR-022`](docs/adr/ADR-022-decision-log-object-lock-iso-map.md))
-- [x] Jurisdiction privacy foundation — egress hash/redact + GDPR/DPDP map ([`ADR-024`](docs/adr/ADR-024-jurisdiction-privacy-foundation.md)); hardware WORM / residency / lawful erasure still deferred
+- [x] Jurisdiction privacy foundation — egress hash/redact + GDPR/DPDP map ([`ADR-024`](docs/adr/ADR-024-jurisdiction-privacy-foundation.md))
+- [x] Residency stamp + erasure request ledger — egress region + side ledger, never rewrite WORM ([`ADR-025`](docs/adr/ADR-025-residency-erasure-ledger.md)); hardware WORM / sealed-cold erasure still deferred
 - [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
 
 ### P3 — Event Infrastructure

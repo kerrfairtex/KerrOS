@@ -28,6 +28,8 @@ ACTION_MIN_ROLE: dict[str, str] = {
     "seal": "operator",
     "retain": "admin",
     "purge": "admin",
+    "erasure_request": "admin",
+    "residency": "reader",
 }
 
 

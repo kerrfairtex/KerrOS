@@ -58,6 +58,8 @@ data/decision_log.db
 data/decision_log.db-*
 data/audit_export/
 data/audit_worm/
+data/erasure_requests.db
+data/erasure_requests.db-*
 data/workflows/*.db
 data/workflows/*.db-*
 data/event_mesh/

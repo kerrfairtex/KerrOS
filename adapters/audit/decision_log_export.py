@@ -104,9 +104,13 @@ def export_decision_log_jsonl(
     with path.open("w", encoding="utf-8") as fh:
         for rec in decision_log.iter_from(since_id):
             from adapters.audit.privacy import maybe_redact_record
+            from adapters.audit.residency import maybe_stamp_residency
 
             payload = maybe_redact_record(
                 rec, channel="export", cfg=privacy_cfg
+            )
+            payload = maybe_stamp_residency(
+                payload, channel="export", cfg=privacy_cfg
             )
             if secret:
                 # HMAC over stable JSON without the mac field itself.

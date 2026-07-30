@@ -187,6 +187,19 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "apply_on": ["export", "siem", "cli_read"],
             "salt": "",  # prefer KERROS_AUDIT_PRIVACY_SALT
         },
+        # ADR-025: residency stamp + erasure request ledger (off by default).
+        "audit_residency": {
+            "enabled": False,
+            "region": "",
+            "stamp_on_export": True,
+            "stamp_on_siem": True,
+            "stamp_on_cli_read": True,
+        },
+        "audit_erasure": {
+            "enabled": False,
+            "db_path": "data/erasure_requests.db",
+            "worm_dir": "data/audit_worm",
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

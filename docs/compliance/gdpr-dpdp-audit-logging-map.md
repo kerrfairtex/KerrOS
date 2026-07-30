@@ -14,11 +14,13 @@ to KerrOS audit artifacts. Jurisdiction-specific legal advice is out of scope.
 | Data minimisation (egress) | Limit PII leaving the host | Optional egress hash/redact ([ADR-024](../adr/ADR-024-jurisdiction-privacy-foundation.md)); writer-side subject hash (KOS-010 in router) |
 | Storage limitation | Bounded retention | `audit_retention` ([ADR-019](../adr/ADR-019-decision-log-worm-retention.md)) |
 | Access control | Who may export evidence | Token RBAC ([ADR-021](../adr/ADR-021-decision-log-rbac-siem.md)) |
+| Data residency (tag) | Declare processing region on egress | `audit_residency` stamp ([ADR-025](../adr/ADR-025-residency-erasure-ledger.md)) |
+| Erasure request workflow | Record subject-rights requests | `ErasureLedger` — blocked when sealed ([ADR-025](../adr/ADR-025-residency-erasure-ledger.md)) |
 
 ## Explicitly not covered here
 
-- Lawful erasure vs WORM conflict resolution  
-- Cross-border data-residency / transfer mechanisms  
+- ~~Lawful erasure vs WORM conflict resolution~~ — foundation ledger in ADR-025; **erasing sealed cold evidence** still deferred  
+- Cross-border transfer mechanisms (SCCs / adequacy)  
 - Hardware WORM appliances / full SoA  
 - IdP-backed data-subject access portals  
 

@@ -39,5 +39,6 @@ privacy theme map; chain verify remains on raw store.
 
 ## Revisit when
 
-A funded jurisdiction deploy specifies DPIA/SoA, lawful erasure vs WORM
-policy, data-residency controls, or a hardware WORM appliance.
+~~Data residency stamp + erasure request ledger~~ — **ADR-025.**
+A funded jurisdiction deploy specifies DPIA/SoA, erasure of sealed cold
+evidence, cross-border transfer mechanisms, or a hardware WORM appliance.

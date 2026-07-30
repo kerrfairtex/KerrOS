@@ -13,7 +13,7 @@
 | **Health monitoring** | `runtime/health.py` | Aggregate kernel + services + decision log health |
 | **IPC** | `runtime/ipc.py` (P1) | JSON-line protocol for worker services |
 | **Actor mesh** | `runtime/actor_mesh.py` | Optional nng/socket fanout + req/reply + supervision (C-16 / ADR-012/018/020) |
-| **Decision log (LGU)** | `kernel/decision_log.py` | Hash chain + JSONL (ADR-017) + WORM/retention (ADR-019) + RBAC/SIEM (ADR-021) + Object Lock/ISO map (ADR-022) + privacy egress (ADR-024) |
+| **Decision log (LGU)** | `kernel/decision_log.py` | Hash chain + JSONL (ADR-017) + WORM/retention (ADR-019) + RBAC/SIEM (ADR-021) + Object Lock/ISO (ADR-022) + privacy egress (ADR-024) + residency/erasure ledger (ADR-025) |
 
 ## Usage
 
@@ -30,7 +30,7 @@ In chat:
 
 - `/health` — runtime health summary
 - `/services` — managed service states
-- `/decisions` — recent audit entries; `verify` / `export` / `seal` / `retain` / `whoami` / `privacy` (ADR-017/019/021/024)
+- `/decisions` — recent audit entries; `verify` / `export` / `seal` / `retain` / `whoami` / `privacy` / `residency` / `erasure` (ADR-017..025)
 
 ## Default services
 
@@ -91,7 +91,7 @@ Optional dep: `requirements-optional.txt`.
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3
-- ~~LGU audit immutability extensions~~ — hash chain + JSONL ([ADR-017](adr/ADR-017-decision-log-tamper-evidence-export.md)); WORM/retention ([ADR-019](adr/ADR-019-decision-log-worm-retention.md)); RBAC/SIEM ([ADR-021](adr/ADR-021-decision-log-rbac-siem.md)); Object Lock soft + ISO map ([ADR-022](adr/ADR-022-decision-log-object-lock-iso-map.md)); jurisdiction privacy egress ([ADR-024](adr/ADR-024-jurisdiction-privacy-foundation.md)); hardware WORM appliance / residency / lawful erasure still deferred
+- ~~LGU audit immutability extensions~~ — hash chain + JSONL ([ADR-017](adr/ADR-017-decision-log-tamper-evidence-export.md)); WORM/retention ([ADR-019](adr/ADR-019-decision-log-worm-retention.md)); RBAC/SIEM ([ADR-021](adr/ADR-021-decision-log-rbac-siem.md)); Object Lock soft + ISO map ([ADR-022](adr/ADR-022-decision-log-object-lock-iso-map.md)); jurisdiction privacy egress ([ADR-024](adr/ADR-024-jurisdiction-privacy-foundation.md)); residency + erasure ledger ([ADR-025](adr/ADR-025-residency-erasure-ledger.md)); hardware WORM appliance / sealed-cold erasure still deferred
 
 ## Legacy
 

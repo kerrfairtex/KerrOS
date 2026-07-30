@@ -218,27 +218,28 @@ class DecisionLog:
             conn.commit()
             rid = int(cur.lastrowid)
         # ADR-021: best-effort SIEM — never fail the append path.
-        # ADR-024: redact egress payload when audit_privacy enabled for siem.
+        # ADR-024/025: privacy + residency stamps on SIEM egress only.
         try:
             from adapters.audit.privacy import maybe_redact_mapping
+            from adapters.audit.residency import maybe_stamp_residency
             from adapters.audit.siem_forwarder import get_siem_forwarder
 
-            get_siem_forwarder().forward_record(
-                maybe_redact_mapping(
-                    {
-                        "id": rid,
-                        "timestamp": ts,
-                        "actor": actor,
-                        "decision_type": decision_type,
-                        "input_summary": input_summary,
-                        "outcome": outcome,
-                        "reason": reason,
-                        "prev_hash": prev,
-                        "entry_hash": entry,
-                    },
-                    channel="siem",
-                )
+            payload = maybe_redact_mapping(
+                {
+                    "id": rid,
+                    "timestamp": ts,
+                    "actor": actor,
+                    "decision_type": decision_type,
+                    "input_summary": input_summary,
+                    "outcome": outcome,
+                    "reason": reason,
+                    "prev_hash": prev,
+                    "entry_hash": entry,
+                },
+                channel="siem",
             )
+            payload = maybe_stamp_residency(payload, channel="siem")
+            get_siem_forwarder().forward_record(payload)
         except Exception:
             pass
         return rid
