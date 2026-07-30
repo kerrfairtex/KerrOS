@@ -448,6 +448,38 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "namespace": "kerros",
                     "kubectl_bin": "kubectl",
                 },
+                "k8s_incluster": {
+                    "enabled": False,
+                    "reconcile_interval_s": 5.0,
+                    "autostart": False,
+                    "require_in_cluster": False,
+                    "namespace": "kerros",
+                    "desired": [],
+                },
+                "cmdb": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | http
+                    "allow_live": False,
+                    "url": "",
+                    "token": "",
+                    "auto_sync": False,
+                    "hosts": [],
+                },
+            },
+            # ADR-039: systemd timer packaging (off by default; under actor_mesh root).
+            "systemd_timers": {
+                "enabled": False,
+                "org_name": "KerrOS",
+                "workdir": "",
+                "exec_start": "python3 -c \"print('kerros-acme-renew')\"",
+                "tool": "fake",
+                "on_calendar": "daily",
+                "random_delay": "15m",
+                "units_dir": "deploy/systemd",
+                "allow_write": False,
+                "allow_install": False,
+                "install_root": "",
+                "unit_basename": "kerros-acme-renew",
             },
         },
     }

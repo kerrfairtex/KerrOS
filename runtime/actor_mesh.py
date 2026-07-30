@@ -460,6 +460,7 @@ class ActorMesh:
     ADR-035 adds multi-broker fleets + ACME issuance pipeline.
     ADR-037 adds remote fleet orchestration + packaged production ACME.
     ADR-038 adds fleet inventory + K8s operator + ACME renewal timers.
+    ADR-039 adds in-cluster operator + CMDB sync + systemd timer packaging.
     """
 
     node_id: str
@@ -489,6 +490,9 @@ class ActorMesh:
     fleet_inventory: Any = None  # optional FleetInventory (ADR-038)
     k8s_operator: Any = None  # optional K8sFleetOperator (ADR-038)
     acme_renewal: Any = None  # optional AcmeRenewalTimer (ADR-038)
+    k8s_incluster: Any = None  # optional InClusterNatsOperator (ADR-039)
+    cmdb: Any = None  # optional CmdbSyncClient (ADR-039)
+    systemd_timers: Any = None  # optional SystemdTimerPackager (ADR-039)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -550,6 +554,11 @@ class ActorMesh:
         if self.acme_renewal is not None:
             try:
                 self.acme_renewal.stop()
+            except Exception:
+                pass
+        if self.k8s_incluster is not None:
+            try:
+                self.k8s_incluster.stop()
             except Exception:
                 pass
         self._stop.set()
@@ -908,6 +917,17 @@ class ActorMesh:
                 if self.acme_renewal is not None
                 else None
             ),
+            "k8s_incluster": (
+                self.k8s_incluster.stats()
+                if self.k8s_incluster is not None
+                else None
+            ),
+            "cmdb": (self.cmdb.stats() if self.cmdb is not None else None),
+            "systemd_timers": (
+                self.systemd_timers.stats()
+                if self.systemd_timers is not None
+                else None
+            ),
         }
 
 
@@ -1261,6 +1281,23 @@ def build_actor_mesh(
     if k8s is not None:
         mesh.k8s_operator = k8s
 
+    # ADR-039: in-cluster NATS operator reconcile loop.
+    from runtime.k8s_incluster_operator import build_incluster_nats_operator
+
+    incluster = build_incluster_nats_operator(sc_raw.get("k8s_incluster") or {})
+    if incluster is not None:
+        mesh.k8s_incluster = incluster
+
+    # ADR-039: CMDB sync into fleet inventory.
+    from runtime.cmdb_client import build_cmdb_sync_client
+
+    cmdb = build_cmdb_sync_client(
+        sc_raw.get("cmdb") or {},
+        inventory=mesh.fleet_inventory,
+    )
+    if cmdb is not None:
+        mesh.cmdb = cmdb
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1351,6 +1388,13 @@ def build_actor_mesh(
     )
     if renewal is not None:
         mesh.acme_renewal = renewal
+
+    # ADR-039: systemd timer unit packaging.
+    from runtime.systemd_timers import build_systemd_timer_packager
+
+    timers = build_systemd_timer_packager(data.get("systemd_timers") or {})
+    if timers is not None:
+        mesh.systemd_timers = timers
 
     mesh.attach()
     return mesh

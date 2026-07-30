@@ -55,4 +55,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
 ~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
 ~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
-Remaining: in-cluster operators / CMDB / systemd timers / auditor-signed SoA / SAML when funded.
+~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
+Remaining: operator-sdk/CRDs / commercial CMDB / distro packages / auditor-signed SoA / SAML when funded.

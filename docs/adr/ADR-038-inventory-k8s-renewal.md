@@ -42,5 +42,6 @@ testable; renewal can be driven on a timer or by tick.
 
 ## Revisit when
 
-A contract funds in-cluster operators, CMDB integration, or distro
-packaged renewal units (systemd/timers).
+~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
+A contract funds operator-sdk/CRD packaging, commercial CMDB connectors,
+or distro packages with packaged timer units.
