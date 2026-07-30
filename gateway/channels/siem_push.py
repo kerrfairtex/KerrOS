@@ -1,19 +1,18 @@
 """
 gateway/channels/siem_push.py
 =============================
-Soft live SIEM HTTP push (ADR-094).
+Soft live SIEM HTTP push (ADR-094) + retry queue (ADR-097).
 
 Posts recent trace events as JSON or CEF lines to KERROS_SIEM_URL when
-KERROS_SIEM_PUSH=1. Soft-plans when disabled.
+KERROS_SIEM_PUSH=1. Soft-plans when disabled. Failures enqueue for backoff.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import urllib.error
 import urllib.request
-from typing import Any, Optional
+from typing import Any
 
 
 def _truthy(v: Any) -> bool:
@@ -28,8 +27,7 @@ def push_enabled() -> bool:
     )
 
 
-def push_trace(*, format: str = "json", limit: int = 50) -> dict[str, Any]:
-    from gateway.channels.export import export_trace
+def push_trace(*, format: str = "json", limit: int = 50, enqueue_on_fail: bool = True) -> dict[str, Any]:
     from gateway.channels.trace import read_trace
 
     rows = read_trace(limit=limit)
@@ -80,4 +78,20 @@ def push_trace(*, format: str = "json", limit: int = 50) -> dict[str, Any]:
             "response": raw[:500],
         }
     except Exception as exc:
-        return {"ok": False, "soft": False, "error": str(exc), "count": len(rows)}
+        queued = None
+        if enqueue_on_fail:
+            try:
+                from gateway.channels.siem_queue import enqueue_failed
+
+                queued = enqueue_failed(
+                    format=fmt, body=body, content_type=content_type, error=str(exc)
+                )
+            except Exception as qexc:
+                queued = {"ok": False, "error": str(qexc)}
+        return {
+            "ok": False,
+            "soft": False,
+            "error": str(exc),
+            "count": len(rows),
+            "queued": queued,
+        }

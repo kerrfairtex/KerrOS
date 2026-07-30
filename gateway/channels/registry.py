@@ -239,6 +239,16 @@ def channels_cmd(action: str, raw: str = "") -> str:
 
         fmt = parts[0] if parts else "json"
         return json.dumps(push_trace(format=fmt), indent=2)
+    if action in ("siem-flush", "siem_flush", "flush-siem"):
+        from gateway.channels.siem_queue import flush_siem_queue, queue_status
+
+        if parts and parts[0] in ("status", "stat"):
+            return json.dumps(queue_status(), indent=2)
+        return json.dumps(flush_siem_queue(), indent=2)
+    if action in ("json-plan", "json_plan", "plan-json"):
+        from gateway.channels.structured_plan import structured_plan_reply_once
+
+        return json.dumps(structured_plan_reply_once(), indent=2)
     if action in ("identity", "id") and parts:
         from gateway.channels import identity as ident
 
@@ -341,8 +351,8 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
-        "stream-reply|tool-reply|tool-loop|plan-reply|signal-ingest <json>|"
-        "trace|trace-export [json|cef]|siem-push [json|cef]|"
+        "stream-reply|tool-reply|tool-loop|plan-reply|json-plan|signal-ingest <json>|"
+        "trace|trace-export [json|cef]|siem-push [json|cef]|siem-flush|"
         "identity link|unlink|resolve|list|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"

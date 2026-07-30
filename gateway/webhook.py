@@ -89,11 +89,19 @@ class _Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(max(0, min(length, 100_000)))
 
-        # ADR-091 Soft Signal relay
+        # ADR-091 Soft Signal relay (+ ADR-100 bridge auth)
         if self.path in ("/v1/signal", "/signal"):
             if not self._auth_ok():
                 self._json(401, {"ok": False, "error": "unauthorized"})
                 return
+            from gateway.channels.bridge_auth import bridge_auth_required, verify_bridge_request
+
+            if bridge_auth_required():
+                headers = {k: v for k, v in self.headers.items()}
+                bridged = verify_bridge_request(headers, raw)
+                if not bridged.get("ok"):
+                    self._json(401, {"ok": False, "error": bridged.get("error"), "auth": bridged})
+                    return
             try:
                 payload = json.loads(raw.decode("utf-8") or "{}")
             except Exception:

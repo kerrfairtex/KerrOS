@@ -1,10 +1,10 @@
 """
 cli/tui.py
 ==========
-Light full-screen terminal UI for KerrOS (ADR-078 / ADR-083).
+Light full-screen terminal UI for KerrOS (ADR-078 / ADR-083 / ADR-099).
 
-Uses prompt_toolkit Application: conversation pane + status/trace pane +
-input bar. Soft-safe without an LLM.
+Uses prompt_toolkit Application: conversation + status/trace + channel ops
+panes + input bar. Soft-safe without an LLM.
 
 Launch:
   python3 -m cli.tui
@@ -28,7 +28,7 @@ def _truthy(v: Any) -> bool:
 
 
 class KerrTUI:
-    """Full-screen REPL shell with conversation + status/trace panes (ADR-083)."""
+    """Full-screen REPL with conversation, status/trace, and channel ops panes."""
 
     def __init__(
         self,
@@ -44,6 +44,8 @@ class KerrTUI:
             "",
         ]
         self.trace: List[str] = []
+        self.channel_ops: List[str] = ["(channel ops — /channel soft-reply)"]
+        self.show_ops = True
         self._started = time.strftime("%H:%M:%S")
         self.trace_event("boot", f"tui ready at {self._started}")
 
@@ -70,8 +72,21 @@ class KerrTUI:
             f"trace={len(self.trace)}  lines={len(self.lines)}",
             "─" * 28,
         ]
-        body = self.trace[-14:] or ["(no events yet)"]
+        body = self.trace[-10:] or ["(no events yet)"]
         return "\n".join(header + body)
+
+    def ops_text(self) -> str:
+        header = ["CHANNEL OPS", "soft-reply · pump · trace", "─" * 28]
+        body = self.channel_ops[-12:] or ["(empty)"]
+        return "\n".join(header + body)
+
+    def _record_ops(self, action: str, snippet: str) -> None:
+        stamp = time.strftime("%H:%M:%S")
+        self.channel_ops.append(f"{stamp} › {action}")
+        for line in str(snippet).splitlines()[:4]:
+            self.channel_ops.append(f"  {line[:90]}")
+        if len(self.channel_ops) > 60:
+            self.channel_ops = self.channel_ops[-40:]
 
     def handle(self, user: str) -> Optional[str]:
         text = (user or "").strip()
@@ -82,7 +97,7 @@ class KerrTUI:
             return "__EXIT__"
         if text == "/help":
             help_txt = (
-                "Commands: /help /clear /trace /status /channel /exit — "
+                "Commands: /help /clear /trace /status /ops /channel /exit — "
                 "otherwise Soft-echo (or bound LLM)."
             )
             self.lines.append(f"KerrOS › {help_txt}")
@@ -104,8 +119,15 @@ class KerrTUI:
             self.lines.append("")
             self.trace_event("status", "shown")
             return None
+        if text == "/ops":
+            self.show_ops = not self.show_ops
+            self.lines.append(
+                f"KerrOS › channel ops pane {'on' if self.show_ops else 'off'}"
+            )
+            self.lines.append("")
+            self.trace_event("ops", "toggled")
+            return None
         if text == "/channel" or text.startswith("/channel "):
-            # ADR-096: Soft pump + soft-reply from TUI
             arg = text[len("/channel") :].strip() or "soft-reply"
             try:
                 from gateway.channels.registry import channels_cmd
@@ -113,8 +135,9 @@ class KerrTUI:
                 raw = channels_cmd(arg.split()[0], " ".join(arg.split()[1:]))
                 snippet = str(raw)[:500]
                 self.lines.append(f"KerrOS › channel {arg}:")
-                self.lines.append(snippet)
+                self.lines.append(snippet[:240])
                 self.lines.append("")
+                self._record_ops(arg, snippet)
                 self.trace_event("channel", arg[:60])
             except Exception as exc:
                 self.lines.append(f"KerrOS › [channel error] {exc}")
@@ -151,6 +174,7 @@ class KerrTUI:
 
         output_control = FormattedTextControl(lambda: "\n".join(self.lines[-80:]))
         status_control = FormattedTextControl(self.status_text)
+        ops_control = FormattedTextControl(self.ops_text)
         input_buffer = Buffer()
 
         def refresh() -> None:
@@ -173,11 +197,18 @@ class KerrTUI:
                 return
             refresh()
 
+        right = VSplit(
+            [
+                Window(content=status_control, width=30, wrap_lines=True),
+                Window(width=1, char="│"),
+                Window(content=ops_control, width=34, wrap_lines=True),
+            ]
+        )
         panes = VSplit(
             [
                 Window(content=output_control, wrap_lines=True),
                 Window(width=1, char="│"),
-                Window(content=status_control, width=34, wrap_lines=True),
+                right,
             ]
         )
         body = HSplit(
