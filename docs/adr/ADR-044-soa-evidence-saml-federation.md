@@ -44,5 +44,5 @@ live tools remain opt-in.
 ## Revisit when
 
 ~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
-An LGU contract funds accredited auditor certificates or production
-xmlsec/HSM-backed XMLDSig and XML encryption.
+~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
+Accredited auditor certificates / HSM xmlsec stay contract-only.

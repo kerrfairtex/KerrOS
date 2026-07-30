@@ -45,5 +45,6 @@ mirror; live tools remain opt-in.
 
 ## Revisit when
 
-A contract funds shipping a Go/Helm operator image, a vendor-issued
-partnership certificate, or automated public apt/yum mirror publish.
+~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
+A funded contract specifies shipped Go/Helm images, vendor-issued
+partnership certificates, or public apt/yum mirror publish.

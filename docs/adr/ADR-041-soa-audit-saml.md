@@ -42,5 +42,5 @@ remain opt-in.
 
 ~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
 ~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
-An LGU contract funds accredited auditor certificates or production
-xmlsec/HSM-backed XMLDSig and XML encryption.
+~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
+Accredited auditor certificates / HSM xmlsec stay contract-only.

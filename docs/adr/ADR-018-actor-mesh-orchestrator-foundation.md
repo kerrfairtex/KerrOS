@@ -62,4 +62,8 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Go operator binaries / certified vendor partnerships / remote mirrors~~ — **ADR-043.**
 ~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
 ~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
-Remaining: shipped Go/Helm images / vendor-issued certificates / public apt-yum mirrors / accredited ISO certs / HSM xmlsec when funded.
+~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
+Contract-only (not soft-stubbed further): shipped Go/Helm images,
+vendor-issued partnership certificates, public apt/yum mirrors,
+accredited ISO certs, HSM xmlsec — see
+[mesh-lgu-foundation-arc.md](../decisions/mesh-lgu-foundation-arc.md).

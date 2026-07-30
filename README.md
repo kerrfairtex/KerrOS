@@ -119,6 +119,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Auditor-signed SoA + SAML SP — detached SoA signatures + Fake IdP ACS ([`ADR-041`](docs/adr/ADR-041-soa-audit-saml.md))
 - [x] Auditor evidence packs + SAML federation — SoA pack assemble/zip + multi-IdP Fake XML crypto ([`ADR-044`](docs/adr/ADR-044-soa-evidence-saml-federation.md))
 - [x] Auditor-issued certificates + full XMLDSig — Fake/soft auditor CA over pack digests + XMLDSig envelopes ([`ADR-045`](docs/adr/ADR-045-auditor-cert-xmldsig.md))
+- [x] Mesh / LGU foundation arc complete — stop soft-stub ADRs; residuals stay contract-only ([`ADR-046`](docs/adr/ADR-046-mesh-lgu-foundation-arc-complete.md), [`docs/decisions/mesh-lgu-foundation-arc.md`](docs/decisions/mesh-lgu-foundation-arc.md))
 - [x] Live operator-sdk + vendor CMDB SDKs + apt/yum publish — controller reconcile, pysnow/Device42 soft, repo staging ([`ADR-042`](docs/adr/ADR-042-operator-sdk-vendor-apt.md))
 - [x] Go operator binaries + certified vendor partnerships + remote mirrors — Go stubs, partnership evidence, gated rsync/HTTP push ([`ADR-043`](docs/adr/ADR-043-go-operator-vendor-mirrors.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))

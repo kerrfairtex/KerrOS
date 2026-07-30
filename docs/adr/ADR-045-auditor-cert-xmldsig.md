@@ -42,5 +42,6 @@ tools remain opt-in.
 
 ## Revisit when
 
-An LGU contract funds accredited auditor certificates or production
-xmlsec/HSM-backed XMLDSig and XML encryption.
+~~Mesh / LGU foundation arc complete~~ — **ADR-046.**
+A funded LGU contract specifies accredited ISO certificates or
+HSM-backed xmlsec XMLDSig / XML encryption.

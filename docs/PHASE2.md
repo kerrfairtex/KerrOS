@@ -87,8 +87,8 @@ Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-043](adr/ADR-043-go-operator-vendor-mirrors.md) (Go operator + vendor partnerships + remote mirrors)
-- ~~LGU audit immutability extensions~~ — ADR-017..027 + [ADR-034](adr/ADR-034-hardware-worm-cryptoshred-idp.md) + [ADR-036](adr/ADR-036-soa-oidc-rp.md) + [ADR-041](adr/ADR-041-soa-audit-saml.md) + [ADR-044](adr/ADR-044-soa-evidence-saml-federation.md) + [ADR-045](adr/ADR-045-auditor-cert-xmldsig.md) (auditor certs + XMLDSig); accredited ISO certs / HSM xmlsec still deferred when funded
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md) (see [mesh-lgu-foundation-arc.md](decisions/mesh-lgu-foundation-arc.md)); Go/Helm image publish / vendor certs / public mirrors stay contract-only
+- ~~LGU audit immutability extensions~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md); accredited ISO certs / HSM xmlsec stay contract-only
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

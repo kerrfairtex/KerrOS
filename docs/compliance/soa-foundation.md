@@ -23,7 +23,6 @@ See also the narrower logging map:
 - Accredited ISO/IEC 27001 certificates of conformity  
 - Production xmlsec/HSM-backed XMLDSig and XML encryption  
 
-Foundation stubs: [ADR-041](../adr/ADR-041-soa-audit-saml.md),
-[ADR-044](../adr/ADR-044-soa-evidence-saml-federation.md),
-[ADR-045](../adr/ADR-045-auditor-cert-xmldsig.md).
-Revisit when a funded regulated deploy specifies certification scope.
+Foundation stubs complete through [ADR-045](../adr/ADR-045-auditor-cert-xmldsig.md);
+arc freeze in [ADR-046](../adr/ADR-046-mesh-lgu-foundation-arc-complete.md).
+Revisit only under a funded regulated deploy.
