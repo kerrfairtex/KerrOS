@@ -5,12 +5,12 @@
 
 ## Context
 
-Hermes enforces strict `user ↔ assistant` alternation (with tool-call
-nesting as the only exception) and compresses context when conversation
-size exceeds ~50% of the model window. KerrOS has had silent prompt
-corruption bugs and runs on constrained RAM; `core/context.build` budgets
-string prompts, but `build_chat` + REPL history assembly do not validate
-roles or trigger early compression.
+Robust chat agents enforce strict `user ↔ assistant` alternation (with
+tool-call nesting as the only exception) and compress context when
+conversation size exceeds ~50% of the model window. KerrOS has had silent
+prompt corruption bugs and runs on constrained RAM; `core/context.build`
+budgets string prompts, but `build_chat` + REPL history assembly do not
+validate roles or trigger early compression.
 
 ## Decision
 

@@ -202,7 +202,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     # ------------------------------------------------------------------
-    # Hermes-style Progressive Disclosure skill tools
+    # Progressive Disclosure skill tools
     # ------------------------------------------------------------------
     {
         "type": "function",
@@ -301,7 +301,7 @@ _HANDLERS: dict[str, Handler] = {
     "code_search": code_search,
     "finetune_plan": finetune_plan,
     "finetune_export": finetune_export,
-    # Hermes-style skill tools
+    # Progressive Disclosure skill tools
     "skills_list": skills_list,
     "skill_view": skill_view,
     "skill_manage": skill_manage,

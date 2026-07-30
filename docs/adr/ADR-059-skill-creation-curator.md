@@ -5,9 +5,9 @@
 
 ## Context
 
-Hermes writes reusable Markdown skills after complex successful tasks and
-curates overlap/staleness. KerrOS already has progressive-disclosure skills
-(ADR-007) via `skill_manage`, but no automatic episode→skill trigger.
+Mature agent systems write reusable Markdown skills after complex successful
+tasks and curate overlap/staleness. KerrOS already has progressive-disclosure
+skills (ADR-007) via `skill_manage`, but no automatic episode→skill trigger.
 
 ## Decision
 

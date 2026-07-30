@@ -5,9 +5,9 @@
 
 ## Context
 
-Hermes searches past sessions with SQLite FTS5 and optional LLM
-summarization. KerrOS RAG already uses FTS5 (`rag/store.py`), but chat
-history lives in `data/memory.json` with only recent-window helpers —
+Operators need full-text recall across past chat sessions, ideally with
+optional summarization. KerrOS RAG already uses FTS5 (`rag/store.py`), but
+chat history lives in `data/memory.json` with only recent-window helpers —
 no full-text cross-session recall tool.
 
 ## Decision

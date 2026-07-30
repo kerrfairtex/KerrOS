@@ -1,4 +1,4 @@
-"""Hermes-behavior port: hooks, message policy, session FTS, skills, pipeline."""
+"""Agent behavior upgrades: hooks, message policy, session FTS, skills, pipeline."""
 
 from __future__ import annotations
 
@@ -66,11 +66,11 @@ class SessionFtsTest(unittest.TestCase):
             mem = Path(td) / "memory.json"
             mem.write_text("[]", encoding="utf-8")
             with patch.object(session_fts, "DB_PATH", db), patch.object(session_fts, "MEM_JSON", mem):
-                session_fts.index_message("user", "we decided on hermes session search", ts="t1")
+                session_fts.index_message("user", "we decided on session search indexing", ts="t1")
                 session_fts.index_message("assistant", "ok noted", ts="t2")
-                hits = session_fts.search_past_sessions("hermes session", top_k=5)
+                hits = session_fts.search_past_sessions("session search", top_k=5)
                 self.assertTrue(hits)
-                self.assertIn("hermes", hits[0]["content"].lower())
+                self.assertIn("session search", hits[0]["content"].lower())
 
 
 class SkillExperienceTest(unittest.TestCase):
@@ -103,13 +103,13 @@ class PipelineExecTest(unittest.TestCase):
         self.assertTrue("5" in out or out.startswith("[pipeline]"))
 
 
-class RouterHermesToolsTest(unittest.TestCase):
+class RouterBehaviorToolsTest(unittest.TestCase):
     def test_detect_search_past_sessions(self):
         from kernel.router import detect_tool
 
-        tool, args = detect_tool("search past sessions hermes decision", bypass_gate=True)
+        tool, args = detect_tool("search past sessions prior decision", bypass_gate=True)
         self.assertEqual(tool, "search_past_sessions")
-        self.assertIn("hermes", args)
+        self.assertIn("prior", args)
 
     def test_run_tool_uses_hooks(self):
         from kernel.router import run_tool
@@ -120,11 +120,12 @@ class RouterHermesToolsTest(unittest.TestCase):
         self.assertIn("2", str(out))
 
 
-class DeferredSubagentsTest(unittest.TestCase):
+class SubagentsAdrTest(unittest.TestCase):
     def test_adr_061_exists(self):
         root = Path(__file__).resolve().parents[2]
-        self.assertTrue((root / "docs/adr/ADR-061-subagent-delegation-deferred.md").is_file())
+        self.assertTrue((root / "docs/adr/ADR-061-subagent-delegation.md").is_file())
         self.assertTrue((root / "docs/adr/ADR-056-tool-call-hooks.md").is_file())
+        self.assertFalse((root / "docs/adr/ADR-061-subagent-delegation-deferred.md").is_file())
 
 
 if __name__ == "__main__":

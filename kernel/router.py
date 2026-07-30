@@ -256,7 +256,7 @@ def detect_tool(text, bypass_gate=False):
     if lower.startswith("stripe trigger "):
         return ("stripe_trigger", text[len("stripe trigger "):].strip())
 
-    # Hermes-port recall / pipeline / skills (ADR-058..060)
+    # Session recall / pipeline / skills (ADR-058..060)
     if lower.startswith("search past sessions ") or lower.startswith("/sessions "):
         q = text.split(" ", 3)[-1].strip() if lower.startswith("/sessions ") else text[len("search past sessions "):].strip()
         return ("search_past_sessions", q)
@@ -268,6 +268,48 @@ def detect_tool(text, bypass_gate=False):
         return ("execute_pipeline", body)
     if lower.startswith("skills curate") or lower == "/skills curate":
         return ("skills_curate", "")
+    if lower.startswith("delegate ") or lower.startswith("/delegate "):
+        body = text.split(" ", 1)[1].strip() if " " in text else ""
+        return ("delegate_task", body)
+    if lower.startswith("delegate_task "):
+        return ("delegate_task", text.split(" ", 1)[1].strip())
+
+    # ADR-062 capability expansions
+    if lower.startswith("profile memory ") or lower.startswith("/profile-memory "):
+        body = text.split(" ", 2)[-1] if lower.startswith("/profile-memory ") else text[len("profile memory "):]
+        return ("profile_memory", body)
+    if lower.startswith("tool search ") or lower.startswith("/tool-search "):
+        q = text.split(" ", 2)[-1] if lower.startswith("/tool-search ") else text[len("tool search "):]
+        return ("tool_search", q)
+    if lower.startswith("tool describe ") or lower.startswith("/tool-describe "):
+        q = text.split(" ", 2)[-1]
+        return ("tool_describe", q)
+    if lower.startswith("agent cron ") or lower.startswith("/agent-cron "):
+        body = text.split(" ", 2)[-1] if " " in text else "list"
+        return ("agent_cron", body)
+    if lower in ("agent cron", "/agent-cron"):
+        return ("agent_cron", "list")
+    if lower.startswith("mcp discover") or lower == "/mcp":
+        return ("mcp_discover", "")
+    if lower.startswith("approve exec") or lower.startswith("/approve-exec"):
+        return ("approve_exec", text.split(" ", 1)[-1] if " " in text else "")
+    if lower.startswith("browse session ") or lower.startswith("/browse-session "):
+        sid = text.split(" ", 2)[-1].strip()
+        return ("browse_session", sid)
+    if lower in ("list sessions", "/sessions", "sessions list"):
+        return ("list_sessions", "")
+    if lower.startswith("bg ") or lower.startswith("/bg "):
+        return ("bg_process", text.split(" ", 1)[1].strip())
+    if lower in ("bg", "/bg"):
+        return ("bg_process", "list")
+    if lower.startswith("skills hub ") or lower.startswith("/skills-hub "):
+        return ("skills_hub", text.split(" ", 2)[-1].strip())
+    if lower in ("skills hub", "/skills-hub"):
+        return ("skills_hub", "list")
+    if lower.startswith("gateway ") or lower.startswith("/gateway "):
+        return ("gateway", text.split(" ", 1)[1].strip())
+    if lower in ("gateway", "/gateway"):
+        return ("gateway", "status")
 
     return (None, None)
 
@@ -329,6 +371,18 @@ def run_tool(tool, args):
         "search_past_sessions": _search_past_sessions,
         "execute_pipeline": _execute_pipeline,
         "skills_curate": _skills_curate,
+        "delegate_task": _delegate_task,
+        "profile_memory": _profile_memory,
+        "tool_search": _tool_search,
+        "tool_describe": _tool_describe,
+        "agent_cron": _agent_cron,
+        "mcp_discover": _mcp_discover,
+        "approve_exec": _approve_exec,
+        "browse_session": _browse_session,
+        "list_sessions": _list_sessions,
+        "bg_process": _bg_process,
+        "skills_hub": _skills_hub,
+        "gateway": _gateway,
     }
     fn = dispatch.get(tool)
     result = fn(args) if fn else "[Unknown tool]"
@@ -1147,9 +1201,68 @@ def _stripe_trigger(args):
 
 def _search_past_sessions(query):
     from memory.session_fts import format_search_results, search_past_sessions
+    from memory.session_store import format_session_hits, search_sessions, summarize_hits
 
-    hits = search_past_sessions(str(query or ""), top_k=8)
-    return format_search_results(hits)
+    q = str(query or "")
+    hits = search_sessions(q, top_k=8)
+    if hits:
+        body = format_session_hits(hits)
+        try:
+            extra = summarize_hits(hits)
+            if extra and extra not in body:
+                body = body + "\n" + extra
+        except Exception:
+            pass
+        return body
+    # Fallback to ADR-058 flat FTS
+    hits2 = search_past_sessions(q, top_k=8)
+    return format_search_results(hits2)
+
+
+def _browse_session(raw):
+    import json
+    from memory.session_store import browse_session
+
+    return json.dumps(browse_session(str(raw or "").strip()), indent=2)
+
+
+def _list_sessions(_raw):
+    import json
+    from memory.session_store import list_sessions
+
+    return json.dumps({"ok": True, "sessions": list_sessions()}, indent=2)
+
+
+def _bg_process(raw):
+    from tools.process_registry import bg_process
+
+    text = str(raw or "list").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    return bg_process(action, rest)
+
+
+def _skills_hub(raw):
+    from tools.skills_hub import skills_hub
+
+    text = str(raw or "list").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    if rest.startswith("::"):
+        rest = rest[2:].strip()
+    return skills_hub(action, rest)
+
+
+def _gateway(raw):
+    from gateway.webhook import gateway_cmd
+
+    text = str(raw or "status").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    return gateway_cmd(action, rest)
 
 
 def _execute_pipeline(script):
@@ -1168,25 +1281,144 @@ def _skills_curate(_args=""):
     )
 
 
-def _bootstrap_hermes_hooks():
-    """Register experience recorder post-hook once."""
+def _bootstrap_skill_experience_hooks():
+    """Register experience recorder post-hook and exec approval once."""
     try:
         from tools.tool_hooks import list_hooks, register_post_tool_call
 
-        if "skill_experience" in list_hooks().get("post", []):
-            return
+        if "skill_experience" not in list_hooks().get("post", []):
 
-        def _post(tool, args, result):
-            try:
-                from tools.skill_experience import record_tool_call
+            def _post(tool, args, result):
+                try:
+                    from tools.skill_experience import record_tool_call
 
-                record_tool_call(tool, result)
-            except Exception:
-                pass
+                    record_tool_call(tool, result)
+                except Exception:
+                    pass
 
-        register_post_tool_call("skill_experience", _post)
+            register_post_tool_call("skill_experience", _post)
+    except Exception:
+        pass
+    try:
+        from tools.exec_approval import register_exec_approval_hook
+        from tools.tool_hooks import list_hooks
+
+        if "exec_approval" not in list_hooks().get("pre", []):
+            register_exec_approval_hook()
+    except Exception:
+        pass
+    try:
+        from tools.shell_hooks import register_shell_hooks
+
+        register_shell_hooks()
     except Exception:
         pass
 
 
-_bootstrap_hermes_hooks()
+_bootstrap_skill_experience_hooks()
+
+
+def _delegate_task(raw):
+    """Native KerrOS parallel subagents (ADR-061). Requires KERROS_SUBAGENTS=1."""
+    from agents.subagents import delegate_tasks, get_bound_engine, parse_delegate_args
+
+    jobs = parse_delegate_args(str(raw or ""))
+    if not jobs:
+        return (
+            "[delegate] usage: delegate knowledge: <q> || research: <q2>\n"
+            "Enable with KERROS_SUBAGENTS=1 (RAM-aware; max 2 workers)."
+        )
+
+    class _StubEngine:
+        current_mode = "offline"
+
+        def generate(self, *a, **k):
+            return "[subagent] no engine bound"
+
+        def chat(self, *a, **k):
+            return "[subagent] no engine bound"
+
+    engine = get_bound_engine() or _StubEngine()
+    cfg = None
+    try:
+        from core.config import cfg as _cfg
+
+        cfg = _cfg()
+    except Exception:
+        cfg = None
+    out = delegate_tasks(jobs, engine, cfg=cfg)
+    if out.get("summary"):
+        return out["summary"]
+    return str(out.get("error") or out)
+
+
+def _profile_memory(raw):
+    """profile memory add|replace|remove|list :: target :: content[:: old]"""
+    from memory.profile_store import profile_memory
+
+    parts = [p.strip() for p in str(raw or "").split("::")]
+    action = (parts[0] if parts else "list").split()[0] if parts else "list"
+    # allow "add user hello" without ::
+    if len(parts) == 1:
+        toks = parts[0].split(None, 2)
+        action = toks[0] if toks else "list"
+        target = toks[1] if len(toks) > 1 else "memory"
+        content = toks[2] if len(toks) > 2 else ""
+        return profile_memory(action, target, content, "")
+    target = parts[1] if len(parts) > 1 else "memory"
+    content = parts[2] if len(parts) > 2 else ""
+    old = parts[3] if len(parts) > 3 else ""
+    return profile_memory(action, target, content, old)
+
+
+def _tool_search(raw):
+    import json
+    from tools.tool_search import search_tools
+
+    return json.dumps(search_tools(str(raw or "")), indent=2)
+
+
+def _tool_describe(raw):
+    import json
+    from tools.tool_search import describe_tool
+
+    return json.dumps(describe_tool(str(raw or "").strip()), indent=2)
+
+
+def _agent_cron(raw):
+    from tools.agent_cron import agent_cron
+
+    text = str(raw or "list").strip()
+    if text.startswith("create"):
+        rest = text[len("create") :].strip()
+        if rest.startswith("::"):
+            rest = rest[2:].strip()
+        return agent_cron("create", rest)
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    if rest.startswith("::"):
+        rest = rest[2:].strip()
+    return agent_cron(action, rest)
+
+
+def _mcp_discover(_raw):
+    import json
+    from adapters.mcp.bridge import discover_tools
+
+    return json.dumps(discover_tools(), indent=2)
+
+
+def _approve_exec(raw):
+    from tools.exec_approval import allow_for_session, detect_dangerous_command
+
+    cmd = str(raw or "").strip()
+    if cmd.lower().startswith("exec"):
+        cmd = cmd.split(" ", 1)[-1].strip()
+    if not cmd:
+        return "[approve_exec] usage: approve exec <command>"
+    reason = detect_dangerous_command(cmd)
+    allow_for_session(cmd)
+    if reason:
+        return f"[approve_exec] session-allowed ({reason}): {cmd[:120]}"
+    return f"[approve_exec] session-allowed (no pattern hit): {cmd[:120]}"

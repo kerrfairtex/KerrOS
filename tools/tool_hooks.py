@@ -1,7 +1,7 @@
 """
 tools/tool_hooks.py
 ===================
-Pre/post tool-call hooks (ADR-056 / Hermes-style port).
+Pre/post tool-call hooks (ADR-056).
 
 Default: ``scope_gate.check`` is registered as the first pre-hook.
 Hooks must not print secrets. Pre-hook exceptions deny the call.

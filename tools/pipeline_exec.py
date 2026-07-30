@@ -1,7 +1,7 @@
 """
 tools/pipeline_exec.py
 ======================
-Hermes-style pipeline collapsing (ADR-060): run a short Python script that
+Pipeline collapsing (ADR-060): run a short Python script that
 calls allowlisted KerrOS tools via RPC-style helpers, in a subprocess.
 """
 

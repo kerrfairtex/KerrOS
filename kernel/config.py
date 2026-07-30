@@ -151,6 +151,29 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         # ADR-055: adaptive integrations catalog / routing tiers — soft, default coding-aware.
         "routing_tier": "",  # sol | terra | luna | coding | research
         "adaptive_coding": True,
+        # ADR-061: native parallel subagent delegation — default off; RAM-aware.
+        "subagents": {
+            "enabled": False,
+            "max_workers": 2,
+        },
+        # ADR-062: progressive tool search / MCP soft bridge / profile memory.
+        "tool_search": {"enabled": False},
+        "mcp": {
+            "enabled": False,
+            "servers": [],
+        },
+        "profile_memory": {"enabled": True},
+        "context_compress": {"llm": False},
+        "gateway": {
+            "enabled": False,
+            "host": "127.0.0.1",
+            "port": 8788,
+            "telegram": False,
+            "discord": False,
+        },
+        "bg_process": {"backend": "local"},
+        "skills_hub": {"live_url": False},
+        "shell_hooks": {"enabled": False, "hooks": []},
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,

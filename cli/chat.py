@@ -22,6 +22,32 @@ from tools.goal_state import ToolResult, GoalState, split_goal_steps
 from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
 from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
 from kernel import boot as kernel_boot, get_kernel, resolve
+from cli.ui import (
+    ANGEL_LOGO,
+    Spinner,
+    ai_header,
+    ask_online_prompt,
+    boot_sequence,
+    divider,
+    info_mode,
+    info_ok,
+    info_warn,
+    mode_badge,
+    print_welcome_banner,
+    prompt_input,
+    session_end,
+    typewrite,
+    BL,
+    BOL,
+    CY,
+    GO,
+    GR,
+    GY,
+    PU,
+    RE,
+    R,
+    YL,
+)
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -33,107 +59,31 @@ def strip_md(text):
     text = re.sub(r'`{1,3}([^`]+)`{1,3}', r'\1', text)
     return text.strip()
 
-# ── ANSI ─────────────────────────────────────────────────
-R="\033[0m"; BOL="\033[1m"; DIM="\033[2m"; ITA="\033[3m"
-CY="\033[96m"; YL="\033[93m"; GR="\033[92m"; RE="\033[91m"
-BL="\033[94m"; PU="\033[95m"; WH="\033[97m"; GY="\033[90m"
-GO="\033[33m"
-
-# ── Logo ─────────────────────────────────────────────────
-RD="\033[31m"
-ANGEL_LOGO = f"""
-{RD}{BOL}  ╲╲╲╲╲╲╲___                          ___╱╱╱╱╱╱╱
-{RD}{BOL}   ╲╲╲╲╲╲╲╲╲___                  ___╱╱╱╱╱╱╱╱╱
-{GO}{BOL}    ╲╲╲╲╲╲╲╲╲╲╲___          ___╱╱╱╱╱╱╱╱╱╱╱
-{GO}{BOL}     ╲╲╲╲╲╲╲╲╲╲╲╲╲__      __╱╱╱╱╱╱╱╱╱╱╱╱╱
-{RD}{BOL}        ╲╲╲╲╲╲╲╲╲╲ ╲    ╱ ╱╱╱╱╱╱╱╱╱╱╱
-{RD}{BOL}            ╲╲╲╲╲╲ │  │ ╱╱╱╱╱╱
-{GO}{BOL}    ██╗  ██╗███████╗██████╗ ██████╗  ██████╗ ███████╗
-{GO}{BOL}    ██║ ██╔╝██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝
-{GO}{BOL}    █████╔╝ █████╗  ██████╔╝██████╔╝██║   ██║███████╗
-{GO}{BOL}    ██╔═██╗ ██╔══╝  ██╔══██╗██╔══██╗██║   ██║╚════██║
-{RD}{BOL}    ██║  ██╗███████╗██║  ██║██║  ██║╚██████╔╝███████║
-{RD}{BOL}    ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
-{GO}         ════════════════════════════════
-{GO}{BOL}                   v 1 . 0
-{GO}         ════════════════════════════════
-"""
-
-# ── Spinner ───────────────────────────────────────────────
-class Spinner:
-    FRAMES=["⚔ · · ·","· ⚔ · ·","· · ⚔ ·","· · · ⚔","· · ⚔ ·","· ⚔ · ·"]
-    def __init__(self, label="Processing"):
-        self.label=label; self._stop=False; self._t=None
-    def start(self):
-        self._stop=False
-        self._t=threading.Thread(target=self._spin,daemon=True)
-        self._t.start()
-    def _spin(self):
-        i=0
-        while not self._stop:
-            print(f"\r  {CY}{self.label}{R} {GO}{self.FRAMES[i%len(self.FRAMES)]}{R}  ",
-                  end="",flush=True)
-            time.sleep(0.12); i+=1
-    def stop(self):
-        self._stop=True
-        if self._t: self._t.join()
-        print("\r"+" "*50+"\r",end="",flush=True)
-
-# ── Typewriter ────────────────────────────────────────────
-def typewrite(text, color=CY, delay=0.010):
-    for ch in text:
-        print(f"{color}{ch}{R}",end="",flush=True)
-        if ch in ".!?": time.sleep(0.07)
-        elif ch==",": time.sleep(0.03)
-        else: time.sleep(delay)
-    print()
-
-def divider(): print(f"  {GY}{'·'*44}{R}")
-def ai_header(mode): 
-    icon = "🌐" if mode=="online" else "⚔"
-    print(f"\n  {GO}{icon}{R} {CY}{BOL}KerrOS{R} {GO}〉{R} ",end="")
-def prompt_input():
-    return input(f"\n  {GO}⚔{R} {YL}{BOL}You{R}  {GO}〉{R} ").strip()
-
-# ── Mode banner ───────────────────────────────────────────
-def mode_badge(mode):
-    if mode=="online":
-        return f"{GR}{BOL}[ ONLINE ]{R}"
-    return f"{BL}{BOL}[ OFFLINE ]{R}"
-
-# ── Boot ──────────────────────────────────────────────────
-def boot_sequence():
-    os.system("clear")
-    os.system("chafa --size=80x40 --symbols=block ~/offline_ai/assets/boot_logo.png")
-    print()
-    time.sleep(0.2)
-    time.sleep(0.2)
-
 # ── Internet prompt ───────────────────────────────────────
 def ask_mode(engine, spinner):
     has_net = check_internet()
     print()
     if has_net:
-        choice = input(f"\n  {GO}⚔{R} {YL}Online mode?{R} {GY}[y/n]{R} ").strip().lower()
+        choice = ask_online_prompt()
         if choice == "y":
-            spinner.label = "Connecting to KerrOS"
+            spinner.label = "Connecting"
             spinner.start()
             ok, msg = engine.switch_online()
             spinner.stop()
             if ok:
-                print(f"  {GR}[ ✓ ] Online mode active{R}")
+                info_ok("Online mode active")
                 return "online"
             else:
                 logging.debug(f"Online failed: {msg}")
-                print(f"  {BL}[ ⚔ ] Falling back to offline mode{R}")
+                info_mode("Falling back to offline mode")
                 engine.init_offline()
                 return "offline"
         else:
-            print(f"  {BL}[ ⚔ ] Offline mode selected{R}")
+            info_mode("Offline mode selected")
             engine.init_offline()
             return "offline"
     else:
-        print(f"  {BL}[ ⚔ ] No internet — offline mode active{R}")
+        info_mode("No internet — offline mode active")
         engine.init_offline()
         return "offline"
 
@@ -142,29 +92,51 @@ def main():
     boot_sequence()
     kernel = kernel_boot()
     kcfg = kernel.config
-    print(f"  {GR}[kernel]{R} {CY}{kernel.phase.value}{R}  {GY}workspace={kcfg.workspace}{R}")
     init_session()  # reset in-memory session
     engine = AdaptiveEngine()
+    try:
+        from agents.subagents import bind_engine
+
+        bind_engine(engine)
+    except Exception:
+        pass
     spinner = Spinner()
 
     mode = ask_mode(engine, spinner)
 
-    print(f"\n  {GY}{'─'*44}{R}")
-    print(f"  {mode_badge(mode)}")
-    print(f"  {GY}{'─'*44}{R}")
-    print(f"\n  {GO}⚔{R}  {BOL}KerrOS online. Type {YL}/help{R}{BOL} for commands.{R}\n")
+    session_id = ""
+    try:
+        from memory.session_store import get_current_session_id
+
+        session_id = get_current_session_id()
+    except Exception:
+        pass
+
+    model_hint = ""
+    try:
+        model_hint = str(getattr(engine, "c", {}) or {}).get("model_path") or engine.current_mode
+    except Exception:
+        model_hint = mode
+
+    print_welcome_banner(
+        mode=mode,
+        workspace=str(kcfg.workspace),
+        session_id=session_id,
+        phase=str(kernel.phase.value),
+        model_hint=str(model_hint)[-48:],
+    )
 
     while True:
         try:
             user = prompt_input()
         except (KeyboardInterrupt, EOFError):
-            print(f"\n\n  {GO}⚔{R}  {GR}KerrOS session terminated. Stay secure.{R}\n")
+            session_end()
             break
 
         if not user: continue
 
         if user=="/exit":
-            print(f"\n  {GO}⚔{R}  {GR}KerrOS session terminated. Stay secure.{R}\n")
+            session_end()
             break
 
         elif user.startswith("/scope add "):
@@ -316,7 +288,7 @@ def main():
         elif user=="/offline":
             engine.switch_offline()
             mode=engine.current_mode
-            print(f"  {BL}[ ⚔ ] Switched to offline mode{R}")
+            info_mode("Switched to offline mode")
 
         elif user.startswith("/setkey "):
             parts=user.split()
@@ -351,6 +323,16 @@ def main():
                 ("/switch small|large","Switch local model"),
                 ("/react <task>",      "ReAct agent — multi-step reasoning"),
                 ("/knowledge <q>",     "Knowledge Agent — RAG-grounded Q&A + live tools"),
+                ("/delegate a:q || b:q2", "Parallel subagents (KERROS_SUBAGENTS=1; ADR-061)"),
+                ("profile memory …",     "Durable MEMORY.md/USER.md notes (ADR-062)"),
+                ("tool search <q>",      "Progressive tool disclosure (KERROS_TOOL_SEARCH=1)"),
+                ("agent cron …",         "Persisted agent cron jobs (data/agent_cron)"),
+                ("list sessions",        "List indexed chat sessions (ADR-063)"),
+                ("browse session <id>",  "Browse turns in a past session"),
+                ("bg spawn|poll|kill",   "Background process registry"),
+                ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
+                ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
+                ("gateway channel …",    "Telegram/Discord adapters (ADR-066)"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
@@ -1105,6 +1087,38 @@ def main():
                 divider()
                 add_message("assistant", result)
 
+        elif user.startswith("/delegate ") or user == "/delegate":
+            from agents.subagents import bind_engine, delegate_tasks, parse_delegate_args
+
+            raw = user[len("/delegate") :].strip()
+            jobs = parse_delegate_args(raw)
+            if not jobs:
+                print(
+                    f"  {RE}Usage: /delegate knowledge: <q> || research: <q2>{R}\n"
+                    f"  {GY}Enable with KERROS_SUBAGENTS=1 (RAM-aware; max 2 workers).{R}"
+                )
+            else:
+                bind_engine(engine)
+                spinner.label = "Delegating"
+                spinner.start()
+                try:
+                    from core.config import cfg as _cfg
+
+                    out = delegate_tasks(jobs, engine, cfg=_cfg())
+                except Exception as exc:
+                    spinner.stop()
+                    print(f"  {RE}[delegate] {exc}{R}")
+                    out = None
+                else:
+                    spinner.stop()
+                if out is not None:
+                    text = out.get("summary") or out.get("error") or str(out)
+                    divider()
+                    ai_header(mode)
+                    typewrite(text)
+                    divider()
+                    add_message("assistant", text[:800])
+
         elif user.startswith("/analyze"):
             from prompts.system import ANALYST_PROMPT
             target=user.replace("/analyze","").strip()
@@ -1181,6 +1195,14 @@ def main():
             extract_and_learn(user)
             # Save only the raw user text, never tool-augmented content
             add_message("user", user)
+            try:
+                from memory.nudges import note_turn, pending_nudges
+
+                note_turn()
+                for nudge in pending_nudges():
+                    print(f"  {GY}{nudge}{R}")
+            except Exception:
+                pass
 
             active_goal = GoalState.load()
             _is_goal_step = False
@@ -1331,15 +1353,27 @@ def main():
                 if c and len(c)>3 and len(c)<500 and not any(b in c for b in bad):
                     clean_hist.append({"role":m["role"],"content":c})
             try:
-                from core.message_policy import prepare_history
                 from core.config import cfg as _cfg
+                from core.context_compressor import compress_context
+                from core.message_policy import prepare_history, should_compress
 
                 _c = _cfg()
-                clean_hist, _meta = prepare_history(
-                    clean_hist,
-                    context_size=int(_c.get("context_size") or 4096),
-                    max_tokens=int(_c.get("max_tokens") or 512),
-                )
+                _ctx = int(_c.get("context_size") or 4096)
+                _max = int(_c.get("max_tokens") or 512)
+                if should_compress(clean_hist, context_size=_ctx, max_tokens=_max):
+                    clean_hist, _meta = compress_context(
+                        clean_hist,
+                        keep_last=6,
+                        engine=engine,
+                        context_size=_ctx,
+                        max_tokens=_max,
+                    )
+                else:
+                    clean_hist, _meta = prepare_history(
+                        clean_hist,
+                        context_size=_ctx,
+                        max_tokens=_max,
+                    )
             except Exception:
                 pass
             response = generate_complete(engine, 

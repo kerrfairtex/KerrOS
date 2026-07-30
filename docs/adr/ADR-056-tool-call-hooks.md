@@ -5,7 +5,7 @@
 
 ## Context
 
-Hermes Agent wraps every tool invocation with `pre_tool_call` /
+Production agent stacks wrap every tool invocation with `pre_tool_call` /
 `post_tool_call` hooks so approval, logging, and metrics can plug in
 without editing the dispatcher. KerrOS already fail-closes via
 `tools/scope_gate.py` inside `kernel/router.run_tool`, but there is no
@@ -23,7 +23,7 @@ patch `router.py` again.
 4. Keep CLI interactive authorize/arm UX that calls `scope_gate` before
    `run_tool` unchanged (double-check is intentional).
 
-Out of scope: Hermes approval UI callbacks, remote policy servers.
+Out of scope: interactive remote approval UI callbacks, remote policy servers.
 
 ## Consequences
 
