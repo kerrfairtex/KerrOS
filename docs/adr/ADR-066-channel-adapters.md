@@ -15,7 +15,7 @@ same inbox without custom glue for every deploy.
    (`start` / `stop` / `poll` / `send`).
 2. Ship **Telegram** Soft-by-default; live Bot API behind
    `KERROS_TELEGRAM_LIVE=1` + `KERROS_TELEGRAM_TOKEN`.
-3. Ship **Discord** Soft skeleton (no live websocket in this build).
+3. Ship **Discord** Soft skeleton (live REST deepened in ADR-069; no Gateway websocket).
 4. Expose via `gateway channel …` (list/start/stop/pump/send/soft-push).
 5. `pump` copies polled messages into the webhook inbox for unified handling.
 
@@ -23,7 +23,7 @@ same inbox without custom glue for every deploy.
 
 **Positive:** One KerrOS inbox model for HTTP + chat platforms.
 
-**Negative:** Live Discord and other platforms remain Soft until funded.
+**Negative:** Discord Gateway websocket and other platforms remain deferred (see ADR-069 for REST).
 
 ## Revisit when
 
