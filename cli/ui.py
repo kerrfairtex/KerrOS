@@ -37,6 +37,7 @@ STEEL = "\033[38;2;180;190;200m"
 CRIMSON = "\033[1;38;2;176;48;48m"
 
 VERSION = "1.0"
+TAGLINE = "SECURE BY DESIGN. BUILT FOR CONTROL."
 
 # Heraldic angel wings + sword tip (brand) — refined geometry, not cartoon.
 ANGEL_MARK = f"""
@@ -64,6 +65,7 @@ WORDMARK = f"""
 ANGEL_LOGO = ANGEL_MARK + WORDMARK + f"""
 {GOLD}           ────────────────────────────────
 {GOLD}{BOL}                     v {VERSION}
+{STEEL}{DIM}      {TAGLINE}
 {GOLD}           ────────────────────────────────
 """
 
@@ -196,7 +198,7 @@ def print_welcome_banner(
     if model_hint:
         print(f"  {GY}model{R}     {STEEL}{model_hint}{R}")
     print(f"  {GY}commands{R}  {YL}/help{R}  {DIM}· slash tools · claw fs · agents{R}")
-    print(f"  {GY}brand{R}     {GOLD}angel · sword{R}  {DIM}— stay sharp{R}")
+    print(f"  {GY}brand{R}     {GOLD}angel · sword{R}  {DIM}— {TAGLINE.lower()}{R}")
     divider(56)
     print(f"\n  {BOL}Ready.{R}  {DIM}Ask anything, or lead with /{R}\n")
 
@@ -239,9 +241,10 @@ def boot_sequence() -> None:
         # ASCII path already includes mark + KerrOS wordmark
         print()
     else:
-        # Image carries KerrOS — keep a slim version line only
+        # Image carries KerrOS + tagline — slim version line only
         print(f"{GOLD}           ────────────────────────────────{R}")
         print(f"{GOLD}{BOL}                     v {VERSION}{R}")
+        print(f"{STEEL}{DIM}      {TAGLINE}{R}")
         print(f"{GOLD}           ────────────────────────────────{R}")
         print()
     time.sleep(0.15)

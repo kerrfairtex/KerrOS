@@ -13,6 +13,8 @@ class CliUiTest(unittest.TestCase):
         self.assertIn("⚔", ANGEL_LOGO)
         self.assertIn("██", WORDMARK)
         self.assertIn("╲", ANGEL_LOGO)
+        from cli.ui import TAGLINE
+        self.assertIn("SECURE BY DESIGN", TAGLINE)
 
     def test_welcome_banner_prints(self):
         from cli.ui import print_welcome_banner
