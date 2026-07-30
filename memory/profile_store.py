@@ -191,4 +191,11 @@ def profile_memory(action: str, target: str = "memory", content: str = "", old_t
             out = store.remove(target, old_text)
         else:
             out = {"ok": False, "error": "action must be add|replace|remove|list"}
+    if out.get("ok") and action in ("add", "replace", "remove"):
+        try:
+            from memory.nudges import note_memory_write
+
+            note_memory_write()
+        except Exception:
+            pass
     return json.dumps(out, ensure_ascii=False)

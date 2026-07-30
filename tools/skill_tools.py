@@ -229,6 +229,12 @@ def skill_view(name: str, file_path: str | None = None) -> ToolResult:
 
         content = target.read_text(encoding="utf-8", errors="replace")
         rel = str(target.relative_to(ws))
+        try:
+            from tools.skill_improve import record_skill_use
+
+            record_skill_use(name or target.stem)
+        except Exception:
+            pass
         return ToolResult(
             True,
             "skill_view",

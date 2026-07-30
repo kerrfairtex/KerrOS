@@ -1307,6 +1307,12 @@ def _bootstrap_skill_experience_hooks():
             register_exec_approval_hook()
     except Exception:
         pass
+    try:
+        from tools.shell_hooks import register_shell_hooks
+
+        register_shell_hooks()
+    except Exception:
+        pass
 
 
 _bootstrap_skill_experience_hooks()

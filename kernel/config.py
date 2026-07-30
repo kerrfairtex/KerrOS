@@ -167,6 +167,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "gateway": {"enabled": False, "host": "127.0.0.1", "port": 8788},
         "bg_process": {"backend": "local"},
         "skills_hub": {"live_url": False},
+        "shell_hooks": {"enabled": False, "hooks": []},
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,

@@ -1228,6 +1228,14 @@ def main():
             extract_and_learn(user)
             # Save only the raw user text, never tool-augmented content
             add_message("user", user)
+            try:
+                from memory.nudges import note_turn, pending_nudges
+
+                note_turn()
+                for nudge in pending_nudges():
+                    print(f"  {GY}{nudge}{R}")
+            except Exception:
+                pass
 
             active_goal = GoalState.load()
             _is_goal_step = False
