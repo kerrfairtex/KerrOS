@@ -113,6 +113,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Multi-broker fleets + ACME issuance — fleet manager + fake challenge→cert pipeline ([`ADR-035`](docs/adr/ADR-035-broker-fleet-acme-issuance.md))
 - [x] SoA draft + OIDC RP — ISO SoA foundation + authorization-code RP ([`ADR-036`](docs/adr/ADR-036-soa-oidc-rp.md))
 - [x] Remote fleet orchestration + packaged production ACME — fake/HTTP/SSH agents + certbot/acme.sh soft ([`ADR-037`](docs/adr/ADR-037-remote-fleet-prod-acme.md))
+- [x] Fleet inventory + K8s operator + ACME renewal timers — CMDB-lite, Fake/kubectl operator, tickable renew ([`ADR-038`](docs/adr/ADR-038-inventory-k8s-renewal.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))

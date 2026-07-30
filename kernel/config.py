@@ -358,6 +358,13 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "live_dir": "data/acme_live",
                     "auto_issue": False,
                 },
+                "renewal": {
+                    "enabled": False,
+                    "interval_s": 3600.0,
+                    "allow_live": False,
+                    "use_certbot_renew": False,
+                    "autostart": False,
+                },
                 "dns01": {
                     "enabled": False,
                     "provider": "memory",
@@ -427,6 +434,19 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "http_token": "",
                     "ssh_bin": "ssh",
                     "hosts": [],
+                },
+                "inventory": {
+                    "enabled": False,
+                    "store_path": "data/fleet_inventory.json",
+                    "allow_persist": False,
+                    "hosts": [],
+                },
+                "k8s_operator": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | kubectl
+                    "allow_live": False,
+                    "namespace": "kerros",
+                    "kubectl_bin": "kubectl",
                 },
             },
         },

@@ -459,6 +459,7 @@ class ActorMesh:
     ADR-033 adds broker lifecycle + ACME JOSE/order + cloud DNS SDK facades.
     ADR-035 adds multi-broker fleets + ACME issuance pipeline.
     ADR-037 adds remote fleet orchestration + packaged production ACME.
+    ADR-038 adds fleet inventory + K8s operator + ACME renewal timers.
     """
 
     node_id: str
@@ -485,6 +486,9 @@ class ActorMesh:
     acme_issuance: Any = None  # optional AcmeIssuanceClient (ADR-035)
     remote_fleet: Any = None  # optional RemoteFleetOrchestrator (ADR-037)
     acme_production: Any = None  # optional AcmeProductionClient (ADR-037)
+    fleet_inventory: Any = None  # optional FleetInventory (ADR-038)
+    k8s_operator: Any = None  # optional K8sFleetOperator (ADR-038)
+    acme_renewal: Any = None  # optional AcmeRenewalTimer (ADR-038)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -541,6 +545,11 @@ class ActorMesh:
         if self.nats_broker_fleet is not None:
             try:
                 self.nats_broker_fleet.stop_all()
+            except Exception:
+                pass
+        if self.acme_renewal is not None:
+            try:
+                self.acme_renewal.stop()
             except Exception:
                 pass
         self._stop.set()
@@ -884,6 +893,21 @@ class ActorMesh:
                 if self.acme_production is not None
                 else None
             ),
+            "fleet_inventory": (
+                self.fleet_inventory.stats()
+                if self.fleet_inventory is not None
+                else None
+            ),
+            "k8s_operator": (
+                self.k8s_operator.stats()
+                if self.k8s_operator is not None
+                else None
+            ),
+            "acme_renewal": (
+                self.acme_renewal.stats()
+                if self.acme_renewal is not None
+                else None
+            ),
         }
 
 
@@ -1211,6 +1235,32 @@ def build_actor_mesh(
     if remote is not None:
         mesh.remote_fleet = remote
 
+    # ADR-038: fleet inventory CMDB-lite.
+    from runtime.fleet_inventory import build_fleet_inventory
+    from runtime.nats_remote_fleet import RemoteHostSpec
+
+    inventory = build_fleet_inventory(sc_raw.get("inventory") or {})
+    if inventory is not None:
+        mesh.fleet_inventory = inventory
+        # Seed remote fleet hosts from inventory when remote has none configured.
+        if mesh.remote_fleet is not None and not mesh.remote_fleet.cfg.hosts:
+            for host in inventory.export_remote_fleet_hosts():
+                mesh.remote_fleet._hosts.append(  # noqa: SLF001
+                    RemoteHostSpec(
+                        name=host["name"],
+                        host=host["host"],
+                        members=list(host.get("members") or ["broker"]),
+                        region=str(host.get("region") or ""),
+                    )
+                )
+
+    # ADR-038: soft K8s fleet operator.
+    from runtime.k8s_operator import build_k8s_fleet_operator
+
+    k8s = build_k8s_fleet_operator(sc_raw.get("k8s_operator") or {})
+    if k8s is not None:
+        mesh.k8s_operator = k8s
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1291,6 +1341,16 @@ def build_actor_mesh(
     prod = build_acme_production_client(acme_raw.get("production") or {})
     if prod is not None:
         mesh.acme_production = prod
+
+    # ADR-038: automated ACME renewal timer.
+    from runtime.acme_renewal_timer import build_acme_renewal_timer
+
+    renewal = build_acme_renewal_timer(
+        acme_raw.get("renewal") or {},
+        production=mesh.acme_production,
+    )
+    if renewal is not None:
+        mesh.acme_renewal = renewal
 
     mesh.attach()
     return mesh

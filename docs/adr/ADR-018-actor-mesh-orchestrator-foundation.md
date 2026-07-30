@@ -54,4 +54,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
 ~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
-Remaining: inventory/K8s operators / auditor-signed SoA / SAML when funded.
+~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
+Remaining: in-cluster operators / CMDB / systemd timers / auditor-signed SoA / SAML when funded.

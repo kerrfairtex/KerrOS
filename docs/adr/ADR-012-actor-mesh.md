@@ -58,4 +58,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
 ~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
-Revisit for inventory/K8s operators / auditor-signed SoA / SAML when funded.
+~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
+Revisit for in-cluster operators / CMDB / systemd timers / auditor-signed SoA / SAML when funded.

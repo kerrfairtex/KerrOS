@@ -38,5 +38,6 @@ certs into live-dir for ADR-029 watchers using fake or soft tools.
 
 ## Revisit when
 
-A contract funds inventory-driven orchestration, Kubernetes operators, or
-fully automated production LE renewal timers.
+~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
+A contract funds in-cluster operators, CMDB integration, or distro
+packaged renewal units (systemd/timers).
