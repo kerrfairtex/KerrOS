@@ -1,17 +1,20 @@
 """
 cli/repl_input.py
 =================
-Professional REPL input: history + slash autocomplete (ADR-067).
+Professional REPL input: history + slash autocomplete + multiline (ADR-067/073).
 
 Uses prompt_toolkit when available; falls back to builtin input().
 Enable/disable with KERROS_REPL_PT=0 to force plain input.
+
+Multiline: a trailing backslash continues the prompt; lines are joined with
+newlines. Set KERROS_REPL_MULTILINE=0 to disable continuation.
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 # Core slash commands surfaced for autocomplete (chat.py /help subset).
 SLASH_COMMANDS = [
@@ -80,6 +83,12 @@ def _use_pt() -> bool:
         return False
 
 
+def _multiline_enabled() -> bool:
+    if os.environ.get("KERROS_REPL_MULTILINE") is not None:
+        return _truthy(os.environ.get("KERROS_REPL_MULTILINE"))
+    return True
+
+
 def _history_path() -> Path:
     p = Path(os.path.expanduser("~/offline_ai")) / "data" / "repl_history"
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -104,17 +113,17 @@ def _extra_commands() -> list[str]:
     return extras
 
 
-def prompt_line(prompt_ansi: str = "") -> str:
-    """Read one user line with optional autocomplete/history."""
+def _prompt_once(prompt_ansi: str = "") -> str:
+    """Read a single physical line (may still contain trailing \\)."""
     if not _use_pt():
-        return input(prompt_ansi).strip()
+        return input(prompt_ansi)
     try:
         from prompt_toolkit import prompt
         from prompt_toolkit.completion import WordCompleter
         from prompt_toolkit.formatted_text import ANSI
         from prompt_toolkit.history import FileHistory
     except Exception:
-        return input(prompt_ansi).strip()
+        return input(prompt_ansi)
 
     words = list(SLASH_COMMANDS) + _extra_commands()
     completer = WordCompleter(words, ignore_case=True, sentence=True)
@@ -125,8 +134,31 @@ def prompt_line(prompt_ansi: str = "") -> str:
             completer=completer,
             complete_while_typing=True,
         )
-        return (text or "").strip()
+        return text if text is not None else ""
     except (EOFError, KeyboardInterrupt):
         raise
     except Exception:
-        return input(prompt_ansi).strip()
+        return input(prompt_ansi)
+
+
+def join_continued_lines(chunks: list[str]) -> str:
+    """Join backslash-continued physical lines (ADR-073)."""
+    return "\n".join(chunks).strip()
+
+
+def prompt_line(prompt_ansi: str = "", *, cont_prompt: Optional[str] = None) -> str:
+    """Read one logical user line with optional autocomplete/history/continuation."""
+    first = _prompt_once(prompt_ansi)
+    if not _multiline_enabled() or not first.rstrip().endswith("\\"):
+        return first.strip()
+
+    chunks: list[str] = [first.rstrip()[:-1]]
+    cont = cont_prompt if cont_prompt is not None else "  … "
+    while True:
+        nxt = _prompt_once(cont)
+        if nxt.rstrip().endswith("\\"):
+            chunks.append(nxt.rstrip()[:-1])
+            continue
+        chunks.append(nxt)
+        break
+    return join_continued_lines(chunks)
