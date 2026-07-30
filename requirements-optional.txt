@@ -25,3 +25,20 @@ Without boto3, the default `local_mirror` backend still works; `s3_object_lock`
 soft-fails (or fails the seal when `strict: true`).
 
 # boto3>=1.28.0
+
+## NATS actor-mesh backend (ADR-023)
+
+Install only when `actor_mesh.backend: nats` is enabled:
+
+```bash
+pip install nats-py
+```
+
+Without nats-py, KerrOS soft-falls back to `socket` (same pattern as pynng).
+
+# nats-py>=2.6.0
+
+## Actor mesh TLS
+
+Stdlib ``ssl`` only — no extra package. PEM paths via `actor_mesh.tls` /
+`KERROS_ACTOR_MESH_TLS_*`.

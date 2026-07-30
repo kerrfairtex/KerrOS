@@ -38,5 +38,5 @@ auto-restarted unless the operator supplies `on_dead`.
 
 ## Revisit when
 
-Multi-tenant WAN needs mTLS or NATS, or funded remote actor process
-supervision / OTP-style trees.
+~~mTLS / NATS / remote process restart hook~~ — **ADR-023.**
+Remaining: JetStream HA / OTP-style supervision trees when funded.

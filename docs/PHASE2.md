@@ -87,7 +87,7 @@ Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation: named routes + req/reply + `add_peer` + non-loopback token gate ([ADR-018](adr/ADR-018-actor-mesh-orchestrator-foundation.md)); local supervision ([ADR-020](adr/ADR-020-actor-mesh-supervision-foundation.md)); mTLS / NATS / remote process supervision still deferred
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation: named routes + req/reply + `add_peer` + non-loopback token gate ([ADR-018](adr/ADR-018-actor-mesh-orchestrator-foundation.md)); local supervision ([ADR-020](adr/ADR-020-actor-mesh-supervision-foundation.md)); mTLS/NATS/remote restart ([ADR-023](adr/ADR-023-actor-mesh-mtls-nats-remote.md)); JetStream HA / OTP trees still deferred
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

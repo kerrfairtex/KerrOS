@@ -176,6 +176,7 @@ class Kernel:
             from runtime.actor_mesh import build_actor_mesh
 
             actor_cfg = dict(self.config.get("actor_mesh") or {})
+            actor_cfg["_service_manager"] = manager
             actor_mesh = build_actor_mesh(bus, cfg=actor_cfg)
             if actor_mesh is not None:
                 self.container.register(SERVICE_ACTOR_MESH, actor_mesh, singleton=True)

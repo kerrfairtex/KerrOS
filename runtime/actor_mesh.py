@@ -7,10 +7,12 @@ Bridges the in-process ServiceBus across processes/hosts via:
 
 * ``socket`` — stdlib TCP framed JSON (always available; CI-friendly)
 * ``nng`` — pynng Bus0 when installed (optional dependency)
+* ``nats`` — soft nats-py backend (ADR-023; falls back to socket if missing)
 
 Orchestrator layer (still narrow): named actors, in-memory routes,
-request/reply, and runtime peer dial for authenticated WAN (ADR-014 tokens;
-TLS remains an external proxy concern).
+request/reply, and runtime peer dial for authenticated WAN (ADR-014 tokens).
+ADR-023 adds optional in-process TLS/mTLS for the socket backend, soft NATS,
+and opt-in ServiceManager restart hooks for dead actors.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ import json
 import os
 import queue
 import socket
+import ssl
 import struct
 import threading
 import time
@@ -184,10 +187,16 @@ def _recv_frame(conn: socket.socket) -> bytes:
 
 @dataclass
 class SocketActorBackend:
-    """TCP framed-JSON pair/bus stub (stdlib only)."""
+    """TCP framed-JSON pair/bus stub (stdlib only).
+
+    Optional ``ssl_server_context`` / ``ssl_client_context`` enable TLS/mTLS
+    (ADR-023). Plain TCP when both are None.
+    """
 
     listen: str | None = None
     peers: list[str] = field(default_factory=list)
+    ssl_server_context: ssl.SSLContext | None = None
+    ssl_client_context: ssl.SSLContext | None = None
     _sock: socket.socket | None = field(default=None, init=False, repr=False)
     _conns: list[socket.socket] = field(default_factory=list, init=False, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
@@ -235,6 +244,15 @@ class SocketActorBackend:
                 continue
             except OSError:
                 break
+            if self.ssl_server_context is not None:
+                try:
+                    conn = self.ssl_server_context.wrap_socket(conn, server_side=True)
+                except Exception:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                    continue
             self._add_conn(conn)
 
     def _dial(self, peer: str) -> None:
@@ -245,9 +263,16 @@ class SocketActorBackend:
                 return
             try:
                 conn = socket.create_connection((host, port), timeout=1.0)
+                if self.ssl_client_context is not None:
+                    conn = self.ssl_client_context.wrap_socket(
+                        conn, server_hostname=host if self.ssl_client_context.check_hostname else None
+                    )
                 self._add_conn(conn)
                 return
             except OSError as exc:
+                last_exc = exc
+                time.sleep(0.05)
+            except ssl.SSLError as exc:
                 last_exc = exc
                 time.sleep(0.05)
         if last_exc is not None:
@@ -332,7 +357,12 @@ class SocketActorBackend:
             listen = format_tcp_url(self._listen_host or "127.0.0.1", self._listen_port)
         elif self.listen:
             listen = self.listen
-        return {"backend": "socket", "listen": listen, "peers": list(self.peers)}
+        return {
+            "backend": "socket",
+            "listen": listen,
+            "peers": list(self.peers),
+            "tls": self.ssl_server_context is not None or self.ssl_client_context is not None,
+        }
 
 
 @dataclass
@@ -749,12 +779,34 @@ def build_actor_backend(
     backend: str,
     listen: str | None,
     peers: list[str],
+    ssl_server_context: ssl.SSLContext | None = None,
+    ssl_client_context: ssl.SSLContext | None = None,
+    nats_url: str = "",
+    nats_subject_prefix: str = "kerros.actor",
+    node_id: str = "local",
+    nats_client: Any = None,
 ) -> ActorMeshBackend:
     name = (backend or "socket").strip().lower()
     if name == "nng":
         return NngActorBackend(listen=listen, peers=peers)
+    if name == "nats":
+        from runtime.nats_actor_backend import NatsActorBackend
+
+        return NatsActorBackend(
+            url=nats_url or "nats://127.0.0.1:4222",
+            subject_prefix=nats_subject_prefix or "kerros.actor",
+            node_id=node_id,
+            listen=listen,
+            peers=peers,
+            client=nats_client,
+        )
     if name in ("socket", "tcp"):
-        return SocketActorBackend(listen=listen, peers=peers)
+        return SocketActorBackend(
+            listen=listen,
+            peers=peers,
+            ssl_server_context=ssl_server_context,
+            ssl_client_context=ssl_client_context,
+        )
     raise ValueError(f"unknown actor mesh backend: {backend!r}")
 
 
@@ -803,6 +855,11 @@ def build_actor_mesh(
     if backend_name == "nng" and not nng_available():
         # Soft fallback so boot never fails on Termux without pynng.
         backend_name = "socket"
+    if backend_name == "nats":
+        from runtime.nats_actor_backend import nats_available
+
+        if not nats_available() and data.get("_nats_client") is None:
+            backend_name = "socket"
 
     auth = mesh_auth_from_config(
         data,
@@ -822,8 +879,43 @@ def build_actor_mesh(
             )
         auth = MeshAuth(token=auth.token, required=True)
 
+    ssl_server = None
+    ssl_client = None
+    tls_raw = data.get("tls") or {}
+    from runtime.actor_mesh_tls import MeshTlsConfig, MeshTlsError, build_client_ssl_context, build_server_ssl_context
+
+    tls_cfg = MeshTlsConfig.from_mapping(tls_raw, base=None)
+    if tls_cfg.enabled:
+        if backend_name not in ("socket", "tcp"):
+            raise MeshTlsError("actor mesh TLS applies only to socket/tcp backend")
+        try:
+            ssl_server = build_server_ssl_context(tls_cfg)
+            ssl_client = build_client_ssl_context(tls_cfg)
+        except MeshTlsError:
+            raise
+        except Exception as exc:
+            raise MeshTlsError(str(exc)) from exc
+
+    nats_cfg = dict(data.get("nats") or {})
+    nats_url = (
+        os.environ.get("KERROS_ACTOR_MESH_NATS_URL")
+        or str(nats_cfg.get("url") or "nats://127.0.0.1:4222")
+    )
+    nats_prefix = (
+        os.environ.get("KERROS_ACTOR_MESH_NATS_PREFIX")
+        or str(nats_cfg.get("subject_prefix") or "kerros.actor")
+    )
+
     backend = build_actor_backend(
-        backend=backend_name, listen=listen or None, peers=peers
+        backend=backend_name,
+        listen=listen or None,
+        peers=peers,
+        ssl_server_context=ssl_server,
+        ssl_client_context=ssl_client,
+        nats_url=nats_url,
+        nats_subject_prefix=nats_prefix,
+        node_id=node_id,
+        nats_client=data.get("_nats_client"),
     )
     mesh = ActorMesh(
         node_id=node_id,
@@ -834,10 +926,21 @@ def build_actor_mesh(
     )
 
     from runtime.actor_supervision import ActorSupervisor, SupervisionConfig
+    from runtime.actor_remote_supervision import (
+        RemoteSupervisionConfig,
+        build_remote_restart_hook,
+    )
 
     sup_cfg = SupervisionConfig.from_mapping(data.get("supervision") or {})
     if sup_cfg.enabled:
-        mesh.supervisor = ActorSupervisor(mesh=mesh, config=sup_cfg)
+        remote_cfg = RemoteSupervisionConfig.from_mapping(data.get("supervision") or {})
+        on_dead = build_remote_restart_hook(
+            cfg=remote_cfg,
+            manager=data.get("_service_manager"),
+        )
+        mesh.supervisor = ActorSupervisor(
+            mesh=mesh, config=sup_cfg, on_dead=on_dead
+        )
 
     mesh.attach()
     return mesh

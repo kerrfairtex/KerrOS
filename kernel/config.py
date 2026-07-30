@@ -193,6 +193,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             # When True, non-loopback listen refuses empty token (WAN-safe).
             "auth_required_non_loopback": False,
             # ADR-020: local actor liveness (off by default).
+            # ADR-023: remote_restart + process_map under supervision.
             "supervision": {
                 "enabled": False,
                 "heartbeat_interval_s": 0,
@@ -200,6 +201,22 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "suspect_after_s": 15.0,
                 "ping_timeout_s": 2.0,
                 "auto_register_ping": True,
+                "remote_restart": False,
+                "process_map": {},  # actor_name → ServiceManager service name
+            },
+            # ADR-023: optional TLS/mTLS for socket backend (off by default).
+            "tls": {
+                "enabled": False,
+                "ca_file": "",
+                "cert_file": "",
+                "key_file": "",
+                "require_client_cert": False,
+                "check_hostname": False,
+            },
+            # ADR-023: used when backend: nats (soft nats-py).
+            "nats": {
+                "url": "nats://127.0.0.1:4222",
+                "subject_prefix": "kerros.actor",
             },
         },
     }

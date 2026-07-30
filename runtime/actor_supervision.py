@@ -1,11 +1,12 @@
 """
 runtime/actor_supervision.py
 ============================
-Local actor liveness / supervision foundation (ADR-020).
+Local actor liveness / supervision foundation (ADR-020) + optional
+remote process restart hooks (ADR-023).
 
 Heartbeats + TTL table + optional ``_sys.ping`` over existing ActorMesh
-request/reply. Restart hooks are callables only — no process spawn, mTLS,
-or NATS.
+request/reply. Restart hooks are callables; ADR-023 may wire them to
+ServiceManager when ``remote_restart`` is enabled.
 """
 
 from __future__ import annotations
