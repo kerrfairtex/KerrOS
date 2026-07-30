@@ -76,28 +76,27 @@ def clear_screen() -> None:
     os.system("clear" if os.name != "nt" else "cls")
 
 
-def render_boot_art(*, cols: int = 72, rows: int = 22) -> None:
-    """Render heraldic boot image via chafa when available; else ASCII mark."""
+def render_boot_art(*, cols: int = 72, rows: int = 22) -> bool:
+    """Render heraldic boot image via chafa when available; else ASCII mark.
+
+    Returns True when an image (already carrying the KerrOS wordmark) was shown.
+    """
     assets = _assets_dir()
-    # Prefer wide banner, then square logo
     candidates = [assets / "boot_banner.png", assets / "boot_logo.png"]
     chafa = shutil.which("chafa")
-    shown = False
     if chafa:
         for path in candidates:
             if not path.is_file():
                 continue
-            # Professional terminal render — symbols=block for clarity
             cmd = (
                 f'{chafa} --size={cols}x{rows} --symbols=block '
                 f'--colors=full "{path}"'
             )
             rc = os.system(cmd)
             if rc == 0:
-                shown = True
-                break
-    if not shown:
-        print(ANGEL_LOGO)
+                return True
+    print(ANGEL_LOGO)
+    return False
 
 
 class Spinner:
@@ -235,10 +234,14 @@ def session_end() -> None:
 
 def boot_sequence() -> None:
     clear_screen()
-    render_boot_art()
-    print(WORDMARK)
-    print(f"{GOLD}           ────────────────────────────────{R}")
-    print(f"{GOLD}{BOL}                     v {VERSION}{R}")
-    print(f"{GOLD}           ────────────────────────────────{R}")
-    print()
+    used_image = render_boot_art()
+    if not used_image:
+        # ASCII path already includes mark + KerrOS wordmark
+        print()
+    else:
+        # Image carries KerrOS — keep a slim version line only
+        print(f"{GOLD}           ────────────────────────────────{R}")
+        print(f"{GOLD}{BOL}                     v {VERSION}{R}")
+        print(f"{GOLD}           ────────────────────────────────{R}")
+        print()
     time.sleep(0.15)
