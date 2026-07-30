@@ -12,7 +12,7 @@
 | **Service bus** | `runtime/service_bus.py` | In-process pub/sub for lifecycle events |
 | **Health monitoring** | `runtime/health.py` | Aggregate kernel + services + decision log health |
 | **IPC** | `runtime/ipc.py` (P1) | JSON-line protocol for worker services |
-| **Actor mesh** | `runtime/actor_mesh.py` | Optional nng/socket ServiceBus fanout (C-16 / ADR-012) |
+| **Actor mesh** | `runtime/actor_mesh.py` | Optional nng/socket fanout + named req/reply (C-16 / ADR-012/018) |
 | **Decision log (LGU)** | `kernel/decision_log.py` | Hash-chained append-only audit + JSONL export (ADR-017) |
 
 ## Usage
@@ -51,25 +51,33 @@ mgr = resolve("service_manager")
 health = resolve("health_monitor")
 ```
 
-## Actor mesh (C-16)
+## Actor mesh (C-16 / ADR-018)
 
-Optional cross-process `ServiceBus` fanout via stdlib TCP or pynng Bus0:
+Optional cross-process `ServiceBus` fanout via stdlib TCP or pynng Bus0,
+plus named actors, routes, request/reply, and runtime peer dial:
 
 ```json
 "actor_mesh": {
   "enabled": true,
-  "backend": "nng",
+  "backend": "socket",
   "listen": "tcp://127.0.0.1:9091",
-  "peers": ["tcp://127.0.0.1:9092"]
+  "peers": ["tcp://127.0.0.1:9092"],
+  "routes": {"echo": "node-b"},
+  "auth_token": "",
+  "auth_required_non_loopback": false
 }
 ```
 
-or `KERROS_ACTOR_MESH=1`. Use `ActorMesh.publish` for remote fanout. See
-[`ADR-012`](adr/ADR-012-actor-mesh.md). Optional dep: `requirements-optional.txt`.
+or `KERROS_ACTOR_MESH=1`. Use `ActorMesh.publish` for fanout,
+`register` / `request` for RPC, `add_peer` for late WAN join. Auth via
+[`ADR-014`](adr/ADR-014-authenticated-mesh.md) (`KERROS_ACTOR_MESH_TOKEN`).
+See [`ADR-012`](adr/ADR-012-actor-mesh.md) and
+[`ADR-018`](adr/ADR-018-actor-mesh-orchestrator-foundation.md).
+Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- Full actor orchestrator / authenticated WAN mesh (beyond ADR-012 foundation)
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation: named routes + req/reply + `add_peer` + non-loopback token gate ([ADR-018](adr/ADR-018-actor-mesh-orchestrator-foundation.md)); mTLS / NATS / remote supervision still deferred
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

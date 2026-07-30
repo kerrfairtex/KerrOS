@@ -45,5 +45,6 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 
 ## Revisit when
 
-~~Authenticated service mesh~~ — **token envelopes in ADR-014.** Revisit for
-TLS/NATS or a full actor runtime when multi-tenant WAN is required.
+~~Authenticated service mesh~~ — **token envelopes in ADR-014.**
+~~Named routing / req/reply / WAN dial~~ — **orchestrator foundation in ADR-018.**
+Revisit for TLS/NATS or remote actor supervision when multi-tenant WAN is required.

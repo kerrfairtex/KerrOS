@@ -1,16 +1,16 @@
 """
 runtime/actor_mesh.py
 =====================
-IPC actor-mesh foundation (C-16 / ADR-012).
+IPC actor-mesh foundation (C-16 / ADR-012) + orchestrator foundation (ADR-018).
 
 Bridges the in-process ServiceBus across processes/hosts via:
 
 * ``socket`` — stdlib TCP framed JSON (always available; CI-friendly)
 * ``nng`` — pynng Bus0 when installed (optional dependency)
 
-Not a full orchestrator — request/reply helpers + topic fanout with loop
-prevention. EventBus Docker/HTTP mesh remains ADR-008/011; this targets
-service/lifecycle actor traffic (ADR-005 follow-on).
+Orchestrator layer (still narrow): named actors, in-memory routes,
+request/reply, and runtime peer dial for authenticated WAN (ADR-014 tokens;
+TLS remains an external proxy concern).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Optional, Protocol, runtime_checkable
 
 from runtime.mesh_auth import (
     MeshAuth,
@@ -33,6 +33,8 @@ from runtime.mesh_auth import (
     wrap_actor_payload,
 )
 from runtime.service_bus import ServiceBus
+
+ActorHandler = Callable[["ActorMessage"], dict[str, Any] | None]
 
 
 @dataclass
@@ -43,6 +45,8 @@ class ActorMessage:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     kind: str = "pub"  # pub | req | rep
     reply_to: str = ""
+    actor: str = ""  # named actor for req/rep (ADR-018)
+    target_node: str = ""  # empty = fanout; else only that node delivers
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,6 +57,8 @@ class ActorMessage:
             "origin_node": self.origin_node,
             "kind": self.kind,
             "reply_to": self.reply_to,
+            "actor": self.actor,
+            "target_node": self.target_node,
             "timestamp": self.timestamp,
         }
 
@@ -65,6 +71,8 @@ class ActorMessage:
             origin_node=str(data.get("origin_node") or ""),
             kind=str(data.get("kind") or "pub"),
             reply_to=str(data.get("reply_to") or ""),
+            actor=str(data.get("actor") or ""),
+            target_node=str(data.get("target_node") or ""),
             timestamp=float(data.get("timestamp") or time.time()),
         )
 
@@ -96,6 +104,42 @@ def parse_tcp_url(url: str) -> tuple[str, int]:
 
 def format_tcp_url(host: str, port: int) -> str:
     return f"tcp://{host}:{port}"
+
+
+def listen_is_loopback(listen: str | None) -> bool:
+    """True when listen is unset or bound to loopback (dev-safe)."""
+    if not listen:
+        return True
+    try:
+        host, _port = parse_tcp_url(listen)
+    except ValueError:
+        return False
+    return host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
+
+
+def parse_routes(raw: Any) -> dict[str, str]:
+    """Parse routes from dict or ``name=node,name2=node2`` string."""
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return {
+            str(k).strip(): str(v).strip()
+            for k, v in raw.items()
+            if str(k).strip() and str(v).strip()
+        }
+    text = str(raw).strip()
+    if not text:
+        return {}
+    out: dict[str, str] = {}
+    for part in text.split(","):
+        part = part.strip()
+        if not part or "=" not in part:
+            continue
+        name, _, node = part.partition("=")
+        name, node = name.strip(), node.strip()
+        if name and node:
+            out[name] = node
+    return out
 
 
 @runtime_checkable
@@ -152,6 +196,7 @@ class SocketActorBackend:
     _stop: threading.Event = field(default_factory=threading.Event, init=False, repr=False)
     _listen_host: str = field(default="", init=False)
     _listen_port: int = field(default=0, init=False)
+    _started: bool = field(default=False, init=False)
 
     def start(self) -> None:
         self._stop.clear()
@@ -165,8 +210,20 @@ class SocketActorBackend:
             t = threading.Thread(target=self._accept_loop, name="actor-mesh-accept", daemon=True)
             t.start()
             self._threads.append(t)
-        for peer in self.peers:
+        for peer in list(self.peers):
             self._dial(peer)
+        self._started = True
+
+    def dial(self, peer: str) -> None:
+        """Dial a peer at runtime (WAN join / late binding)."""
+        url = str(peer or "").strip()
+        if not url:
+            raise ValueError("empty peer URL")
+        if url not in self.peers:
+            self.peers.append(url)
+        if self._started:
+            self._dial(url)
+        # If not started yet, start() will dial from peers list.
 
     def _accept_loop(self) -> None:
         assert self._sock is not None
@@ -253,6 +310,7 @@ class SocketActorBackend:
 
     def close(self) -> None:
         self._stop.set()
+        self._started = False
         if self._sock is not None:
             try:
                 self._sock.close()
@@ -305,6 +363,17 @@ class NngActorBackend:
         # Bus topology needs a short settle time after dial/listen.
         time.sleep(0.05)
 
+    def dial(self, peer: str) -> None:
+        url = str(peer or "").strip()
+        if not url:
+            raise ValueError("empty peer URL")
+        if url not in self.peers:
+            self.peers.append(url)
+        if self._sock is None:
+            return
+        self._sock.dial(url)
+        time.sleep(0.05)
+
     def send(self, data: bytes) -> None:
         if self._sock is None:
             raise RuntimeError("nng backend not started")
@@ -349,12 +418,20 @@ class ActorMesh:
     fan out to remote peers. Inbound remote messages are re-published on the
     local ServiceBus. When ``auth`` has a token, wire envelopes carry it
     (ADR-014).
+
+    ADR-018 adds named actors, routes, request/reply, and ``add_peer``.
     """
 
     node_id: str
     bus: ServiceBus
     backend: ActorMeshBackend
     auth: MeshAuth = field(default_factory=MeshAuth)
+    routes: dict[str, str] = field(default_factory=dict)
+    _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
+    _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _pending_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
     _seen: set[str] = field(default_factory=set)
     _attached: bool = False
     _stop: threading.Event = field(default_factory=threading.Event, init=False, repr=False)
@@ -362,6 +439,8 @@ class ActorMesh:
     _forwarded: int = 0
     _ingested: int = 0
     _auth_rejected: int = 0
+    _requests: int = 0
+    _replies: int = 0
 
     def attach(self) -> None:
         if self._attached:
@@ -385,6 +464,38 @@ class ActorMesh:
         if self._thread is not None:
             self._thread.join(timeout=2.0)
             self._thread = None
+        with self._pending_lock:
+            for event, box in self._pending.values():
+                box["error"] = "mesh detached"
+                event.set()
+            self._pending.clear()
+
+    def register(self, name: str, handler: ActorHandler) -> None:
+        key = str(name or "").strip()
+        if not key:
+            raise ValueError("actor name required")
+        if not callable(handler):
+            raise TypeError("handler must be callable")
+        self._handlers[key] = handler
+
+    def unregister(self, name: str) -> None:
+        self._handlers.pop(str(name or "").strip(), None)
+
+    def set_route(self, name: str, node_id: str) -> None:
+        key = str(name or "").strip()
+        node = str(node_id or "").strip()
+        if not key or not node:
+            raise ValueError("actor name and node_id required")
+        self.routes[key] = node
+
+    def add_peer(self, url: str) -> None:
+        """Dial a peer after attach (WAN join)."""
+        dial = getattr(self.backend, "dial", None)
+        if not callable(dial):
+            raise RuntimeError(
+                f"backend {type(self.backend).__name__} does not support dial"
+            )
+        dial(url)
 
     def _mark_seen(self, msg_id: str) -> bool:
         if not msg_id or msg_id in self._seen:
@@ -394,18 +505,109 @@ class ActorMesh:
             self._seen = set(list(self._seen)[-2500:])
         return True
 
-    def publish(self, topic: str, payload: dict[str, Any] | None = None) -> ActorMessage:
+    def publish(
+        self,
+        topic: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        target_node: str = "",
+    ) -> ActorMessage:
         msg = ActorMessage(
             topic=topic,
             payload=dict(payload or {}),
             origin_node=self.node_id,
             kind="pub",
+            target_node=str(target_node or ""),
         )
         self._mark_seen(msg.id)
-        self._deliver_local(msg)
+        if not msg.target_node or msg.target_node == self.node_id:
+            self._deliver_local(msg)
         try:
             self.backend.send(self._encode(msg))
             self._forwarded += 1
+        except Exception:
+            pass
+        return msg
+
+    def request(
+        self,
+        actor: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        timeout_s: float = 5.0,
+    ) -> dict[str, Any]:
+        """RPC-style request to a named actor (local handler or routed node)."""
+        name = str(actor or "").strip()
+        if not name:
+            raise ValueError("actor name required")
+
+        # Local-only: no route or route points at self.
+        target = str(self.routes.get(name) or "").strip()
+        if (not target or target == self.node_id) and name in self._handlers:
+            result = self._handlers[name](
+                ActorMessage(
+                    topic=f"actor.{name}",
+                    actor=name,
+                    payload=dict(payload or {}),
+                    origin_node=self.node_id,
+                    kind="req",
+                    target_node=self.node_id,
+                )
+            )
+            return dict(result or {})
+
+        if not target:
+            raise KeyError(f"no route for actor {name!r}")
+
+        msg = ActorMessage(
+            topic=f"actor.{name}",
+            actor=name,
+            payload=dict(payload or {}),
+            origin_node=self.node_id,
+            kind="req",
+            target_node=target,
+        )
+        event = threading.Event()
+        box: dict[str, Any] = {}
+        with self._pending_lock:
+            self._pending[msg.id] = (event, box)
+        self._mark_seen(msg.id)
+        try:
+            self.backend.send(self._encode(msg))
+            self._forwarded += 1
+            self._requests += 1
+        except Exception as exc:
+            with self._pending_lock:
+                self._pending.pop(msg.id, None)
+            raise ConnectionError(f"failed to send request to {name!r}: {exc}") from exc
+
+        if not event.wait(timeout=max(0.01, float(timeout_s))):
+            with self._pending_lock:
+                self._pending.pop(msg.id, None)
+            raise TimeoutError(
+                f"actor request {name!r} timed out after {timeout_s}s "
+                f"(target_node={target})"
+            )
+        if box.get("error"):
+            raise RuntimeError(str(box["error"]))
+        return dict(box.get("payload") or {})
+
+    def reply(self, req: ActorMessage, payload: dict[str, Any] | None = None) -> ActorMessage:
+        """Send a ``rep`` for an inbound ``req`` (usually called by the mesh)."""
+        msg = ActorMessage(
+            topic=req.topic,
+            actor=req.actor,
+            payload=dict(payload or {}),
+            origin_node=self.node_id,
+            kind="rep",
+            reply_to=req.id,
+            target_node=req.origin_node,
+        )
+        self._mark_seen(msg.id)
+        try:
+            self.backend.send(self._encode(msg))
+            self._forwarded += 1
+            self._replies += 1
         except Exception:
             pass
         return msg
@@ -429,6 +631,32 @@ class ActorMesh:
         except Exception:
             pass
 
+    def _complete_pending(self, msg: ActorMessage) -> None:
+        key = msg.reply_to
+        if not key:
+            return
+        with self._pending_lock:
+            item = self._pending.pop(key, None)
+        if not item:
+            return
+        event, box = item
+        box["payload"] = dict(msg.payload or {})
+        event.set()
+
+    def _handle_request(self, msg: ActorMessage) -> None:
+        name = (msg.actor or "").strip()
+        if not name and msg.topic.startswith("actor."):
+            name = msg.topic[len("actor.") :]
+        handler = self._handlers.get(name) if name else None
+        if handler is None:
+            self.reply(msg, {"ok": False, "error": f"no handler for actor {name!r}"})
+            return
+        try:
+            result = handler(msg)
+            self.reply(msg, dict(result or {}))
+        except Exception as exc:
+            self.reply(msg, {"ok": False, "error": str(exc)})
+
     def _recv_loop(self) -> None:
         while not self._stop.is_set():
             try:
@@ -448,7 +676,16 @@ class ActorMesh:
                 continue
             if not self._mark_seen(msg.id):
                 continue
+            # Targeted delivery: ignore messages for other nodes.
+            if msg.target_node and msg.target_node != self.node_id:
+                continue
             self._ingested += 1
+            if msg.kind == "rep":
+                self._complete_pending(msg)
+                continue
+            if msg.kind == "req":
+                self._handle_request(msg)
+                continue
             self._deliver_local(msg)
 
     def stats(self) -> dict[str, Any]:
@@ -459,6 +696,10 @@ class ActorMesh:
             "ingested": self._ingested,
             "auth_rejected": self._auth_rejected,
             "auth": self.auth.enabled,
+            "requests": self._requests,
+            "replies": self._replies,
+            "handlers": sorted(self._handlers),
+            "routes": dict(self.routes),
             "seen": len(self._seen),
             "endpoints": self.backend.endpoints(),
         }
@@ -476,6 +717,12 @@ def build_actor_backend(
     if name in ("socket", "tcp"):
         return SocketActorBackend(listen=listen, peers=peers)
     raise ValueError(f"unknown actor mesh backend: {backend!r}")
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def build_actor_mesh(
@@ -511,6 +758,9 @@ def build_actor_mesh(
     else:
         peers = [str(p).strip() for p in (data.get("peers") or []) if str(p).strip()]
 
+    routes_env = os.environ.get("KERROS_ACTOR_MESH_ROUTES")
+    routes = parse_routes(routes_env if routes_env is not None else data.get("routes"))
+
     if backend_name == "nng" and not nng_available():
         # Soft fallback so boot never fails on Termux without pynng.
         backend_name = "socket"
@@ -521,9 +771,27 @@ def build_actor_mesh(
         env_required="KERROS_ACTOR_MESH_AUTH_REQUIRED",
     )
 
+    # WAN-safe default: non-loopback listen requires a token when flagged.
+    non_loop_raw = os.environ.get("KERROS_ACTOR_MESH_AUTH_REQUIRED_NON_LOOPBACK")
+    if non_loop_raw is None:
+        non_loop_raw = data.get("auth_required_non_loopback", False)
+    if _truthy(non_loop_raw) and not listen_is_loopback(listen or None):
+        if not auth.token:
+            raise RuntimeError(
+                "actor mesh: non-loopback listen requires auth_token / "
+                "KERROS_ACTOR_MESH_TOKEN when auth_required_non_loopback is set"
+            )
+        auth = MeshAuth(token=auth.token, required=True)
+
     backend = build_actor_backend(
         backend=backend_name, listen=listen or None, peers=peers
     )
-    mesh = ActorMesh(node_id=node_id, bus=bus, backend=backend, auth=auth)
+    mesh = ActorMesh(
+        node_id=node_id,
+        bus=bus,
+        backend=backend,
+        auth=auth,
+        routes=routes,
+    )
     mesh.attach()
     return mesh

@@ -100,6 +100,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] `kerrd` + `ServiceManager` + `HealthMonitor` + in-process service bus
 - [x] Code Agent IPC worker (`runtime/ipc.py`, `agents/code/subprocess_runner.py`)
 - [x] IPC actor-mesh foundation (nng/socket) — `runtime/actor_mesh.py` ([`ADR-012`](docs/adr/ADR-012-actor-mesh.md)); optional `pynng`
+- [x] Actor orchestrator foundation — named routes, req/reply, `add_peer`, WAN token gate ([`ADR-018`](docs/adr/ADR-018-actor-mesh-orchestrator-foundation.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md)); WORM/RBAC still deferred
 - [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
@@ -155,7 +156,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
 2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
 3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011/014); [x] workflow YAML + tool/LLM (ADR-010/013); [x] actor mesh (ADR-012)
+4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011/014); [x] workflow YAML + tool/LLM (ADR-010/013); [x] actor mesh (ADR-012/018)
 5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
 6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
 

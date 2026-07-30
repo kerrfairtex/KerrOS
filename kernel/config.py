@@ -150,8 +150,12 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "backend": "socket",  # socket | nng
             "listen": None,  # e.g. "tcp://127.0.0.1:9091"
             "peers": [],
+            # ADR-018: actor_name → node_id (or KERROS_ACTOR_MESH_ROUTES=a=node-b,b=node-a)
+            "routes": {},
             "auth_token": "",  # env KERROS_ACTOR_MESH_TOKEN
             "auth_required": False,
+            # When True, non-loopback listen refuses empty token (WAN-safe).
+            "auth_required_non_loopback": False,
         },
     }
     merged = {**defaults, **raw}
