@@ -44,6 +44,6 @@ coding index, LiteLLM gateway compose, reranker.
 
 ## Revisit when
 
-Phase B embeddings/vector — **ADR-051** (nomic + FAISS / FTS).
-Phase C (coding index), Phase D (Unsloth export), or Phase E
-(LiteLLM + llama.cpp server compose).
+Phase C coding index — **ADR-052** (ripgrep + Fake/tree-sitter).
+Phase D (Unsloth LoRA→GGUF), Phase E (LiteLLM gateway), or funded
+tree-sitter grammar bundles / LSP.

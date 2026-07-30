@@ -56,3 +56,13 @@ pip install faiss-cpu               # optional; numpy Fake index works without i
 Without sentence-transformers, KerrOS uses deterministic hash mock embeddings.
 Without faiss-cpu, FAISS soft store uses a numpy cosine index under
 `data/faiss/kerros_memory.npz`. SQLite FTS remains primary either way.
+
+## Offline coding index (ADR-052)
+
+```bash
+# ripgrep is typically an OS package: apt/brew install ripgrep
+pip install tree-sitter   # optional; Fake regex symbols work without it
+```
+
+Claw tools: `code_index_build`, `code_symbols`, `code_search`
+(`/code-index`, `/symbols`, `/code-search`). Index under `data/code_index/`.

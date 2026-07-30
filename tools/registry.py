@@ -15,6 +15,9 @@ from typing import Any, Callable
 from tools.claw_tools import (
     ToolResult,
     apply_patch,
+    code_index_build,
+    code_search,
+    code_symbols,
     edit,
     exec_cmd,
     get_workspace,
@@ -134,6 +137,52 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "code_index_build",
+            "description": "Rebuild the workspace code symbol index (Phase C / ADR-052).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "root": {
+                        "type": "string",
+                        "description": "Optional subdirectory relative to workspace",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "code_symbols",
+            "description": "Search indexed code symbols by name substring.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Symbol name substring"},
+                    "top_k": {"type": "integer", "default": 20},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "code_search",
+            "description": "Search workspace file contents (ripgrep when available).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "Search pattern / regex"},
+                    "top_k": {"type": "integer", "default": 20},
+                },
+                "required": ["pattern"],
+            },
+        },
+    },
     # ------------------------------------------------------------------
     # Hermes-style Progressive Disclosure skill tools
     # ------------------------------------------------------------------
@@ -230,6 +279,9 @@ _HANDLERS: dict[str, Handler] = {
     "exec": exec_cmd,
     "apply_patch": apply_patch,
     "remove": remove,
+    "code_index_build": code_index_build,
+    "code_symbols": code_symbols,
+    "code_search": code_search,
     # Hermes-style skill tools
     "skills_list": skills_list,
     "skill_view": skill_view,

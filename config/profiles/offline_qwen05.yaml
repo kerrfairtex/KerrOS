@@ -1,21 +1,17 @@
-# KerrOS offline profile — Phase A + B (ADR-050 / ADR-051)
+# KerrOS offline profile — Phase A–C (ADR-050 / ADR-051 / ADR-052)
 #
 # Activate:
 #   export KERROS_OFFLINE_PROFILE=offline_qwen05
-#   # or: KERROS_LLM_PROVIDER=llama_cpp
-#   # or: KERROS_LOCAL_LLM=1  (llama.cpp tried first in local-first chain)
 #
-# Download weights (operator-owned, gitignored):
-#   ./scripts/download_qwen05_gguf.sh
-#
-# Requires a local llama.cpp binary (LLAMA_BIN or ~/llama.cpp/build/bin/…).
-# Phase B RAG: SQLite FTS primary + optional FAISS (numpy Fake or faiss-cpu).
-# Embeddings default to nomic-embed-text-v1.5 (768-d; soft hash mock without ST).
+# Coding assistant (Phase C):
+#   /code-index
+#   /symbols <name>
+#   /code-search <pattern>   # or /exec rg …
 
 name: offline_qwen05
-version: 2
+version: 3
 prompt_format: chatml
-description: "Qwen2.5-0.5B-Instruct Q4_K_M via llama.cpp + nomic/FAISS RAG"
+description: "Qwen2.5-0.5B + nomic/FAISS RAG + ripgrep/code index"
 
 model:
   id: Qwen2.5-0.5B-Instruct
@@ -26,15 +22,13 @@ model:
 
 runtime:
   provider: llama_cpp
-  mode: subprocess   # subprocess | http (LLAMA_CPP_SERVER_ENDPOINT)
+  mode: subprocess
   chatml: true
 
-# Phase D placeholder
 finetune:
   method: unsloth
   enabled: false
 
-# Phase B — consumed by adapters/embeddings/resolve.py + FaissVectorStore
 embeddings:
   model: nomic-ai/nomic-embed-text-v1.5
   dim: 768
@@ -43,15 +37,19 @@ embeddings:
 vector:
   primary: sqlite_fts
   optional: faiss
-  enabled: true          # FAISS soft on when this offline profile is active
+  enabled: true
   index_path: data/faiss/kerros_memory.npz
 
-# Phase B+ placeholders
 reranker:
   model: BAAI/bge-reranker-base
   enabled: false
+
+# Phase C — consumed by CodeIndexAdapter + claw safe_commands (rg)
 coding:
+  enabled: true
   ripgrep: true
-  tree_sitter: false
+  tree_sitter: true   # soft; Fake regex symbols when package missing
+  index_path: data/code_index/index.json
+
 litellm:
   enabled: false

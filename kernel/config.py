@@ -113,6 +113,9 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "embedding_document_prefix": "",
         "faiss_enabled": False,
         "faiss_index_path": "data/faiss/kerros_memory.npz",
+        # ADR-052: soft code index (ripgrep + Fake/tree-sitter) — off by default.
+        "code_index_enabled": False,
+        "code_index_path": "data/code_index/index.json",
         # C-19: self-hosted LLMs — off by default; also via KERROS_LOCAL_LLM / KERROS_*_ENABLED.
         "ollama_enabled": False,
         "vllm_enabled": False,

@@ -41,9 +41,10 @@
     "whoami",
     "find",
     "grep",
+    "rg",
     "ps"
   ],
-  "_note": "Secrets in .env. Phase A offline: KERROS_OFFLINE_PROFILE=offline_qwen05 + ./scripts/download_qwen05_gguf.sh (ADR-050). Large model still models/model.gguf via /switch large.",
+  "_note": "Secrets in .env. Phase A offline: KERROS_OFFLINE_PROFILE=offline_qwen05 + ./scripts/download_qwen05_gguf.sh (ADR-050). Large model still models/model.gguf via /switch large. Phase C coding index: /code-index /symbols /code-search (ADR-052).",
   "knowledge_root": "~/storage/external-1/offline_ai_knowledge",
   "knowledge_index": "~/offline_ai/data/knowledge",
   "auto_index": true,

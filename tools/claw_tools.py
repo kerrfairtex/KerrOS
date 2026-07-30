@@ -86,22 +86,38 @@ def _resolve_path(path: str) -> Path:
 
 
 def _load_safe_commands() -> set[str]:
+    commands: set[str] = set()
     try:
         from kernel.config import load_config
         cfg = load_config().values
-        return {str(c).strip() for c in cfg.get("safe_commands", []) if str(c).strip()}
+        commands = {str(c).strip() for c in cfg.get("safe_commands", []) if str(c).strip()}
     except Exception:
         pass
-    config_path = get_workspace() / "config.json"
-    if not config_path.exists():
-        config_path = DEFAULT_WORKSPACE / "config.json"
+    if not commands:
+        config_path = get_workspace() / "config.json"
+        if not config_path.exists():
+            config_path = DEFAULT_WORKSPACE / "config.json"
+        try:
+            with open(config_path) as f:
+                cfg = json.load(f)
+            commands = {str(c).strip() for c in cfg.get("safe_commands", []) if str(c).strip()}
+        except Exception:
+            commands = set()
+    # ADR-052: offline profile coding.ripgrep opts in `rg`.
     try:
-        with open(config_path) as f:
-            cfg = json.load(f)
-        return {str(c).strip() for c in cfg.get("safe_commands", []) if str(c).strip()}
-    except Exception:
-        return set()
+        from adapters.llm.offline_profile import (
+            is_offline_profile_active,
+            load_offline_profile,
+        )
 
+        if is_offline_profile_active():
+            profile = load_offline_profile()
+            coding = profile.get("coding") if isinstance(profile, dict) else None
+            if isinstance(coding, dict) and coding.get("ripgrep"):
+                commands.add("rg")
+    except Exception:
+        pass
+    return commands
 
 def _check_exec_allowed(command: str) -> None:
     cmd = command.strip()
@@ -425,3 +441,58 @@ def remove(path: str) -> ToolResult:
         return ToolResult(False, "remove", error=str(e))
     except Exception as e:
         return ToolResult(False, "remove", error=str(e))
+
+
+def _code_index(force: bool = False):
+    from adapters.code_index.code_index_adapter import CodeIndexAdapter
+
+    cfg: dict = {"code_index_enabled": True} if force else {}
+    return CodeIndexAdapter(cfg, workspace=get_workspace())
+
+
+def code_index_build(root: str | None = None) -> ToolResult:
+    """Rebuild the workspace code symbol index (ADR-052)."""
+    try:
+        idx = _code_index(force=True)
+        out = idx.build(root=root)
+        if not out.get("ok"):
+            return ToolResult(False, "code_index_build", error=out.get("error") or "build failed", data=out)
+        summary = (
+            f"indexed {out.get('files', 0)} files / {out.get('symbols', 0)} symbols "
+            f"(backend={out.get('backend')})"
+        )
+        return ToolResult(True, "code_index_build", output=summary, data=out)
+    except Exception as e:
+        return ToolResult(False, "code_index_build", error=str(e))
+
+
+def code_symbols(query: str, top_k: int = 20) -> ToolResult:
+    """Search indexed symbols by name substring."""
+    try:
+        if not query or not str(query).strip():
+            return ToolResult(False, "code_symbols", error="query is required")
+        idx = _code_index(force=True)
+        if not idx._symbols:
+            idx.build()
+        hits = idx.search_symbols(query, top_k=top_k)
+        if not hits:
+            return ToolResult(True, "code_symbols", output="(no symbols)", data={"hits": []})
+        lines = [f"{h.get('kind')}\t{h.get('name')}\t{h.get('path')}:{h.get('line')}" for h in hits]
+        return ToolResult(True, "code_symbols", output="\n".join(lines), data={"hits": hits})
+    except Exception as e:
+        return ToolResult(False, "code_symbols", error=str(e))
+
+
+def code_search(pattern: str, top_k: int = 20) -> ToolResult:
+    """Search workspace file contents (ripgrep when available)."""
+    try:
+        if not pattern or not str(pattern).strip():
+            return ToolResult(False, "code_search", error="pattern is required")
+        idx = _code_index(force=True)
+        hits = idx.search_content(pattern, top_k=top_k)
+        if not hits:
+            return ToolResult(True, "code_search", output="(no matches)", data={"hits": []})
+        lines = [f"{h.get('path')}:{h.get('line')}: {h.get('text')}" for h in hits]
+        return ToolResult(True, "code_search", output="\n".join(lines), data={"hits": hits})
+    except Exception as e:
+        return ToolResult(False, "code_search", error=str(e))

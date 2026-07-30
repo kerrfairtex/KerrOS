@@ -51,6 +51,27 @@ capabilities:
       service: "search_port"
       adapter: "adapters.search.duckduckgo_adapter"
 
+  - name: "port:embedding"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      service: "embedding_port"
+      adapter: "adapters.embeddings.sentence_transformers_adapter"
+
+  - name: "port:code_index"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      service: "code_index_port"
+      adapter: "adapters.code_index.code_index_adapter"
+      notes: "ADR-052 soft code index (rg + Fake/tree-sitter); claw tools code_search/code_symbols."
+
   - name: "port:storage"
     kind: "port"
     permissions: ["standard"]

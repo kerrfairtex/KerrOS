@@ -32,6 +32,7 @@ runtime/logs/
 *.log
 data/vector_store/
 data/faiss/
+data/code_index/
 data/rag_cache/
 models/*.gguf
 models/*.bin

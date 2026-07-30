@@ -98,6 +98,22 @@ def detect_claw_tool(text: str) -> tuple[str | None, dict[str, Any] | None]:
     path = raw.split(" ", 1)[1].strip().strip('"').strip("'")
     return ("remove", {"path": path}) if path else (None, None)
 
+  if raw.startswith("/code-index") or raw == "/code_index_build":
+    body = raw.split(None, 1)
+    root = body[1].strip() if len(body) > 1 else None
+    args: dict[str, Any] = {}
+    if root:
+      args["root"] = root
+    return ("code_index_build", args)
+
+  if raw.startswith("/symbols ") or raw.startswith("/code-symbols "):
+    query = raw.split(" ", 1)[1].strip().strip('"').strip("'")
+    return ("code_symbols", {"query": query}) if query else (None, None)
+
+  if raw.startswith("/code-search ") or raw.startswith("/rg "):
+    pattern = raw.split(" ", 1)[1].strip()
+    return ("code_search", {"pattern": pattern}) if pattern else (None, None)
+
   if raw.startswith("/workspace"):
     return ("__workspace__", {})
 
@@ -124,6 +140,9 @@ def claw_tool_help_lines() -> list[tuple[str, str]]:
     ("/list [path]", "List directory (use -r for recursive)"),
     ("/exec <command>", "Run a shell command"),
     ("/remove <path>", "Delete a file or directory"),
+    ("/code-index [root]", "Rebuild code symbol index"),
+    ("/symbols <query>", "Search indexed symbols"),
+    ("/code-search <pattern>", "Search file contents (rg)"),
     ("/tool <name> <json>", "Call any claw tool with JSON args"),
     ("/workspace", "Show active workspace root"),
   ]

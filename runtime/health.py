@@ -197,6 +197,26 @@ class HealthMonitor:
             }
             self.record("faiss", "error", str(exc))
 
+        try:
+            from adapters.code_index.code_index_adapter import probe_code_index
+
+            ci = probe_code_index()
+            report["components"]["code_index"] = ci
+            self.record(
+                "code_index",
+                ci.get("status", "unknown"),
+                ci.get("path", ""),
+            )
+            if ci.get("enabled") and ci.get("status") not in ("ok", "disabled"):
+                report["healthy"] = False
+        except Exception as exc:
+            report["components"]["code_index"] = {
+                "status": "error",
+                "component": "code_index",
+                "error": str(exc),
+            }
+            self.record("code_index", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:

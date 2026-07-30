@@ -77,6 +77,10 @@ export LLAMA_BIN=~/llama.cpp/build/bin/llama-cli   # or llama-simple-chat
 export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
 # Phase B RAG: nomic embed + FAISS soft (FTS still primary)
 # pip install sentence-transformers faiss-cpu  # optional
+# Phase C coding index:
+# /code-index
+# /symbols HybridMemoryAdapter
+# /code-search def build
 python3 cli/chat.py   # /llm shows llama_cpp; memory uses FTS (+ FAISS if enabled)
 
 ./scripts/local_llm_docker.sh up
@@ -147,7 +151,8 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 - ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
 - ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
-- ~~Offline RAG (nomic + FAISS / FTS)~~ — [ADR-051](adr/ADR-051-offline-rag-faiss.md); coding index / Unsloth / LiteLLM / reranker remain Phase C–E
+- ~~Offline RAG (nomic + FAISS / FTS)~~ — [ADR-051](adr/ADR-051-offline-rag-faiss.md)
+- ~~Offline coding index (rg + symbols)~~ — [ADR-052](adr/ADR-052-offline-coding-index.md); Unsloth / LiteLLM / reranker remain Phase D–E
 
 ## Workflow YAML definitions
 

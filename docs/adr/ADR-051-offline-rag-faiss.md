@@ -48,4 +48,5 @@ indexes.
 
 ## Revisit when
 
-Phase C (coding index), optional bge-reranker, or funded pgvector.
+~~Phase C (coding index)~~ — **ADR-052**.
+Optional bge-reranker, or funded pgvector.
