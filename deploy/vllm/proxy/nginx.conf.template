@@ -1,0 +1,21 @@
+# Soft nginx edge snippet for local vLLM (ADR-049).
+# Template only — not a production TLS seal. Use compose profile `proxy`
+# with the Caddy service by default; this file documents an nginx alternative.
+
+upstream kerros_vllm {
+    server vllm:8000;
+}
+
+server {
+    listen 127.0.0.1:8443 ssl;
+    server_name localhost;
+
+    # ssl_certificate     /certs/fullchain.pem;
+    # ssl_certificate_key /certs/privkey.pem;
+
+    location / {
+        proxy_pass http://kerros_vllm;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+    }
+}

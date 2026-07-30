@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# KerrOS local LLM (vLLM) helper — C-19 / ADR-048.
+# KerrOS local LLM (vLLM) helper — C-19 / ADR-048 / ADR-049.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_DIR="${ROOT}/deploy/vllm"
 COMPOSE_FILE="${COMPOSE_DIR}/docker-compose.yml"
 HOST_PORT="${VLLM_HOST_PORT:-8000}"
-PROFILE="vllm"
+PROFILES=("vllm")
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -54,35 +54,49 @@ PY
 
 compose() {
   need_docker
-  (cd "$COMPOSE_DIR" && docker compose --profile "$PROFILE" "$@")
+  local args=()
+  local p
+  for p in "${PROFILES[@]}"; do
+    args+=(--profile "$p")
+  done
+  (cd "$COMPOSE_DIR" && docker compose "${args[@]}" "$@")
+}
+
+_parse_profiles() {
+  PROFILES=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --cpu) PROFILES+=("cpu"); shift ;;
+      --proxy) PROFILES+=("proxy"); shift ;;
+      --multi) PROFILES+=("multi"); shift ;;
+      --gpu) PROFILES+=("vllm"); shift ;;
+      --) shift; break ;;
+      *) break ;;
+    esac
+  done
+  if [[ ${#PROFILES[@]} -eq 0 ]]; then
+    PROFILES=("vllm")
+  fi
+  REMAINING=("$@")
 }
 
 cmd_up() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --cpu) PROFILE="cpu"; shift ;;
-      --gpu|--) shift; break ;;
-      *) break ;;
-    esac
-  done
+  _parse_profiles "$@"
   check_loopback
-  compose up -d "$@"
-  echo "vllm up (profile=${PROFILE}) — http://127.0.0.1:${HOST_PORT}/v1"
+  compose up -d "${REMAINING[@]}"
+  echo "vllm up (profiles=${PROFILES[*]}) — http://127.0.0.1:${HOST_PORT}/v1"
 }
 
 cmd_down() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --cpu) PROFILE="cpu"; shift ;;
-      *) break ;;
-    esac
-  done
-  compose down "$@"
+  _parse_profiles "$@"
+  # Tear down all soft profiles so orphans don't linger.
+  PROFILES=("vllm" "cpu" "proxy" "multi")
+  compose down "${REMAINING[@]}"
 }
 
 cmd_status() {
   need_docker
-  (cd "$COMPOSE_DIR" && docker compose --profile vllm --profile cpu ps)
+  (cd "$COMPOSE_DIR" && docker compose --profile vllm --profile cpu --profile proxy --profile multi ps)
 }
 
 cmd_check() { check_loopback; }
@@ -103,16 +117,44 @@ print("probe_vllm:", json.dumps(probe_vllm(), indent=2, sort_keys=True))
 PY
 }
 
+cmd_pull() {
+  local model="${1:-${VLLM_MODEL:-meta-llama/Llama-3.2-3B-Instruct}}"
+  KERROS_MODEL_PULL=1 python3 - "$model" <<'PY'
+import json, sys
+from adapters.llm.model_pull import ModelPullConfig, ModelPullService
+model = sys.argv[1]
+svc = ModelPullService(
+    cfg=ModelPullConfig(enabled=True, backend="fake", models=[model], allow_pull=False)
+)
+print(json.dumps(svc.pull(model), indent=2, sort_keys=True))
+print("note: Fake pull intent only — set KERROS_MODEL_PULL_ALLOW=1 + backend=hf for soft HF", file=sys.stderr)
+PY
+}
+
+cmd_plan() {
+  python3 - <<'PY'
+import json
+from adapters.llm.local_llm_proxy import LocalLlmProxyConfig, LocalLlmProxyPlanner
+from adapters.llm.vllm_multinode import VllmMultinodeConfig, VllmMultinodePlanner
+from adapters.llm.model_pull import ModelPullConfig, ModelPullService
+print("proxy:", json.dumps(LocalLlmProxyPlanner(cfg=LocalLlmProxyConfig(enabled=True)).plan(), indent=2, sort_keys=True))
+print("multi:", json.dumps(VllmMultinodePlanner(cfg=VllmMultinodeConfig(enabled=True)).plan(), indent=2, sort_keys=True))
+print("pull:", json.dumps(ModelPullService(cfg=ModelPullConfig(enabled=True)).plan(), indent=2, sort_keys=True))
+PY
+}
+
 usage() {
   cat <<EOF
 Usage: $0 <command> [args]
 
 Commands:
-  up [--cpu]   Start vLLM (default GPU profile; --cpu experimental)
-  down [--cpu] Stop
-  status       compose ps (both profiles)
-  check        Loopback port guard
-  probe        GET /v1/models + probe_vllm
+  up [--cpu|--proxy|--multi]  Start vLLM (default GPU profile)
+  down                        Stop (all soft profiles)
+  status                      compose ps (all profiles)
+  check                       Loopback port guard
+  probe                       GET /v1/models + probe_vllm
+  pull [model]                Fake/soft model pull intent (ADR-049)
+  plan                        Print Fake proxy/multi/pull plans (ADR-049)
 EOF
 }
 
@@ -125,6 +167,8 @@ main() {
     status) cmd_status ;;
     check) cmd_check ;;
     probe) cmd_probe ;;
+    pull) cmd_pull "$@" ;;
+    plan) cmd_plan ;;
     -h|--help|help|"") usage ;;
     *) die "unknown command: $cmd" ;;
   esac

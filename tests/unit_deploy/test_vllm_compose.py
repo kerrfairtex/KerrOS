@@ -1,4 +1,4 @@
-"""Guard vLLM compose: loopback host ports + profiles (C-19 / ADR-048)."""
+"""Guard vLLM compose: loopback host ports + profiles (C-19 / ADR-048 / ADR-049)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,9 @@ COMPOSE = ROOT / "deploy" / "vllm" / "docker-compose.yml"
 README = ROOT / "deploy" / "vllm" / "README.md"
 SCRIPT = ROOT / "scripts" / "vllm_docker.sh"
 ADR = ROOT / "docs" / "adr" / "ADR-048-vllm-ops-kit.md"
+ADR049 = ROOT / "docs" / "adr" / "ADR-049-local-llm-residuals.md"
 ENV = ROOT / "deploy" / "vllm" / ".env.example"
+PROXY = ROOT / "deploy" / "vllm" / "proxy" / "Caddyfile"
 
 
 def _published_ports(compose_text: str) -> list[str]:
@@ -32,9 +34,12 @@ class VllmComposeTest(unittest.TestCase):
         self.assertTrue(README.is_file())
         self.assertTrue(SCRIPT.is_file())
         self.assertTrue(ADR.is_file())
+        self.assertTrue(ADR049.is_file())
         self.assertTrue(ENV.is_file())
+        self.assertTrue(PROXY.is_file())
         self.assertTrue(SCRIPT.read_text(encoding="utf-8").startswith("#!/"))
         self.assertIn("ADR-048", ADR.read_text(encoding="utf-8"))
+        self.assertIn("ADR-049", ADR049.read_text(encoding="utf-8"))
 
     def test_loopback_ports_profiles_and_pinned_image(self):
         text = COMPOSE.read_text(encoding="utf-8")
@@ -42,8 +47,14 @@ class VllmComposeTest(unittest.TestCase):
         services = data.get("services") or {}
         self.assertIn("vllm", services)
         self.assertIn("vllm-cpu", services)
+        self.assertIn("llm-proxy", services)
+        self.assertIn("vllm-node-a", services)
+        self.assertIn("vllm-node-b", services)
         self.assertIn("vllm", services["vllm"].get("profiles") or [])
         self.assertIn("cpu", services["vllm-cpu"].get("profiles") or [])
+        self.assertIn("proxy", services["llm-proxy"].get("profiles") or [])
+        self.assertIn("multi", services["vllm-node-a"].get("profiles") or [])
+        self.assertIn("multi", services["vllm-node-b"].get("profiles") or [])
         ports = _published_ports(text)
         self.assertTrue(ports)
         for p in ports:
@@ -59,6 +70,8 @@ class VllmComposeTest(unittest.TestCase):
         script = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("check_loopback", script)
         self.assertIn("--profile", script)
+        self.assertIn("--proxy", script)
+        self.assertIn("--multi", script)
 
 
 if __name__ == "__main__":

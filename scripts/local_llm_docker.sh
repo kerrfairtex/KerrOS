@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# KerrOS local LLM (Ollama) helper — C-19 / ADR-016.
+# KerrOS local LLM (Ollama) helper — C-19 / ADR-016 / ADR-049.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_DIR="${ROOT}/deploy/ollama"
 COMPOSE_FILE="${COMPOSE_DIR}/docker-compose.yml"
 HOST_PORT="${OLLAMA_HOST_PORT:-11434}"
+USE_PROXY=0
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -53,21 +54,53 @@ PY
 
 compose() {
   need_docker
-  (cd "$COMPOSE_DIR" && docker compose "$@")
+  if [[ "$USE_PROXY" == "1" ]]; then
+    (cd "$COMPOSE_DIR" && docker compose --profile proxy "$@")
+  else
+    (cd "$COMPOSE_DIR" && docker compose "$@")
+  fi
 }
 
 cmd_up() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --proxy) USE_PROXY=1; shift ;;
+      *) break ;;
+    esac
+  done
   check_loopback
   compose up -d "$@"
   echo "ollama up — http://127.0.0.1:${HOST_PORT}  (OpenAI compat: …/v1)"
+  if [[ "$USE_PROXY" == "1" ]]; then
+    echo "proxy up — https://127.0.0.1:${LOCAL_LLM_PROXY_HOST_PORT:-8443} (ADR-049 soft edge)"
+  fi
 }
 
-cmd_down() { compose down "$@"; }
-cmd_status() { compose ps; }
+cmd_down() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --proxy) USE_PROXY=1; shift ;;
+      *) break ;;
+    esac
+  done
+  USE_PROXY=1
+  compose down "$@"
+}
+cmd_status() { (cd "$COMPOSE_DIR" && docker compose --profile proxy ps); }
 cmd_check() { check_loopback; }
 
 cmd_pull() {
   local model="${1:-llama3.2}"
+  # ADR-049: record Fake intent, then soft docker-exec when container is up.
+  KERROS_MODEL_PULL=1 python3 - "$model" <<'PY' || true
+import json, sys
+from adapters.llm.model_pull import ModelPullConfig, ModelPullService
+model = sys.argv[1]
+svc = ModelPullService(
+    cfg=ModelPullConfig(enabled=True, backend="fake", models=[model])
+)
+print(json.dumps(svc.plan(model), indent=2, sort_keys=True))
+PY
   need_docker
   docker exec kerros-ollama ollama pull "$model"
 }
@@ -94,12 +127,12 @@ usage() {
 Usage: $0 <command> [args]
 
 Commands:
-  up          Start Ollama (loopback)
-  down        Stop
-  status      compose ps
-  check       Loopback port guard
-  pull [model]  docker exec ollama pull (default llama3.2)
-  probe       GET /v1/models + probe_ollama/probe_vllm
+  up [--proxy]  Start Ollama (loopback; --proxy soft Caddy edge)
+  down          Stop (includes proxy profile)
+  status        compose ps
+  check         Loopback port guard
+  pull [model]  Fake plan + docker exec ollama pull (default llama3.2)
+  probe         GET /v1/models + probe_ollama/probe_vllm
 EOF
 }
 

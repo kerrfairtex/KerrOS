@@ -1,0 +1,16 @@
+# Soft Caddy edge for local vLLM (ADR-049).
+#
+# Default-off compose profile `proxy`. Host publish stays loopback.
+# Replace {$LOCAL_LLM_PROXY_TOKEN} and mount real certs for funded deploys.
+# This template is NOT a production TLS seal.
+
+{
+	auto_https off
+}
+
+:443 {
+	basicauth /* {
+		kerros {$LOCAL_LLM_PROXY_TOKEN}
+	}
+	reverse_proxy vllm:8000
+}

@@ -3,6 +3,7 @@
 Self-hosted models behind `LLMPort` via existing `OllamaAdapter` / `VLLMAdapter`.
 This kit runs **Ollama** on loopback. For vLLM (GPU host), see
 [`deploy/vllm/`](../vllm/) and [`ADR-048`](../../docs/adr/ADR-048-vllm-ops-kit.md).
+Soft auth-proxy / model-pull residuals: [`ADR-049`](../../docs/adr/ADR-049-local-llm-residuals.md).
 
 ## Quickstart
 
@@ -10,6 +11,9 @@ This kit runs **Ollama** on loopback. For vLLM (GPU host), see
 ./scripts/local_llm_docker.sh up
 ./scripts/local_llm_docker.sh pull llama3.2
 ./scripts/local_llm_docker.sh probe
+
+# Soft Caddy edge (ADR-049, loopback only — not a production TLS seal):
+# ./scripts/local_llm_docker.sh up --proxy
 
 export KERROS_LOCAL_LLM=1
 export OLLAMA_ENDPOINT=http://127.0.0.1:11434/v1
@@ -22,3 +26,4 @@ python3 cli/chat.py   # /llm shows ollama availability
 - Host publish is `127.0.0.1:11434` only — do not expose Ollama on a public
   interface without auth / reverse proxy.
 - Models are large; volume `kerros-ollama-data` holds pulled weights.
+- `production_tls` stays False without contract-funded edge cert custody.

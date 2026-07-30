@@ -1,10 +1,12 @@
-# KerrOS local vLLM sidecar (C-19 / ADR-048).
+# KerrOS local vLLM sidecar (C-19 / ADR-048 / ADR-049).
 #
 # Soft on-ramp for a funded GPU host. Host ports bind to 127.0.0.1 only.
 # Model weights are operator-owned (not bundled). Default profile is unused
 # so accidental `docker compose up` does nothing — start with:
 #   ./scripts/vllm_docker.sh up          # uses --profile vllm
 #   ./scripts/vllm_docker.sh up --cpu    # CPU profile (experimental smoke)
+#   ./scripts/vllm_docker.sh up --proxy  # ADR-049 soft Caddy edge
+#   ./scripts/vllm_docker.sh up --multi  # ADR-049 soft two-node stubs
 #
 # KerrOS client:
 #   export KERROS_LOCAL_LLM=1
@@ -14,7 +16,7 @@
 
 services:
   vllm:
-    profiles: ["vllm"]
+    profiles: ["vllm", "proxy"]
     image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5}
     container_name: kerros-vllm
     restart: unless-stopped
@@ -24,6 +26,8 @@ services:
       - vllm-cache:/root/.cache/huggingface
     environment:
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    networks:
+      - vllm
     # GPU reservation (Compose v2 + NVIDIA Container Toolkit).
     # Ignored on hosts without a GPU runtime — container may fail to start.
     deploy:
@@ -55,6 +59,8 @@ services:
     environment:
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
       VLLM_TARGET_DEVICE: cpu
+    networks:
+      - vllm
     command:
       - "--model"
       - "${VLLM_MODEL:-facebook/opt-125m}"
@@ -63,6 +69,73 @@ services:
       - "--port"
       - "8000"
 
+  # ADR-049 soft auth edge — loopback only; not a production TLS seal.
+  llm-proxy:
+    profiles: ["proxy"]
+    image: ${LOCAL_LLM_PROXY_IMAGE:-caddy:2.8-alpine}
+    container_name: kerros-vllm-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_LLM_PROXY_HOST_PORT:-8443}:443"
+    environment:
+      LOCAL_LLM_PROXY_TOKEN: ${LOCAL_LLM_PROXY_TOKEN:-kerros-dev-token}
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - vllm
+    depends_on:
+      - vllm
+
+  # ADR-049 soft multi-node stubs — operator GPU / Ray HA still contract-gated.
+  vllm-node-a:
+    profiles: ["multi"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5}
+    container_name: kerros-vllm-node-a
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${VLLM_MULTI_PORT_A:-8001}:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      KERROS_VLLM_NODE: node-a
+    networks:
+      - vllm
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-meta-llama/Llama-3.2-3B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+
+  vllm-node-b:
+    profiles: ["multi"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5}
+    container_name: kerros-vllm-node-b
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${VLLM_MULTI_PORT_B:-8002}:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      KERROS_VLLM_NODE: node-b
+    networks:
+      - vllm
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-meta-llama/Llama-3.2-3B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+
 volumes:
   vllm-cache:
     name: kerros-vllm-cache
+
+networks:
+  vllm:
+    name: kerros-vllm
+    driver: bridge

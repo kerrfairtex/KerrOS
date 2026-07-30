@@ -1,0 +1,13 @@
+# Soft Caddy edge for local Ollama (ADR-049).
+# Compose profile `proxy` — loopback only. Not a production TLS seal.
+
+{
+	auto_https off
+}
+
+:443 {
+	basicauth /* {
+		kerros {$LOCAL_LLM_PROXY_TOKEN}
+	}
+	reverse_proxy ollama:11434
+}

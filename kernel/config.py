@@ -110,6 +110,33 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "ollama_enabled": False,
         "vllm_enabled": False,
         "local_llm": False,
+        # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
+        "local_llm_proxy": {
+            "enabled": False,
+            "backend": "fake",  # fake | caddy | nginx
+            "upstream": "http://127.0.0.1:8000",
+            "listen": "127.0.0.1:8443",
+            "token": "",
+            "allow_tls": False,
+            "allow_non_loopback": False,
+            "allow_live": False,
+            "template_dir": "deploy/vllm/proxy",
+        },
+        "vllm_multinode": {
+            "enabled": False,
+            "backend": "fake",  # fake | ray | compose
+            "model": "meta-llama/Llama-3.2-3B-Instruct",
+            "tensor_parallel": 2,
+            "nodes": ["vllm-node-a", "vllm-node-b"],
+            "allow_live": False,
+        },
+        "model_pull": {
+            "enabled": False,
+            "backend": "fake",  # fake | ollama | hf
+            "models": ["llama3.2"],
+            "allow_pull": False,
+            "timeout_s": 120.0,
+        },
         # P6: composite provider circuit breaker / cooldown / lockout.
         "llm_resilience": {
             "enabled": True,

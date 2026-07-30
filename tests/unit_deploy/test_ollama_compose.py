@@ -1,4 +1,4 @@
-"""Guard Ollama compose: loopback host ports (C-19)."""
+"""Guard Ollama compose: loopback host ports (C-19 / ADR-016 / ADR-049)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ COMPOSE = ROOT / "deploy" / "ollama" / "docker-compose.yml"
 README = ROOT / "deploy" / "ollama" / "README.md"
 SCRIPT = ROOT / "scripts" / "local_llm_docker.sh"
 ADR = ROOT / "docs" / "adr" / "ADR-016-local-llm-ops.md"
+PROXY = ROOT / "deploy" / "ollama" / "proxy" / "Caddyfile"
 
 
 def _published_ports(compose_text: str) -> list[str]:
@@ -31,11 +32,17 @@ class OllamaComposeTest(unittest.TestCase):
         self.assertTrue(README.is_file())
         self.assertTrue(SCRIPT.is_file())
         self.assertTrue(ADR.is_file())
+        self.assertTrue(PROXY.is_file())
         self.assertTrue(SCRIPT.read_text(encoding="utf-8").startswith("#!/"))
         self.assertIn("C-19", ADR.read_text(encoding="utf-8"))
 
     def test_loopback_ports_and_pinned_image(self):
         text = COMPOSE.read_text(encoding="utf-8")
+        data = yaml.safe_load(text)
+        services = data.get("services") or {}
+        self.assertIn("ollama", services)
+        self.assertIn("llm-proxy", services)
+        self.assertIn("proxy", services["llm-proxy"].get("profiles") or [])
         ports = _published_ports(text)
         self.assertTrue(ports)
         for p in ports:

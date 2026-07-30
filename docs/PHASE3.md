@@ -63,8 +63,10 @@ run = engine.run("demo")
 ### Local LLM (C-19)
 
 Adapters already implement `LLMPort`. Ops foundation: loopback Ollama compose +
-HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)) and soft vLLM kit
-([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`).
+HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)), soft vLLM kit
+([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`), and soft
+residuals ([`ADR-049`](adr/ADR-049-local-llm-residuals.md): proxy /
+multi-node / model pull).
 
 ```bash
 ./scripts/local_llm_docker.sh up
@@ -74,6 +76,9 @@ HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)) and soft vLLM kit
 # Optional GPU host:
 # ./scripts/vllm_docker.sh up
 # ./scripts/vllm_docker.sh probe
+# ./scripts/vllm_docker.sh plan          # ADR-049 Fake proxy/multi/pull
+# ./scripts/vllm_docker.sh up --proxy    # soft Caddy edge (loopback)
+# ./scripts/vllm_docker.sh up --multi    # soft two-node stubs
 
 export KERROS_LOCAL_LLM=1          # try Ollama → vLLM before cloud
 export KERROS_LLM_PROVIDER=ollama  # force provider
@@ -131,7 +136,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 ## Deferred
 
 - ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
-- ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); auth proxy / multi-node / automated model pull stay contract-gated
+- ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
 
 ## Workflow YAML definitions
 

@@ -91,7 +91,7 @@ Optional dep: `requirements-optional.txt`.
 - ~~LGU audit immutability extensions~~ — foundation arc complete through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md); ISO/HSM soft on-ramps in [ADR-047](adr/ADR-047-prod-onramps-helm-iso-hsm.md); accreditation/HSM custody stay contract-gated
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
-- ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); soft vLLM kit ([ADR-048](adr/ADR-048-vllm-ops-kit.md), [`deploy/vllm/`](../deploy/vllm/)); see Phase 3
+- ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); soft vLLM kit ([ADR-048](adr/ADR-048-vllm-ops-kit.md), [`deploy/vllm/`](../deploy/vllm/)); soft residuals ([ADR-049](adr/ADR-049-local-llm-residuals.md)); see Phase 3
 
 ## Legacy
 

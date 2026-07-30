@@ -41,5 +41,6 @@ weights.
 
 ## Revisit when
 
-A funded deploy needs auth proxy, multi-node vLLM, or automated model
-provisioning — not more soft stubs by default.
+~~Auth proxy / multi-node / automated model pull soft stubs~~ — **ADR-049**.
+A funded deploy needs production edge TLS, Ray/NCCL HA, or automated
+weight provisioning — not more soft stubs by default.

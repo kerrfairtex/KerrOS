@@ -1,8 +1,11 @@
-# KerrOS local Ollama sidecar (C-19 / ADR-016).
+# KerrOS local Ollama sidecar (C-19 / ADR-016 / ADR-049).
 #
 # Host ports bind to 127.0.0.1 only. After `up`, pull a model:
 #   docker exec kerros-ollama ollama pull llama3.2
 #   or: ./scripts/local_llm_docker.sh pull llama3.2
+#
+# Soft auth edge (ADR-049, default-off):
+#   ./scripts/local_llm_docker.sh up --proxy
 #
 # KerrOS client:
 #   export KERROS_LOCAL_LLM=1
@@ -20,7 +23,31 @@ services:
       - ollama-data:/root/.ollama
     environment:
       OLLAMA_HOST: "0.0.0.0:11434"
+    networks:
+      - ollama
+
+  # ADR-049 soft auth edge — loopback only; not a production TLS seal.
+  llm-proxy:
+    profiles: ["proxy"]
+    image: ${LOCAL_LLM_PROXY_IMAGE:-caddy:2.8-alpine}
+    container_name: kerros-ollama-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_LLM_PROXY_HOST_PORT:-8443}:443"
+    environment:
+      LOCAL_LLM_PROXY_TOKEN: ${LOCAL_LLM_PROXY_TOKEN:-kerros-dev-token}
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - ollama
+    depends_on:
+      - ollama
 
 volumes:
   ollama-data:
     name: kerros-ollama-data
+
+networks:
+  ollama:
+    name: kerros-ollama
+    driver: bridge

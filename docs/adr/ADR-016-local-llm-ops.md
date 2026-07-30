@@ -42,5 +42,7 @@ toolkit + weights remain operator-owned (soft kit in ADR-048).
 ## Revisit when
 
 ~~First-class `deploy/vllm/` kit~~ — **ADR-048** (soft GPU/CPU profiles).
-A funded deploy needs auth proxy, multi-node vLLM, or automated model
-provisioning.
+~~Auth proxy / multi-node / automated model pull~~ — **ADR-049** soft
+on-ramps (seals still contract-gated).
+A funded deploy needs production edge TLS, Ray/NCCL HA, or automated
+weight provisioning with live confirm.

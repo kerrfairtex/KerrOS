@@ -23,9 +23,19 @@ python3 cli/chat.py   # /llm shows vllm availability
 
 CPU experimental smoke: `./scripts/vllm_docker.sh up --cpu` (small model).
 
+Soft residuals ([ADR-049](../../docs/adr/ADR-049-local-llm-residuals.md)):
+
+```bash
+./scripts/vllm_docker.sh plan
+./scripts/vllm_docker.sh up --proxy   # Caddy edge on 127.0.0.1:8443
+./scripts/vllm_docker.sh up --multi   # two-node stubs (not Ray HA)
+./scripts/vllm_docker.sh pull         # Fake model-pull intent
+```
+
 ## Security / ops
 
 - Host publish is `127.0.0.1:8000` only — do not expose without auth/proxy.
-- Compose uses profiles (`vllm` / `cpu`) so bare `docker compose up` is a no-op.
+- Compose uses profiles (`vllm` / `cpu` / `proxy` / `multi`) so bare `docker compose up` is a no-op.
 - Model weights download into `kerros-vllm-cache` — operator-owned / HF token.
 - NVIDIA Container Toolkit required for the GPU profile.
+- `production_tls` / `cluster_ready` / `provisioned_production` stay False without contract gates.
