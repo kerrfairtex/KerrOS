@@ -344,6 +344,9 @@ def main():
                 ("/scope policy export","Regenerate docs/SCOPE_POLICY.md"),
                 ("/apistatus",         "Show online API health/dead status"),
                 ("/integrations",      "Adaptive catalog / tiers (coding, sol, terra…)"),
+                ("search past sessions <q>", "FTS recall across chat history"),
+                ("skills curate",      "Archive duplicate/stale learned skills"),
+                ("execute pipeline <py>", "Allowlisted multi-tool script (ADR-060)"),
                 ("/setkey groq <key>", "Set Groq API key"),
                 ("/switch small|large","Switch local model"),
                 ("/react <task>",      "ReAct agent — multi-step reasoning"),
@@ -1257,6 +1260,15 @@ def main():
                 spinner.start()
                 spinner.stop()
                 tool_result=run_tool(tool,args)
+                try:
+                    from tools.skill_experience import maybe_create_skill, set_task_hint
+
+                    set_task_hint(user)
+                    skill_path = maybe_create_skill(min_tools=5)
+                    if skill_path:
+                        print(f"  {GR}[skill] learned → {skill_path}{R}")
+                except Exception:
+                    pass
 
                 if active_goal and not active_goal.is_complete():
                     _fail_markers = ("error", "fail", "traceback", "not found", "[✗]")
@@ -1318,6 +1330,18 @@ def main():
                        "PING ","bytes from","icmp_seq","packets transmitted"]
                 if c and len(c)>3 and len(c)<500 and not any(b in c for b in bad):
                     clean_hist.append({"role":m["role"],"content":c})
+            try:
+                from core.message_policy import prepare_history
+                from core.config import cfg as _cfg
+
+                _c = _cfg()
+                clean_hist, _meta = prepare_history(
+                    clean_hist,
+                    context_size=int(_c.get("context_size") or 4096),
+                    max_tokens=int(_c.get("max_tokens") or 512),
+                )
+            except Exception:
+                pass
             response = generate_complete(engine, 
                 user_message=user_p,
                 system=system_p,

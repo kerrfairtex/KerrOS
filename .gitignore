@@ -58,6 +58,8 @@ _archived_system_b/
 generated_code/
 data/*.json
 data/rag_store.db
+data/session_fts.db
+data/session_fts.db-*
 data/tasks/
 data/*.bak
 *.crt

@@ -256,13 +256,30 @@ def detect_tool(text, bypass_gate=False):
     if lower.startswith("stripe trigger "):
         return ("stripe_trigger", text[len("stripe trigger "):].strip())
 
+    # Hermes-port recall / pipeline / skills (ADR-058..060)
+    if lower.startswith("search past sessions ") or lower.startswith("/sessions "):
+        q = text.split(" ", 3)[-1].strip() if lower.startswith("/sessions ") else text[len("search past sessions "):].strip()
+        return ("search_past_sessions", q)
+    if "search past session" in lower or lower.startswith("recall session"):
+        q = re.sub(r'^(?:search past sessions?|recall session)\s*', '', text, flags=re.I).strip()
+        return ("search_past_sessions", q or text)
+    if lower.startswith("execute pipeline ") or lower.startswith("/pipeline "):
+        body = text.split(" ", 2)[-1] if lower.startswith("/pipeline ") else text[len("execute pipeline "):]
+        return ("execute_pipeline", body)
+    if lower.startswith("skills curate") or lower == "/skills curate":
+        return ("skills_curate", "")
+
     return (None, None)
 
 def run_tool(tool, args):
-    from tools.scope_gate import check as _scope_check
-    allowed, reason = _scope_check(tool, args)
+    from tools.tool_hooks import run_post_tool_call, run_pre_tool_call
+
+    allowed, reason, hook = run_pre_tool_call(tool, args)
     if not allowed:
-        return f"[SCOPE GATE] {reason}"
+        prefix = "[SCOPE GATE]" if hook == "scope_gate" else f"[TOOL HOOK:{hook}]"
+        result = f"{prefix} {reason}"
+        run_post_tool_call(tool, args, result)
+        return result
 
     dispatch = {
         # Network
@@ -309,10 +326,14 @@ def run_tool(tool, args):
         "railway_deploy":_railway_deploy,
         "cloudflare_deploy":_cloudflare_deploy,
         "stripe_trigger":_stripe_trigger,
-
+        "search_past_sessions": _search_past_sessions,
+        "execute_pipeline": _execute_pipeline,
+        "skills_curate": _skills_curate,
     }
     fn = dispatch.get(tool)
-    return fn(args) if fn else "[Unknown tool]"
+    result = fn(args) if fn else "[Unknown tool]"
+    run_post_tool_call(tool, args, result)
+    return result
 
 def _run_argv(argv, timeout=15):
     return run_argv(argv, timeout=timeout)
@@ -1122,3 +1143,50 @@ def _stripe_trigger(args):
     if not event: return "[Usage: stripe trigger <event_name>]"
     if not shutil.which("stripe"): return "[stripe CLI not installed]"
     return _run_argv(["stripe", "trigger", event], 20)
+
+
+def _search_past_sessions(query):
+    from memory.session_fts import format_search_results, search_past_sessions
+
+    hits = search_past_sessions(str(query or ""), top_k=8)
+    return format_search_results(hits)
+
+
+def _execute_pipeline(script):
+    from tools.pipeline_exec import execute_pipeline
+
+    return execute_pipeline(str(script or ""))
+
+
+def _skills_curate(_args=""):
+    from tools.skill_experience import curate_skills
+
+    out = curate_skills()
+    return (
+        f"[skills curate] archived={len(out.get('archived') or [])} "
+        f"dupes={len(out.get('dupes') or [])}"
+    )
+
+
+def _bootstrap_hermes_hooks():
+    """Register experience recorder post-hook once."""
+    try:
+        from tools.tool_hooks import list_hooks, register_post_tool_call
+
+        if "skill_experience" in list_hooks().get("post", []):
+            return
+
+        def _post(tool, args, result):
+            try:
+                from tools.skill_experience import record_tool_call
+
+                record_tool_call(tool, result)
+            except Exception:
+                pass
+
+        register_post_tool_call("skill_experience", _post)
+    except Exception:
+        pass
+
+
+_bootstrap_hermes_hooks()

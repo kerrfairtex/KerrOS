@@ -58,6 +58,12 @@ def add_message(role, content):
         return
     hist.append(entry)
     _save(MEM, hist[-50:])
+    try:
+        from memory.session_fts import index_message
+
+        index_message(role, content, ts=ts, source="live")
+    except Exception:
+        pass
     if len(_short) >= 15:
         _compress()
 
