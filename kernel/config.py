@@ -143,6 +143,14 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "allowed_tools": None,  # None → DEFAULT_ALLOWED_TOOLS; ["*"] → all
             "allow_all_tools": False,
         },
+        # ADR-019: software-WORM + retention for decision_log (off by default).
+        "audit_retention": {
+            "enabled": False,
+            "retain_days": 90,
+            "action": "archive",  # archive | purge
+            "worm_dir": "data/audit_worm",
+            "allow_purge": False,
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

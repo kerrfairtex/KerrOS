@@ -34,7 +34,7 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 **Phase 2 (trigger: LGU or regulated client contract):**
 - ~~Add `MemoryPort` / `ToolPort` audit-immutability extensions~~ — foundation in ADR-017 (`tool_port` / `memory_port` decision_log hooks)
 - ~~External audit export (signed JSONL or SIEM feed)~~ — JSONL + optional HMAC (`scripts/export_decision_log.py`); SIEM push still deferred
-- Retention policy engine and role-based log access — still deferred
+- ~~Retention policy engine~~ — foundation in ADR-019 (`audit_retention` + software-WORM); role-based log access still deferred
 - ADR for LGU compliance mapping (ISO 27001, local data privacy acts) — still deferred
 
 ## Alternatives considered
@@ -50,4 +50,5 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - ~~File issues for audit export adapter when LGU trigger fires~~ — landed: [`ADR-017`](../adr/ADR-017-decision-log-tamper-evidence-export.md)
 - ~~Review `decision_log` schema for tamper-evidence (hash chain)~~ — `prev_hash` / `entry_hash` + `verify_chain()`
 - Document data residency requirements per jurisdiction — still deferred
-- WORM storage, retention engine, role-based log access — still deferred until funded LGU deploy
+- ~~WORM storage, retention engine~~ — software-WORM segments + retention in [ADR-019](../adr/ADR-019-decision-log-worm-retention.md)
+- Role-based log access / SIEM / hardware WORM / ISO mapping — still deferred until funded LGU deploy

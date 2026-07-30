@@ -4,6 +4,9 @@ kernel/decision_log.py
 Append-only SQLite decision log (KOS-008) with tamper-evidence hash chain
 and export helpers (ADR-017 / LGU foundation).
 
+Cold WORM segments + retention prefix-delete are ADR-019
+(``delete_through(..., _retention=True)`` only).
+
 Records scope gate, deploy arm/disarm, verification, watchdog, and
 port-level audit events. No public UPDATE or DELETE API — audit trail is
 append-only at the application layer. Schema migration may one-time
@@ -245,6 +248,53 @@ class DecisionLog:
         for row in rows:
             yield self._row_to_record(row)
 
+    def iter_through(self, through_id: int) -> Iterator[DecisionRecord]:
+        """Yield records with id <= through_id in ascending id order."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, timestamp, actor, decision_type, input_summary,
+                       outcome, reason, prev_hash, entry_hash
+                FROM decisions
+                WHERE id <= ?
+                ORDER BY id ASC
+                """,
+                (int(through_id),),
+            ).fetchall()
+        for row in rows:
+            yield self._row_to_record(row)
+
+    def retention_cutoff_id(self, cutoff_ts: float) -> int | None:
+        """Largest id in the oldest contiguous prefix with timestamp < cutoff_ts."""
+        last: int | None = None
+        for rec in self.iter_from(0):
+            if rec.timestamp < float(cutoff_ts):
+                last = rec.id
+            else:
+                break
+        return last
+
+    def delete_through(self, last_id: int, *, _retention: bool = False) -> int:
+        """
+        Delete rows with id <= last_id.
+
+        Retention-only (ADR-019). Callers must pass ``_retention=True`` after a
+        successful WORM seal (or explicit purge). Not part of the public
+        append-only API.
+        """
+        if not _retention:
+            raise RuntimeError(
+                "delete_through is retention-only — pass _retention=True "
+                "(ADR-019) after sealing to WORM or intentional purge"
+            )
+        with self._connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM decisions WHERE id <= ?",
+                (int(last_id),),
+            )
+            conn.commit()
+            return int(cur.rowcount or 0)
+
     def count(self) -> int:
         with self._connect() as conn:
             row = conn.execute("SELECT COUNT(*) AS n FROM decisions").fetchone()
@@ -254,10 +304,12 @@ class DecisionLog:
         """
         Walk the hash chain. Returns ok + first failure detail if any.
 
-        Empty log is valid. Detects payload tampering and broken links.
+        Empty log is valid. After ADR-019 archive, the first remaining row may
+        anchor ``prev_hash`` to a sealed segment tip (not GENESIS).
         """
         checked = 0
-        expected_prev = GENESIS_HASH
+        expected_prev: str | None = None
+        tip = GENESIS_HASH
         with self._connect() as conn:
             rows = conn.execute(
                 """
@@ -270,7 +322,7 @@ class DecisionLog:
         for row in rows:
             checked += 1
             prev = row["prev_hash"] or GENESIS_HASH
-            if prev != expected_prev:
+            if expected_prev is not None and prev != expected_prev:
                 return {
                     "ok": False,
                     "checked": checked,
@@ -299,10 +351,11 @@ class DecisionLog:
                     "actual_hash": actual,
                 }
             expected_prev = actual
+            tip = actual
         return {
             "ok": True,
             "checked": checked,
-            "tip": expected_prev if checked else GENESIS_HASH,
+            "tip": tip if checked else GENESIS_HASH,
         }
 
     def to_dicts(self, limit: int = 50) -> list[dict[str, Any]]:

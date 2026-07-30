@@ -20,7 +20,7 @@ from typing import Any, Optional, Union
 from kernel.decision_log import DecisionLog, DecisionRecord
 
 
-def _record_dict(rec: DecisionRecord) -> dict[str, Any]:
+def record_dict(rec: DecisionRecord) -> dict[str, Any]:
     return {
         "id": rec.id,
         "timestamp": rec.timestamp,
@@ -32,6 +32,10 @@ def _record_dict(rec: DecisionRecord) -> dict[str, Any]:
         "prev_hash": rec.prev_hash,
         "entry_hash": rec.entry_hash,
     }
+
+
+# Back-compat alias
+_record_dict = record_dict
 
 
 def resolve_hmac_secret(explicit: Optional[str] = None) -> str:
@@ -82,7 +86,7 @@ def export_decision_log_jsonl(
     tip = ""
     with path.open("w", encoding="utf-8") as fh:
         for rec in decision_log.iter_from(since_id):
-            payload = _record_dict(rec)
+            payload = record_dict(rec)
             if secret:
                 # HMAC over stable JSON without the mac field itself.
                 body = json.dumps(payload, sort_keys=True, separators=(",", ":"))

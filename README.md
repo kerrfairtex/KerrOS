@@ -102,7 +102,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] IPC actor-mesh foundation (nng/socket) — `runtime/actor_mesh.py` ([`ADR-012`](docs/adr/ADR-012-actor-mesh.md)); optional `pynng`
 - [x] Actor orchestrator foundation — named routes, req/reply, `add_peer`, WAN token gate ([`ADR-018`](docs/adr/ADR-018-actor-mesh-orchestrator-foundation.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
-- [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md)); WORM/RBAC still deferred
+- [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
+- [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md)); RBAC/SIEM/hardware WORM still deferred
 - [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
 
 ### P3 — Event Infrastructure

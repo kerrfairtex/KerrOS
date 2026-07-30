@@ -330,6 +330,8 @@ def main():
                 ("/decisions",         "Show recent decision log entries"),
                 ("/decisions verify",  "Verify decision_log hash chain (ADR-017)"),
                 ("/decisions export [path]", "Export decision_log JSONL"),
+                ("/decisions seal <id>", "Seal id prefix to WORM segment (ADR-019)"),
+                ("/decisions retain",  "Apply retention policy once (ADR-019)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -745,6 +747,49 @@ def main():
                         )
                     else:
                         print(f"  {RE}Export failed:{R} {out.get('error') or out}")
+                elif sub == "seal":
+                    from adapters.audit.worm_store import WormStore, WormStoreError
+
+                    if len(parts) < 3 or not parts[2].strip().isdigit():
+                        print(f"  {RE}Usage:{R} /decisions seal <through_id>")
+                    else:
+                        cfg = resolve("config")
+                        worm_rel = (
+                            (cfg.values.get("audit_retention") or {}).get("worm_dir")
+                            or "data/audit_worm"
+                        )
+                        worm_dir = cfg.base / worm_rel
+                        try:
+                            out = WormStore(worm_dir).seal_from_log(
+                                log, through_id=int(parts[2].strip())
+                            )
+                            print(
+                                f"  {GR}[ ✓ ]{R} sealed segment "
+                                f"{out.get('segment'):06d} "
+                                f"ids {out.get('first_id')}–{out.get('last_id')} → "
+                                f"{out.get('path')}"
+                            )
+                        except WormStoreError as exc:
+                            print(f"  {RE}Seal failed:{R} {exc}")
+                elif sub == "retain":
+                    from adapters.audit.retention import apply_retention
+
+                    cfg = resolve("config")
+                    # One-shot: enable for this invoke if policy present.
+                    policy = dict(cfg.values.get("audit_retention") or {})
+                    policy["enabled"] = True
+                    out = apply_retention(
+                        log,
+                        cfg={"audit_retention": policy},
+                        base=cfg.base,
+                    )
+                    if out.get("ok"):
+                        print(
+                            f"  {GR}[ ✓ ]{R} retention {out.get('action')} "
+                            f"{out.get('reason') or out.get('through_id') or ''}"
+                        )
+                    else:
+                        print(f"  {RE}Retention failed:{R} {out.get('error') or out}")
                 else:
                     rows = log.read_recent(15)
                     if not rows:
@@ -756,7 +801,9 @@ def main():
                             f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
                             f"{row.outcome} — {row.input_summary[:60]}{suffix}"
                         )
-                    print(f"  {GY}Tip: /decisions verify | /decisions export [path]{R}")
+                    print(
+                        f"  {GY}Tip: /decisions verify | export | seal <id> | retain{R}"
+                    )
             except Exception as e:
                 print(f"  {RE}Decision log unavailable: {e}{R}")
             divider()
