@@ -26,7 +26,23 @@ STATUSES = (
     "eligible_hot_retention",
     "completed_via_retention",
     "rejected",
+    # ADR-026 sealed-cold review outcomes (append-only follow-up rows)
+    "review_legal_hold_retain",
+    "review_acknowledged_immutable",
+    "review_schedule_post_retention",
 )
+
+REVIEW_OUTCOMES = (
+    "legal_hold_retain",
+    "acknowledged_immutable",
+    "schedule_post_retention",
+)
+
+_REVIEW_STATUS = {
+    "legal_hold_retain": "review_legal_hold_retain",
+    "acknowledged_immutable": "review_acknowledged_immutable",
+    "schedule_post_retention": "review_schedule_post_retention",
+}
 
 
 def _truthy(value: Any) -> bool:
@@ -287,4 +303,106 @@ def evaluate_erasure_request(
                 else "recorded_only"
             )
         ),
+    }
+
+
+def review_sealed_erasure(
+    request_id: int,
+    *,
+    outcome: str,
+    notes: str = "",
+    actor: str = "",
+    cfg: Optional[Mapping[str, Any]] = None,
+    base: Optional[Path] = None,
+    audit_token: Optional[str] = None,
+    skip_rbac: bool = False,
+) -> dict[str, Any]:
+    """
+    Append a sealed-cold review outcome for a ``blocked_sealed`` request (ADR-026).
+
+    Never rewrites WORM. Creates a new ledger row linked by subject_ref /
+    decision_ids copied from the parent request.
+    """
+    if not skip_rbac:
+        from adapters.audit.rbac import require_audit_action
+
+        require_audit_action("erasure_review", token=audit_token, cfg=cfg)
+
+    eco = erasure_config_from(cfg, base=base)
+    if not eco.enabled:
+        return {
+            "ok": False,
+            "error": "audit_erasure disabled",
+            "enabled": False,
+        }
+
+    key = str(outcome or "").strip().lower()
+    if key not in _REVIEW_STATUS:
+        return {
+            "ok": False,
+            "error": (
+                f"invalid review outcome {outcome!r}; "
+                f"expected one of {list(REVIEW_OUTCOMES)}"
+            ),
+        }
+
+    ledger = ErasureLedger(eco.db_path)
+    try:
+        parent = ledger.get(int(request_id))
+    except KeyError as exc:
+        return {"ok": False, "error": str(exc)}
+
+    if parent.get("status") != "blocked_sealed" and not parent.get("sealed_overlap"):
+        return {
+            "ok": False,
+            "error": (
+                f"request #{request_id} is not blocked_sealed "
+                f"(status={parent.get('status')})"
+            ),
+        }
+
+    # Verify WORM still intact for overlap ids (no rewrite happened).
+    worm = WormStore(eco.worm_dir)
+    ranges = sealed_id_ranges(worm)
+    overlap = ids_overlap_sealed(parent.get("decision_id_list") or [], ranges)
+    if not overlap and parent.get("decision_id_list"):
+        return {
+            "ok": False,
+            "error": "no sealed overlap remains — use hot retention path instead",
+        }
+
+    status = _REVIEW_STATUS[key]
+    note = (
+        f"review of erasure #{request_id}: {key}"
+        + (f" | {notes}" if notes else "")
+        + " | sealed WORM not rewritten (ADR-026)"
+    )
+    row = ledger.record(
+        subject_ref=str(parent.get("subject_ref") or ""),
+        legal_basis=str(parent.get("legal_basis") or ""),
+        decision_ids=list(parent.get("decision_id_list") or []),
+        notes=note,
+        actor=actor or "reviewer",
+        status=status,
+        sealed_overlap=True,
+    )
+
+    # Confirm segments still verify when present.
+    segment_ok = True
+    for seg in worm.list_segments():
+        v = worm.verify_segment(int(seg.get("segment") or 0))
+        if not v.get("ok"):
+            segment_ok = False
+            break
+
+    return {
+        "ok": True,
+        "enabled": True,
+        "parent_id": int(request_id),
+        "outcome": key,
+        "review": row,
+        "overlap_ids": overlap,
+        "worm_untouched": True,
+        "worm_verify_ok": segment_ok,
+        "policy": "sealed_cold_review_no_worm_rewrite",
     }

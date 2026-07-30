@@ -19,7 +19,7 @@ and A.12 operations security — logging) to KerrOS artifacts already in tree.
 ## Explicitly not covered here
 
 - Full A.5–A.18 control catalog / SoA  
-- ~~Local data-residency / privacy-act ADRs~~ — GDPR/DPDP map [ADR-024](../adr/ADR-024-jurisdiction-privacy-foundation.md); residency stamp + erasure ledger [ADR-025](../adr/ADR-025-residency-erasure-ledger.md); sealed-cold erasure / transfers still deferred  
+- ~~Local data-residency / privacy-act ADRs~~ — GDPR/DPDP [ADR-024](../adr/ADR-024-jurisdiction-privacy-foundation.md); residency/erasure [ADR-025](../adr/ADR-025-residency-erasure-ledger.md); sealed-cold review + transfers [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md); hardware WORM still deferred  
 - Hardware WORM appliances  
 - IdP (OIDC/SAML) for evidence access  
 

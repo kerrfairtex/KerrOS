@@ -39,6 +39,6 @@ privacy theme map; chain verify remains on raw store.
 
 ## Revisit when
 
-~~Data residency stamp + erasure request ledger~~ — **ADR-025.**
-A funded jurisdiction deploy specifies DPIA/SoA, erasure of sealed cold
-evidence, cross-border transfer mechanisms, or a hardware WORM appliance.
+~~Sealed-cold erasure review + cross-border transfer ledger~~ — **ADR-026.**
+A funded jurisdiction deploy specifies DPIA/SoA, destroying sealed cold
+bytes, automated transfer pipelines, or a hardware WORM appliance.

@@ -41,5 +41,6 @@ hardware WORM / full residency transfer mechanisms still out of scope.
 
 ## Revisit when
 
-A funded deploy specifies lawful erasure of cold evidence, cross-border
-transfer mechanisms, IdP subject portals, or a hardware WORM appliance.
+~~Sealed-cold erasure review + cross-border transfer ledger~~ — **ADR-026.**
+A funded deploy specifies hardware WORM, automated transfer pipelines, or
+IdP-backed data-subject portals.

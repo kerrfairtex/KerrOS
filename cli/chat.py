@@ -336,6 +336,8 @@ def main():
                 ("/decisions privacy", "Show audit privacy egress status (ADR-024)"),
                 ("/decisions residency", "Show residency stamp status (ADR-025)"),
                 ("/decisions erasure <ref> [ids]", "Record erasure request (ADR-025)"),
+                ("/decisions erasure-review <id> <outcome>", "Sealed-cold review (ADR-026)"),
+                ("/decisions transfer <to> <mechanism>", "Record transfer intent (ADR-026)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -798,6 +800,64 @@ def main():
                                 )
                         else:
                             print(f"  {RE}Erasure failed:{R} {out.get('error') or out}")
+                elif sub == "erasure-review":
+                    from adapters.audit.erasure_ledger import review_sealed_erasure
+
+                    rest = parts[2].strip() if len(parts) > 2 else ""
+                    bits = rest.split(None, 1)
+                    if len(bits) < 2 or not bits[0].isdigit():
+                        print(
+                            f"  {RE}Usage:{R} /decisions erasure-review <id> "
+                            f"<legal_hold_retain|acknowledged_immutable|schedule_post_retention>"
+                        )
+                    else:
+                        cfg = resolve("config")
+                        out = review_sealed_erasure(
+                            int(bits[0]),
+                            outcome=bits[1].strip(),
+                            actor="cli",
+                            cfg=cfg.values,
+                            base=cfg.base,
+                        )
+                        if out.get("ok"):
+                            rev = out.get("review") or {}
+                            print(
+                                f"  {GR}[ ✓ ]{R} review #{rev.get('id')}  "
+                                f"outcome={out.get('outcome')}  "
+                                f"worm_untouched={out.get('worm_untouched')}"
+                            )
+                        else:
+                            print(f"  {RE}Review failed:{R} {out.get('error') or out}")
+                elif sub == "transfer":
+                    from adapters.audit.transfer_ledger import record_transfer_intent
+
+                    rest = parts[2].strip() if len(parts) > 2 else ""
+                    bits = rest.split(None, 2)
+                    if len(bits) < 2:
+                        print(
+                            f"  {RE}Usage:{R} /decisions transfer <to_region> "
+                            f"<scc|adequacy|consent|derogation|internal> [purpose]"
+                        )
+                    else:
+                        cfg = resolve("config")
+                        out = record_transfer_intent(
+                            to_region=bits[0],
+                            mechanism=bits[1],
+                            purpose=bits[2] if len(bits) > 2 else "",
+                            actor="cli",
+                            cfg=cfg.values,
+                            base=cfg.base,
+                        )
+                        if out.get("ok"):
+                            tr = out.get("transfer") or {}
+                            print(
+                                f"  {GR}[ ✓ ]{R} transfer #{tr.get('id')}  "
+                                f"{tr.get('from_region')}→{tr.get('to_region')}  "
+                                f"via {tr.get('mechanism')}  "
+                                f"cross_border={out.get('cross_border')}"
+                            )
+                        else:
+                            print(f"  {RE}Transfer failed:{R} {out.get('error') or out}")
                 elif sub == "verify":
                     require_audit_action("verify")
                     result = log.verify_chain()
@@ -898,7 +958,8 @@ def main():
                         )
                     print(
                         f"  {GY}Tip: /decisions verify | export | seal | retain | "
-                        f"whoami | privacy | residency | erasure{R}"
+                        f"whoami | privacy | residency | erasure | "
+                        f"erasure-review | transfer{R}"
                     )
             except AuditRbacError as e:
                 print(f"  {RE}Denied:{R} {e}")
