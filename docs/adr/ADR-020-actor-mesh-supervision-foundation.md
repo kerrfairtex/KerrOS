@@ -44,4 +44,5 @@ auto-restarted unless the operator supplies `on_dead`.
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
 ~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
 ~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
+~~Broker lifecycle / ACME JOSE + cloud DNS SDKs~~ — **ADR-033.**
 Remaining: richer OTP strategies when funded.

@@ -42,5 +42,6 @@ hardware WORM / full residency transfer mechanisms still out of scope.
 ## Revisit when
 
 ~~Automated transfer pipeline~~ — **ADR-027.**
-A funded deploy specifies hardware WORM, sealed-cold crypto-shred, or
-IdP-backed data-subject portals.
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
+A funded deploy specifies certified SoA, full OIDC RP, or
+IdP-backed production SSO.

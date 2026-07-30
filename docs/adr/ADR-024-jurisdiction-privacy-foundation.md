@@ -39,6 +39,7 @@ privacy theme map; chain verify remains on raw store.
 
 ## Revisit when
 
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
 ~~Automated transfer pipeline~~ — **ADR-027.**
 A funded jurisdiction deploy specifies DPIA/SoA, destroying sealed cold
 bytes (crypto-shred), IdP portals, or a hardware WORM appliance.

@@ -48,6 +48,6 @@ issuance still needs certbot/acme with proper JWS.
 
 ## Revisit when
 
-A funded deploy needs broker process lifecycle, full ACME order issuance
-with JOSE, native cloud DNS SDKs, IdP portals, or hardware WORM /
-sealed-cold crypto-shred.
+~~Broker lifecycle / ACME JOSE + cloud DNS SDKs~~ — **ADR-033.**
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
+A funded deploy needs multi-broker fleets, production ACME issuance, or certified SoA.

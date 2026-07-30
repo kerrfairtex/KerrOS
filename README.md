@@ -108,6 +108,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Supercluster topology + ACME HTTP-01 — registry/validate + stdlib challenge solver ([`ADR-030`](docs/adr/ADR-030-supercluster-http01.md))
 - [x] Supercluster ops + ACME account/DNS-01 — plan/probe/apply + local account + memory DNS-01 ([`ADR-031`](docs/adr/ADR-031-supercluster-ops-dns01.md))
 - [x] Supercluster control-plane + ACME newAccount/cloud DNS — config publish/monitor + fake/webhook DNS ([`ADR-032`](docs/adr/ADR-032-control-plane-acme-live.md))
+- [x] Broker lifecycle + ACME JOSE + cloud DNS SDK facades — memory/subprocess broker, JWS/order, Route53/CF soft ([`ADR-033`](docs/adr/ADR-033-broker-jose-dns-sdk.md))
+- [x] Hardware WORM + crypto-shred + IdP portals — appliance mirror, DEK shred, data-subject portal ([`ADR-034`](docs/adr/ADR-034-hardware-worm-cryptoshred-idp.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))
@@ -116,7 +118,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Jurisdiction privacy foundation — egress hash/redact + GDPR/DPDP map ([`ADR-024`](docs/adr/ADR-024-jurisdiction-privacy-foundation.md))
 - [x] Residency stamp + erasure request ledger — egress region + side ledger, never rewrite WORM ([`ADR-025`](docs/adr/ADR-025-residency-erasure-ledger.md))
 - [x] Sealed-cold erasure review + transfer ledger — review outcomes + SCC/adequacy intents ([`ADR-026`](docs/adr/ADR-026-sealed-cold-erasure-transfers.md))
-- [x] Automated transfer pipeline — local_copy / http_put execute for ledger intents ([`ADR-027`](docs/adr/ADR-027-automated-transfer-pipeline.md)); hardware WORM / IdP portals still deferred
+- [x] Automated transfer pipeline — local_copy / http_put execute for ledger intents ([`ADR-027`](docs/adr/ADR-027-automated-transfer-pipeline.md)); hardware WORM / crypto-shred / IdP portals foundation in [`ADR-034`](docs/adr/ADR-034-hardware-worm-cryptoshred-idp.md)
 - [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
 
 ### P3 — Event Infrastructure

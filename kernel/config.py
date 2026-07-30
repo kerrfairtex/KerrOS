@@ -179,6 +179,30 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "retain_days": 365,
             "legal_hold": False,
         },
+        # ADR-034: hardware WORM appliance mirror (off by default).
+        "audit_hardware_worm": {
+            "enabled": False,
+            "backend": "fake",  # fake | http
+            "allow_live": False,
+            "endpoint_url": "",
+            "token": "",
+            "prefix": "kerros/audit_worm/",
+            "strict": False,
+        },
+        # ADR-034: sealed-cold crypto-shred DEK store (off by default).
+        "audit_crypto_shred": {
+            "enabled": False,
+            "db_path": "data/crypto_shred_keys.db",
+            "allow_shred": False,
+        },
+        # ADR-034: IdP / data-subject portal facade (off by default).
+        "idp_portal": {
+            "enabled": False,
+            "backend": "fake",  # fake | oidc_probe
+            "issuer": "",
+            "allow_discovery_probe": False,
+            "session_ttl_s": 3600.0,
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,
@@ -295,6 +319,11 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "transport": "fake",
                     "terms_of_service_agreed": True,
                 },
+                "jose": {
+                    "enabled": False,
+                    "allow_crypto": False,
+                    "allow_live": False,
+                },
                 "dns01": {
                     "enabled": False,
                     "provider": "memory",
@@ -308,9 +337,18 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                         "webhook_token": "",
                         "zone": "",
                     },
+                    "sdk": {
+                        "enabled": False,
+                        "provider": "route53",  # route53 | cloudflare
+                        "allow_live": False,
+                        "hosted_zone_id": "",
+                        "region": "us-east-1",
+                        "api_token": "",
+                        "zone_id": "",
+                    },
                 },
             },
-            # ADR-030..032: Supercluster topology / ops / control-plane (off by default).
+            # ADR-030..033: Supercluster topology / ops / control-plane / broker (off by default).
             "supercluster": {
                 "enabled": False,
                 "name": "kerros",
@@ -330,6 +368,15 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "monitor_urls": [],
                     "allow_signal_reload": False,
                     "backend": "memory",
+                },
+                "broker": {
+                    "enabled": False,
+                    "backend": "memory",  # memory | subprocess
+                    "bin_name": "nats-server",
+                    "config_path": "",
+                    "allow_spawn": False,
+                    "autostart": False,
+                    "extra_args": [],
                 },
             },
         },

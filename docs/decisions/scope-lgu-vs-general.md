@@ -35,7 +35,7 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - ~~Add `MemoryPort` / `ToolPort` audit-immutability extensions~~ — foundation in ADR-017 (`tool_port` / `memory_port` decision_log hooks)
 - ~~External audit export (signed JSONL or SIEM feed)~~ — JSONL + optional HMAC (`scripts/export_decision_log.py`); SIEM push in ADR-021
 - ~~Retention policy engine~~ — foundation in ADR-019 (`audit_retention` + software-WORM); RBAC in ADR-021
-- ~~ADR for LGU compliance mapping~~ — ISO map ADR-022; GDPR/DPDP ADR-024; residency/erasure ADR-025; sealed-cold review + transfers ADR-026; transfer pipeline ADR-027; hardware WORM / IdP still deferred
+- ~~ADR for LGU compliance mapping~~ — through ADR-027 + hardware WORM/crypto-shred/IdP facades [ADR-034](../adr/ADR-034-hardware-worm-cryptoshred-idp.md); certified SoA / full OIDC RP still deferred
 
 ## Alternatives considered
 
@@ -57,4 +57,4 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - ~~Residency stamp + erasure request ledger~~ — [ADR-025](../adr/ADR-025-residency-erasure-ledger.md)
 - ~~Sealed-cold erasure review + cross-border transfer ledger~~ — [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md)
 - ~~Automated transfer pipeline~~ — [ADR-027](../adr/ADR-027-automated-transfer-pipeline.md)
-- Hardware WORM appliance / full SoA / sealed-cold crypto-shred / IdP portals — still deferred until funded LGU deploy
+- ~~Hardware WORM / crypto-shred / IdP portal facades~~ — **ADR-034.** Certified SoA / full OIDC RP still deferred until funded LGU deploy

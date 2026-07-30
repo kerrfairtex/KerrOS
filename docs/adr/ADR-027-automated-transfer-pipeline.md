@@ -39,5 +39,6 @@ hardware WORM / IdP / crypto-shred still out of scope.
 
 ## Revisit when
 
-A funded deploy supplies hardware WORM, sealed-cold crypto-shred, brokered
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
+A funded deploy supplies certified SoA, full OIDC RP, brokered
 transfer HA, or IdP-backed data-subject portals.

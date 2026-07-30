@@ -41,5 +41,6 @@ hardware WORM / IdP portals still out of scope.
 ## Revisit when
 
 ~~Automated transfer pipeline (copy / HTTP PUT)~~ — **ADR-027.**
-A funded deploy supplies hardware WORM, sealed-cold crypto-shred, or
-IdP-backed data-subject portals.
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
+A funded deploy supplies certified SoA, full OIDC RP, or
+IdP-backed production SSO.

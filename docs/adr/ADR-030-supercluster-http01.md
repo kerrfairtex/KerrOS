@@ -47,6 +47,6 @@ does not issue certs — only serves challenge tokens.
 
 ~~Supercluster topology ops / ACME account + DNS-01~~ — **ADR-031.**
 ~~Supercluster control-plane / ACME newAccount + cloud DNS~~ — **ADR-032.**
-A funded deploy needs broker process lifecycle, full ACME JOSE / order
-issuance, native cloud DNS SDKs, IdP portals, or hardware WORM /
-sealed-cold crypto-shred.
+~~Broker lifecycle / ACME JOSE + cloud DNS SDKs~~ — **ADR-033.**
+~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
+A funded deploy needs multi-broker fleets, production ACME issuance, or certified SoA.

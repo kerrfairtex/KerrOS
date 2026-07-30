@@ -87,11 +87,11 @@ Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-032](adr/ADR-032-control-plane-acme-live.md) (control-plane + newAccount/cloud DNS)
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-033](adr/ADR-033-broker-jose-dns-sdk.md) (broker lifecycle + JOSE + DNS SDKs)
+- ~~LGU audit immutability extensions~~ — ADR-017..027 + [ADR-034](adr/ADR-034-hardware-worm-cryptoshred-idp.md) (hardware WORM / crypto-shred / IdP facades); certified SoA / full OIDC RP still deferred when funded
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3
-- ~~LGU audit immutability extensions~~ — ADR-017..027 (through automated transfer pipeline); hardware WORM appliance / sealed-cold crypto-shred / IdP portals still deferred
 
 ## Legacy
 
