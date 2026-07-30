@@ -23,7 +23,8 @@ packaging — without requiring a live API server or writing to `/etc`.
    `actor_mesh.systemd_timers` (default off)
 
 Out of scope: controller-runtime / CRDs in-cluster, commercial CMDB
-products, packing distro packages (.deb/.rpm), auditor-signed SoA / SAML.
+products, packing distro packages (.deb/.rpm) — those are ADR-040;
+auditor-signed SoA / SAML — ADR-041.
 
 ## Alternatives considered
 
@@ -43,5 +44,5 @@ remain opt-in.
 
 ## Revisit when
 
-A contract funds CRD/operator-sdk packaging, commercial CMDB connectors,
-or distro packages with packaged timer units.
+A contract funds a real operator-sdk controller, deep commercial CMDB
+SDKs, or apt/yum package publish — beyond ADR-040 stubs.

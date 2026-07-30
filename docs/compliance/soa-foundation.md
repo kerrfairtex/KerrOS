@@ -20,8 +20,8 @@ See also the narrower logging map:
 
 ## Explicitly not covered
 
-- Auditor-signed Statement of Applicability  
-- Full A.5–A.18 catalog with residual risk ratings  
-- SAML / enterprise IdP production hardening  
+- Certified auditor evidence packs / residual-risk SoA catalogs  
+- Production SAML federation with XML crypto  
 
+Foundation stubs: [ADR-041](../adr/ADR-041-soa-audit-saml.md).
 Revisit when a funded regulated deploy specifies certification scope.

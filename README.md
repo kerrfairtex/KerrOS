@@ -115,6 +115,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Remote fleet orchestration + packaged production ACME — fake/HTTP/SSH agents + certbot/acme.sh soft ([`ADR-037`](docs/adr/ADR-037-remote-fleet-prod-acme.md))
 - [x] Fleet inventory + K8s operator + ACME renewal timers — CMDB-lite, Fake/kubectl operator, tickable renew ([`ADR-038`](docs/adr/ADR-038-inventory-k8s-renewal.md))
 - [x] In-cluster operator + CMDB sync + systemd timers — FakeInformer reconcile, CMDB→inventory, unit packaging ([`ADR-039`](docs/adr/ADR-039-incluster-cmdb-systemd.md))
+- [x] CRD packaging + commercial CMDB + distro packages — NatsBroker CRD stubs, ServiceNow/Device42 sync, .deb/.rpm metadata ([`ADR-040`](docs/adr/ADR-040-crd-cmdb-distro.md))
+- [x] Auditor-signed SoA + SAML SP — detached SoA signatures + Fake IdP ACS ([`ADR-041`](docs/adr/ADR-041-soa-audit-saml.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))

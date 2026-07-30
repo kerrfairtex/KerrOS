@@ -46,4 +46,5 @@ requires explicit `allow_shred`.
 ## Revisit when
 
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
-An LGU contract funds auditor-signed SoA packaging or SAML / production IdP hardening.
+~~Auditor-signed SoA / SAML SP~~ — **ADR-041.**
+An LGU contract funds certified evidence packs or production SAML federation.

@@ -56,4 +56,6 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
 ~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
 ~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
-Remaining: operator-sdk/CRDs / commercial CMDB / distro packages / auditor-signed SoA / SAML when funded.
+~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
+~~Auditor-signed SoA / SAML SP~~ — **ADR-041.**
+Remaining: live operator-sdk controllers / vendor CMDB SDKs / apt-yum publish / auditor evidence packs / production SAML federation when funded.

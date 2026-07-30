@@ -43,5 +43,6 @@ testable; renewal can be driven on a timer or by tick.
 ## Revisit when
 
 ~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
-A contract funds operator-sdk/CRD packaging, commercial CMDB connectors,
-or distro packages with packaged timer units.
+~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
+A contract funds live operator-sdk controllers, vendor CMDB SDKs, or
+apt/yum publish pipelines.

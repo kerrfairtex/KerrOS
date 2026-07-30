@@ -38,5 +38,5 @@ in CI against a Fake IdP.
 
 ## Revisit when
 
-An LGU contract funds auditor SoA packaging or production IdP integration
-with signed JWT validation / SAML.
+~~Auditor-signed SoA / SAML SP foundation~~ — **ADR-041.**
+An LGU contract funds auditor evidence packs or production SAML federation.

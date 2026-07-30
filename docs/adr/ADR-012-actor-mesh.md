@@ -60,4 +60,6 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
 ~~Inventory / K8s operator / ACME renewal timers~~ — **ADR-038.**
 ~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
-Revisit for operator-sdk/CRDs / commercial CMDB / distro packages / auditor-signed SoA / SAML when funded.
+~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
+~~Auditor-signed SoA / SAML SP~~ — **ADR-041.**
+Revisit for live operator-sdk controllers / vendor CMDB SDKs / apt-yum publish / auditor evidence packs / production SAML federation when funded.

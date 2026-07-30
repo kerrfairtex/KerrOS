@@ -83,7 +83,13 @@ DEFAULT_CONTROLS: list[dict[str, Any]] = [
         "id": "A.5.17",
         "theme": "Authentication information",
         "status": "partial",
-        "artifact": "adapters/auth/oidc_rp.py",
+        "artifact": "adapters/auth/oidc_rp.py; adapters/auth/saml_sp.py",
+    },
+    {
+        "id": "A.5.36",
+        "theme": "Compliance with policies and standards",
+        "status": "partial",
+        "artifact": "adapters/compliance/soa.py; adapters/compliance/soa_audit.py",
     },
     {
         "id": "A.8.24",

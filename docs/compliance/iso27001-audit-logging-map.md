@@ -18,7 +18,7 @@ and A.12 operations security — logging) to KerrOS artifacts already in tree.
 
 ## Explicitly not covered here
 
-- Full A.5–A.18 control catalog / SoA — draft foundation in [soa-foundation.md](soa-foundation.md) ([ADR-036](../adr/ADR-036-soa-oidc-rp.md)); auditor-signed pack still out of scope  
+- Full A.5–A.18 control catalog / SoA — draft foundation in [soa-foundation.md](soa-foundation.md) ([ADR-036](../adr/ADR-036-soa-oidc-rp.md)); auditor signature foundation in [ADR-041](../adr/ADR-041-soa-audit-saml.md); certified evidence packs still out of scope  
 - ~~Local data-residency / privacy-act ADRs~~ — GDPR/DPDP [ADR-024](../adr/ADR-024-jurisdiction-privacy-foundation.md); residency/erasure [ADR-025](../adr/ADR-025-residency-erasure-ledger.md); sealed-cold review + transfers [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md); hardware WORM/crypto-shred/IdP facades [ADR-034](../adr/ADR-034-hardware-worm-cryptoshred-idp.md)  
 - ~~Hardware WORM appliances / IdP portals~~ — facades in [ADR-034](../adr/ADR-034-hardware-worm-cryptoshred-idp.md); OIDC RP in [ADR-036](../adr/ADR-036-soa-oidc-rp.md)  
 

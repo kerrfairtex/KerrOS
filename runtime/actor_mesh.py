@@ -461,6 +461,7 @@ class ActorMesh:
     ADR-037 adds remote fleet orchestration + packaged production ACME.
     ADR-038 adds fleet inventory + K8s operator + ACME renewal timers.
     ADR-039 adds in-cluster operator + CMDB sync + systemd timer packaging.
+    ADR-040 adds CRD/operator-sdk stubs + commercial CMDB + distro packages.
     """
 
     node_id: str
@@ -493,6 +494,9 @@ class ActorMesh:
     k8s_incluster: Any = None  # optional InClusterNatsOperator (ADR-039)
     cmdb: Any = None  # optional CmdbSyncClient (ADR-039)
     systemd_timers: Any = None  # optional SystemdTimerPackager (ADR-039)
+    k8s_crd: Any = None  # optional K8sCrdFacade (ADR-040)
+    cmdb_commercial: Any = None  # optional CommercialCmdbClient (ADR-040)
+    distro_packages: Any = None  # optional DistroPackager (ADR-040)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -928,6 +932,19 @@ class ActorMesh:
                 if self.systemd_timers is not None
                 else None
             ),
+            "k8s_crd": (
+                self.k8s_crd.stats() if self.k8s_crd is not None else None
+            ),
+            "cmdb_commercial": (
+                self.cmdb_commercial.stats()
+                if self.cmdb_commercial is not None
+                else None
+            ),
+            "distro_packages": (
+                self.distro_packages.stats()
+                if self.distro_packages is not None
+                else None
+            ),
         }
 
 
@@ -1298,6 +1315,23 @@ def build_actor_mesh(
     if cmdb is not None:
         mesh.cmdb = cmdb
 
+    # ADR-040: CRD / operator-sdk-style facade.
+    from runtime.k8s_crd import build_k8s_crd
+
+    crd = build_k8s_crd(sc_raw.get("k8s_crd") or {})
+    if crd is not None:
+        mesh.k8s_crd = crd
+
+    # ADR-040: commercial CMDB sync into fleet inventory.
+    from runtime.cmdb_commercial import build_commercial_cmdb
+
+    cmdb_c = build_commercial_cmdb(
+        sc_raw.get("cmdb_commercial") or {},
+        inventory=mesh.fleet_inventory,
+    )
+    if cmdb_c is not None:
+        mesh.cmdb_commercial = cmdb_c
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1395,6 +1429,13 @@ def build_actor_mesh(
     timers = build_systemd_timer_packager(data.get("systemd_timers") or {})
     if timers is not None:
         mesh.systemd_timers = timers
+
+    # ADR-040: distro package stubs (.deb/.rpm).
+    from runtime.distro_packages import build_distro_packager
+
+    distro = build_distro_packager(data.get("distro_packages") or {})
+    if distro is not None:
+        mesh.distro_packages = distro
 
     mesh.attach()
     return mesh

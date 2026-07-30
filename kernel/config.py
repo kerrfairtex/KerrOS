@@ -221,6 +221,25 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "output_dir": "data/soa",
             "allow_write": False,
         },
+        # ADR-041: auditor-signed SoA foundation (off by default).
+        "soa_audit": {
+            "enabled": False,
+            "backend": "fake",  # fake | openssl
+            "allow_live": False,
+            "allow_write": False,
+            "key_path": "",
+            "signer_id": "auditor@kerros.test",
+            "output_dir": "data/soa",
+        },
+        # ADR-041: SAML SP foundation (off by default).
+        "saml_sp": {
+            "enabled": False,
+            "entity_id": "https://kerros.local/saml/sp",
+            "acs_url": "http://127.0.0.1:8080/saml/acs",
+            "idp_entity_id": "https://idp.test/saml",
+            "idp_sso_url": "https://idp.test/saml/sso",
+            "allow_live": False,
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,
@@ -465,6 +484,25 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "auto_sync": False,
                     "hosts": [],
                 },
+                # ADR-040: CRD / operator-sdk-style facade.
+                "k8s_crd": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | kubectl
+                    "allow_live": False,
+                    "kubectl_bin": "kubectl",
+                    "namespace": "kerros",
+                    "crd_path": "deploy/k8s/crds/natsbroker.yaml",
+                },
+                # ADR-040: commercial CMDB connectors.
+                "cmdb_commercial": {
+                    "enabled": False,
+                    "vendor": "servicenow",  # servicenow | device42 | generic
+                    "backend": "fake",  # fake | http
+                    "allow_live": False,
+                    "url": "",
+                    "token": "",
+                    "auto_sync": False,
+                },
             },
             # ADR-039: systemd timer packaging (off by default; under actor_mesh root).
             "systemd_timers": {
@@ -480,6 +518,18 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "allow_install": False,
                 "install_root": "",
                 "unit_basename": "kerros-acme-renew",
+            },
+            # ADR-040: distro package stubs (.deb/.rpm metadata).
+            "distro_packages": {
+                "enabled": False,
+                "formats": ["deb", "rpm"],
+                "package_name": "kerros",
+                "version": "0.1.0",
+                "maintainer": "KerrOS <ops@kerros.local>",
+                "description": "KerrOS offline AI assistant and actor mesh",
+                "output_dir": "deploy/packaging",
+                "allow_write": False,
+                "allow_install": False,
             },
         },
     }
