@@ -298,6 +298,16 @@ def detect_tool(text, bypass_gate=False):
         return ("browse_session", sid)
     if lower in ("list sessions", "/sessions", "sessions list"):
         return ("list_sessions", "")
+    if lower in ("/resume", "resume session", "resume"):
+        return ("resume_session", "")
+    if lower.startswith("/resume ") or lower.startswith("resume session ") or lower.startswith("resume "):
+        if lower.startswith("resume session "):
+            body = text[len("resume session ") :].strip()
+        elif lower.startswith("/resume "):
+            body = text[len("/resume ") :].strip()
+        else:
+            body = text[len("resume ") :].strip()
+        return ("resume_session", body)
     if lower.startswith("bg ") or lower.startswith("/bg "):
         return ("bg_process", text.split(" ", 1)[1].strip())
     if lower in ("bg", "/bg"):
@@ -380,6 +390,7 @@ def run_tool(tool, args):
         "approve_exec": _approve_exec,
         "browse_session": _browse_session,
         "list_sessions": _list_sessions,
+        "resume_session": _resume_session,
         "bg_process": _bg_process,
         "skills_hub": _skills_hub,
         "gateway": _gateway,
@@ -1231,6 +1242,16 @@ def _list_sessions(_raw):
     from memory.session_store import list_sessions
 
     return json.dumps({"ok": True, "sessions": list_sessions()}, indent=2)
+
+
+def _resume_session(raw):
+    import json
+    from memory.manager import format_resume_picker, resume_session
+
+    arg = str(raw or "").strip()
+    if not arg:
+        return format_resume_picker()
+    return json.dumps(resume_session(arg), indent=2)
 
 
 def _bg_process(raw):

@@ -92,6 +92,7 @@ def _extra_commands() -> list[str]:
         "gateway status",
         "gateway channel list",
         "list sessions",
+        "resume latest",
         "skills hub list",
         "search past sessions",
         "profile memory list",

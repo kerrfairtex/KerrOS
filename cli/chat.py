@@ -8,7 +8,8 @@ from core.context import build, build_chat
 from core.thinking import needs_thinking
 from core.complete import generate_complete
 from memory.manager import (add_message, clear_session, init_session,
-    get_history, get_recent, extract_and_learn, get_profile, update_profile)
+    get_history, get_recent, extract_and_learn, get_profile, update_profile,
+    format_resume_picker, resume_session)
 from kernel.access import (
     detect_tool,
     run_tool,
@@ -329,6 +330,7 @@ def main():
                 ("agent cron …",         "Persisted agent cron jobs (data/agent_cron)"),
                 ("list sessions",        "List indexed chat sessions (ADR-063)"),
                 ("browse session <id>",  "Browse turns in a past session"),
+                ("/resume [id|latest]",  "Resume indexed session into REPL (ADR-068)"),
                 ("bg spawn|poll|kill",   "Background process registry"),
                 ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
                 ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
@@ -393,6 +395,22 @@ def main():
                 print(f"  {GY}[Summary skipped: {e}]{R}")
             clear_session()
             print(f"  {GR}[ ✓ ] Session cleared{R}")
+
+        elif user == "/resume" or user.startswith("/resume "):
+            arg = user[len("/resume") :].strip()
+            if not arg:
+                print(f"  {format_resume_picker()}{R}")
+            else:
+                out = resume_session(arg)
+                if out.get("ok"):
+                    title = (out.get("title") or "")[:60]
+                    print(
+                        f"  {GR}[ ✓ ] Resumed{R} {BL}{out.get('session_id')}{R}  "
+                        f"{GY}loaded {out.get('loaded')} turn(s)"
+                        f"{(' · ' + title) if title else ''}{R}"
+                    )
+                else:
+                    print(f"  {RE}[resume] {out.get('error') or 'failed'}{R}")
 
         elif user=="/memory":
             divider()
