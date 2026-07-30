@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--action", choices=("archive", "purge"), default=None)
     parser.add_argument("--worm-dir", default=None)
     parser.add_argument("--allow-purge", action="store_true")
+    parser.add_argument("--token", default=None, help="Audit RBAC token")
     parser.add_argument(
         "--now",
         type=float,
@@ -62,12 +63,12 @@ def main(argv: list[str] | None = None) -> int:
         policy["allow_purge"] = True
 
     log = DecisionLog(args.db) if args.db else DecisionLog()
-    # Pass policy nested under audit_retention for apply_retention.
     result = apply_retention(
         log,
-        cfg={"audit_retention": policy},
+        cfg={**values, "audit_retention": policy},
         now=args.now,
         base=base,
+        audit_token=args.token,
     )
     print(json.dumps(result, indent=2, sort_keys=True, default=str))
     return 0 if result.get("ok") else 1

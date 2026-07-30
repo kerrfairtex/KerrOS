@@ -85,10 +85,16 @@ class WormStore:
         through_id: int,
         hmac_secret: Optional[str] = None,
         segment: Optional[int] = None,
+        audit_token: Optional[str] = None,
+        skip_rbac: bool = False,
     ) -> dict[str, Any]:
         """
         Seal records with id <= through_id into a new read-only JSONL segment.
         """
+        if not skip_rbac:
+            from adapters.audit.rbac import require_audit_action
+
+            require_audit_action("seal", token=audit_token)
         through_id = int(through_id)
         if through_id < 1:
             raise WormStoreError("through_id must be >= 1")
@@ -160,7 +166,7 @@ class WormStore:
         if not verify.get("ok"):
             raise WormStoreError(f"sealed segment failed verify: {verify}")
 
-        return {
+        result = {
             "ok": True,
             "segment": seg_no,
             "path": str(jsonl_path.resolve()),
@@ -171,6 +177,21 @@ class WormStore:
             "tip_hash": tip,
             "writable": _is_writable(jsonl_path),
         }
+        try:
+            from adapters.audit.siem_forwarder import get_siem_forwarder
+
+            get_siem_forwarder().forward_seal(
+                {
+                    "segment": seg_no,
+                    "first_id": first_id,
+                    "last_id": last_id,
+                    "row_count": len(records),
+                    "tip_hash": tip,
+                }
+            )
+        except Exception:
+            pass
+        return result
 
     def verify_segment(
         self,

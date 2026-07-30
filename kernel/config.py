@@ -151,6 +151,20 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "worm_dir": "data/audit_worm",
             "allow_purge": False,
         },
+        # ADR-021: evidence RBAC + SIEM forwarder (off by default).
+        "audit_rbac": {
+            "enabled": False,
+            "tokens": {},  # token → reader|operator|admin
+        },
+        "audit_siem": {
+            "enabled": False,
+            "transport": "webhook",  # webhook | syslog
+            "url": "",
+            "timeout_s": 2.0,
+            "token": "",
+            "forward_on_record": True,
+            "forward_on_seal": True,
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

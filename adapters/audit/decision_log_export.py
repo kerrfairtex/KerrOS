@@ -59,6 +59,8 @@ def export_decision_log_jsonl(
     since_id: int = 0,
     hmac_secret: Optional[str] = None,
     verify_before_export: bool = True,
+    audit_token: Optional[str] = None,
+    skip_rbac: bool = False,
 ) -> dict[str, Any]:
     """
     Export decisions with id > since_id to JSONL.
@@ -66,6 +68,11 @@ def export_decision_log_jsonl(
     Each line is one JSON object. When an HMAC secret is configured, each
     object gains ``line_hmac`` over the canonical JSON (without that field).
     """
+    if not skip_rbac:
+        from adapters.audit.rbac import require_audit_action
+
+        require_audit_action("export", token=audit_token)
+
     decision_log = log or DecisionLog()
     path = Path(dest)
     path.parent.mkdir(parents=True, exist_ok=True)

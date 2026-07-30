@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from adapters.audit.rbac import AuditRbacError
 from adapters.audit.worm_store import WormStore, WormStoreError
 from kernel.decision_log import DecisionLog
 
@@ -34,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
         help="WORM root directory",
     )
     parser.add_argument("--through-id", type=int, default=None)
+    parser.add_argument("--token", default=None, help="Audit RBAC token")
     parser.add_argument(
         "--verify",
         type=int,
@@ -57,8 +59,10 @@ def main(argv: list[str] | None = None) -> int:
 
     log = DecisionLog(args.db) if args.db else DecisionLog()
     try:
-        out = store.seal_from_log(log, through_id=args.through_id)
-    except WormStoreError as exc:
+        out = store.seal_from_log(
+            log, through_id=args.through_id, audit_token=args.token
+        )
+    except (WormStoreError, AuditRbacError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
     print(json.dumps(out, indent=2, sort_keys=True))

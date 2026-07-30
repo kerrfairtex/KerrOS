@@ -40,6 +40,7 @@ HMAC is optional shared-secret, not a PKI signature.
 
 ## Revisit when
 
-~~Retention + software-WORM~~ — **ADR-019.** Remaining: RBAC, SIEM,
-hardware WORM / Object Lock, and a compliance-mapping ADR when an LGU
+~~Retention + software-WORM~~ — **ADR-019.**
+~~RBAC + SIEM forwarder~~ — **ADR-021.**
+Remaining: hardware WORM / Object Lock, and a compliance-mapping ADR when an LGU
 contract funds them.

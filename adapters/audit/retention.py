@@ -74,6 +74,8 @@ def apply_retention(
     now: Optional[float] = None,
     base: Optional[Path] = None,
     hmac_secret: Optional[str] = None,
+    audit_token: Optional[str] = None,
+    skip_rbac: bool = False,
 ) -> dict[str, Any]:
     """
     Apply retention once. Returns a result dict (ok / noop / error).
@@ -85,6 +87,18 @@ def apply_retention(
     action = policy["action"]
     if action not in ("archive", "purge"):
         return {"ok": False, "error": f"unknown action {action!r}"}
+
+    if not skip_rbac:
+        try:
+            from adapters.audit.rbac import AuditRbacError, require_audit_action
+
+            require_audit_action(
+                "purge" if action == "purge" else "retain",
+                token=audit_token,
+                cfg=cfg,
+            )
+        except AuditRbacError as exc:
+            return {"ok": False, "error": str(exc), "action": action}
 
     cutoff = float(now if now is not None else time.time()) - (
         policy["retain_days"] * 86400.0
@@ -134,7 +148,10 @@ def apply_retention(
     # archive
     try:
         sealed = worm.seal_from_log(
-            log, through_id=through_id, hmac_secret=hmac_secret
+            log,
+            through_id=through_id,
+            hmac_secret=hmac_secret,
+            skip_rbac=True,
         )
     except WormStoreError as exc:
         return {"ok": False, "error": str(exc), "action": "archive"}

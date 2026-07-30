@@ -30,7 +30,7 @@ In chat:
 
 - `/health` — runtime health summary
 - `/services` — managed service states
-- `/decisions` — recent audit entries; `verify` / `export` / `seal` / `retain` (ADR-017/019)
+- `/decisions` — recent audit entries; `verify` / `export` / `seal` / `retain` / `whoami` (ADR-017/019/021)
 
 ## Default services
 
@@ -91,7 +91,7 @@ Optional dep: `requirements-optional.txt`.
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3
-- ~~LGU audit immutability extensions~~ — hash chain + JSONL export ([ADR-017](adr/ADR-017-decision-log-tamper-evidence-export.md)); software-WORM + retention ([ADR-019](adr/ADR-019-decision-log-worm-retention.md)); RBAC/SIEM/hardware WORM still deferred
+- ~~LGU audit immutability extensions~~ — hash chain + JSONL ([ADR-017](adr/ADR-017-decision-log-tamper-evidence-export.md)); WORM/retention ([ADR-019](adr/ADR-019-decision-log-worm-retention.md)); RBAC/SIEM ([ADR-021](adr/ADR-021-decision-log-rbac-siem.md)); hardware WORM / ISO mapping still deferred
 
 ## Legacy
 

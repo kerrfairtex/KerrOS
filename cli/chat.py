@@ -332,6 +332,7 @@ def main():
                 ("/decisions export [path]", "Export decision_log JSONL"),
                 ("/decisions seal <id>", "Seal id prefix to WORM segment (ADR-019)"),
                 ("/decisions retain",  "Apply retention policy once (ADR-019)"),
+                ("/decisions whoami",  "Show audit RBAC role (ADR-021)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -718,7 +719,25 @@ def main():
             sub = parts[1].strip().lower() if len(parts) > 1 else ""
             try:
                 log = resolve("decision_log")
-                if sub == "verify":
+                from adapters.audit.rbac import (
+                    AuditRbacError,
+                    audit_rbac_from_config,
+                    current_audit_token,
+                    require_audit_action,
+                )
+
+                if sub == "whoami":
+                    rbac = audit_rbac_from_config(resolve("config").values)
+                    if not rbac.enabled:
+                        print(f"  {GY}audit RBAC disabled (open access){R}")
+                    else:
+                        role = rbac.role_for_token(current_audit_token())
+                        print(
+                            f"  {BL}role:{R} {role or 'none'}  "
+                            f"(set KERROS_AUDIT_TOKEN)"
+                        )
+                elif sub == "verify":
+                    require_audit_action("verify")
                     result = log.verify_chain()
                     if result.get("ok"):
                         print(
@@ -750,7 +769,7 @@ def main():
                 elif sub == "seal":
                     from adapters.audit.worm_store import WormStore, WormStoreError
 
-                    if len(parts) < 3 or not parts[2].strip().isdigit():
+                    if len(parts) < 3 or not parts[2].strip().split()[0].isdigit():
                         print(f"  {RE}Usage:{R} /decisions seal <through_id>")
                     else:
                         cfg = resolve("config")
@@ -761,7 +780,7 @@ def main():
                         worm_dir = cfg.base / worm_rel
                         try:
                             out = WormStore(worm_dir).seal_from_log(
-                                log, through_id=int(parts[2].strip())
+                                log, through_id=int(parts[2].strip().split()[0])
                             )
                             print(
                                 f"  {GR}[ ✓ ]{R} sealed segment "
@@ -769,18 +788,17 @@ def main():
                                 f"ids {out.get('first_id')}–{out.get('last_id')} → "
                                 f"{out.get('path')}"
                             )
-                        except WormStoreError as exc:
+                        except (WormStoreError, AuditRbacError) as exc:
                             print(f"  {RE}Seal failed:{R} {exc}")
                 elif sub == "retain":
                     from adapters.audit.retention import apply_retention
 
                     cfg = resolve("config")
-                    # One-shot: enable for this invoke if policy present.
                     policy = dict(cfg.values.get("audit_retention") or {})
                     policy["enabled"] = True
                     out = apply_retention(
                         log,
-                        cfg={"audit_retention": policy},
+                        cfg={**cfg.values, "audit_retention": policy},
                         base=cfg.base,
                     )
                     if out.get("ok"):
@@ -791,6 +809,7 @@ def main():
                     else:
                         print(f"  {RE}Retention failed:{R} {out.get('error') or out}")
                 else:
+                    require_audit_action("read")
                     rows = log.read_recent(15)
                     if not rows:
                         print(f"  {GY}No decision log entries yet.{R}")
@@ -802,8 +821,10 @@ def main():
                             f"{row.outcome} — {row.input_summary[:60]}{suffix}"
                         )
                     print(
-                        f"  {GY}Tip: /decisions verify | export | seal <id> | retain{R}"
+                        f"  {GY}Tip: /decisions verify | export | seal | retain | whoami{R}"
                     )
+            except AuditRbacError as e:
+                print(f"  {RE}Denied:{R} {e}")
             except Exception as e:
                 print(f"  {RE}Decision log unavailable: {e}{R}")
             divider()

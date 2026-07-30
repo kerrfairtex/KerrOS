@@ -42,5 +42,6 @@ application-layer WORM, not compliance hardware.
 
 ## Revisit when
 
-An LGU contract funds Object Lock / WORM NAS, role-based evidence access,
-SIEM forwarders, or a compliance-mapping ADR.
+~~RBAC + SIEM~~ — **ADR-021.**
+An LGU contract funds Object Lock / WORM NAS, IdP-backed evidence access,
+or a compliance-mapping ADR.

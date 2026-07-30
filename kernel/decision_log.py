@@ -216,7 +216,27 @@ class DecisionLog:
                 ),
             )
             conn.commit()
-            return int(cur.lastrowid)
+            rid = int(cur.lastrowid)
+        # ADR-021: best-effort SIEM — never fail the append path.
+        try:
+            from adapters.audit.siem_forwarder import get_siem_forwarder
+
+            get_siem_forwarder().forward_record(
+                {
+                    "id": rid,
+                    "timestamp": ts,
+                    "actor": actor,
+                    "decision_type": decision_type,
+                    "input_summary": input_summary,
+                    "outcome": outcome,
+                    "reason": reason,
+                    "prev_hash": prev,
+                    "entry_hash": entry,
+                }
+            )
+        except Exception:
+            pass
+        return rid
 
     def read_recent(self, limit: int = 50) -> list[DecisionRecord]:
         with self._connect() as conn:

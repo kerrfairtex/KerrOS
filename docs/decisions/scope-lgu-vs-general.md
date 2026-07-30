@@ -51,4 +51,5 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - ~~Review `decision_log` schema for tamper-evidence (hash chain)~~ — `prev_hash` / `entry_hash` + `verify_chain()`
 - Document data residency requirements per jurisdiction — still deferred
 - ~~WORM storage, retention engine~~ — software-WORM segments + retention in [ADR-019](../adr/ADR-019-decision-log-worm-retention.md)
-- Role-based log access / SIEM / hardware WORM / ISO mapping — still deferred until funded LGU deploy
+- ~~Role-based log access / SIEM~~ — foundation in [ADR-021](../adr/ADR-021-decision-log-rbac-siem.md)
+- Hardware WORM / Object Lock / ISO mapping — still deferred until funded LGU deploy

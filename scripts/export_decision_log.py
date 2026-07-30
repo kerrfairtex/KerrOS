@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from adapters.audit.decision_log_export import export_decision_log_jsonl
+from adapters.audit.rbac import AuditRbacError, require_audit_action
 from kernel.decision_log import DecisionLog
 
 
@@ -36,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--db", default=None, help="Path to decision_log.db")
     parser.add_argument("--since-id", type=int, default=0)
+    parser.add_argument("--token", default=None, help="Audit RBAC token (or KERROS_AUDIT_TOKEN)")
     parser.add_argument(
         "--verify-only",
         action="store_true",
@@ -50,16 +52,26 @@ def main(argv: list[str] | None = None) -> int:
 
     log = DecisionLog(args.db) if args.db else DecisionLog()
     if args.verify_only:
+        try:
+            require_audit_action("verify", token=args.token)
+        except AuditRbacError as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+            return 1
         result = log.verify_chain()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result.get("ok") else 1
 
-    out = export_decision_log_jsonl(
-        args.output,
-        log=log,
-        since_id=args.since_id,
-        verify_before_export=not args.no_verify,
-    )
+    try:
+        out = export_decision_log_jsonl(
+            args.output,
+            log=log,
+            since_id=args.since_id,
+            verify_before_export=not args.no_verify,
+            audit_token=args.token,
+        )
+    except AuditRbacError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
     print(json.dumps(out, indent=2, sort_keys=True))
     return 0 if out.get("ok") else 1
 
