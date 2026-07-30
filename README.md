@@ -274,7 +274,7 @@ Handled in the REPL before LLM. Workspace defaults to repo root
 
 | Area | Commands |
 |------|----------|
-| Mode / LLM | `/online`, `/offline`, `/mode`, `/llm`, `/apistatus` |
+| Mode / LLM | `/online`, `/offline`, `/mode`, `/llm`, `/apistatus`, `/integrations` |
 | Kernel / ops | `/kernel`, `/health`, `/services`, `/capabilities`, `/decisions` |
 | Events / jobs | `/events`, `/schedule`, `/workflows` |
 | Memory / RAG | `/memory`, `/recall`, `/sources`, `/ingest`, `/search` |

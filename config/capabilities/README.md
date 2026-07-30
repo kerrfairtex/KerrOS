@@ -12,6 +12,7 @@ YAML files in this directory are loaded at kernel boot by
 | `llm_providers.yaml` | provider | Composite + multi_api chain + local adapters |
 | `omniroute.yaml` | provider | **Single** OmniRoute meta-provider |
 | `ports.yaml` | port | Kernel DI ports (llm/memory/tool/…) |
+| `adaptive_integrations.yaml` | integration | Soft catalog / coding tiers (ADR-055) |
 
 ## Schema
 
@@ -27,7 +28,8 @@ capabilities:
     metadata: {}
 ```
 
-CLI: `/capabilities` or `/capabilities provider`
+CLI: `/capabilities` or `/capabilities provider`  
+Integrations catalog: `/integrations` / `/integrations coding` (ADR-055)
 
 ## Generated docs
 
