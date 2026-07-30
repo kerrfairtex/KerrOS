@@ -64,6 +64,46 @@ def resolve_vllm_url(cfg: dict[str, Any] | None = None) -> str:
     return endpoint_from_env("VLLM_ENDPOINT", "http://127.0.0.1:8000/v1").rstrip("/")
 
 
+def is_llama_cpp_probe_enabled(cfg: dict[str, Any] | None = None) -> bool:
+    from adapters.llm.llama_cpp_adapter import is_llama_cpp_enabled
+
+    return is_llama_cpp_enabled(cfg)
+
+
+def probe_llama_cpp(
+    *,
+    timeout: float = 2.0,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Status probe for llama.cpp subprocess/HTTP (ADR-050)."""
+    _ = timeout
+    try:
+        from kernel.config import load_config
+
+        cfg = dict(config or load_config().values)
+    except Exception:
+        cfg = dict(config or {})
+    enabled = is_llama_cpp_probe_enabled(cfg)
+    try:
+        from adapters.llm.llama_cpp_adapter import LlamaCppAdapter
+
+        st = LlamaCppAdapter().status()
+        st["enabled"] = enabled
+        if st.get("available"):
+            st["status"] = "ok"
+        else:
+            st["status"] = "unavailable" if enabled else "disabled"
+        return st
+    except Exception as exc:
+        return {
+            "provider": "llama_cpp",
+            "enabled": enabled,
+            "available": False,
+            "status": "unavailable" if enabled else "disabled",
+            "error": str(exc),
+        }
+
+
 def _probe_models(
     *,
     provider: str,

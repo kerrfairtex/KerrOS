@@ -110,6 +110,9 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         "ollama_enabled": False,
         "vllm_enabled": False,
         "local_llm": False,
+        # ADR-050: offline Qwen0.5B + llama.cpp profile — off by default.
+        "offline_profile": "",  # e.g. "offline_qwen05"
+        "llama_cpp_enabled": False,
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,

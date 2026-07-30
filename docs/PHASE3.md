@@ -64,11 +64,19 @@ run = engine.run("demo")
 
 Adapters already implement `LLMPort`. Ops foundation: loopback Ollama compose +
 HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)), soft vLLM kit
-([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`), and soft
+([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`), soft
 residuals ([`ADR-049`](adr/ADR-049-local-llm-residuals.md): proxy /
-multi-node / model pull).
+multi-node / model pull), and offline Qwen 0.5B + llama.cpp
+([`ADR-050`](adr/ADR-050-offline-qwen05-profile.md)).
 
 ```bash
+# Offline Phase A (llama.cpp + ChatML + Qwen0.5B GGUF):
+./scripts/download_qwen05_gguf.sh
+export KERROS_OFFLINE_PROFILE=offline_qwen05
+export LLAMA_BIN=~/llama.cpp/build/bin/llama-cli   # or llama-simple-chat
+export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
+python3 cli/chat.py   # /llm shows llama_cpp
+
 ./scripts/local_llm_docker.sh up
 ./scripts/local_llm_docker.sh pull llama3.2
 ./scripts/local_llm_docker.sh probe
@@ -80,7 +88,7 @@ multi-node / model pull).
 # ./scripts/vllm_docker.sh up --proxy    # soft Caddy edge (loopback)
 # ./scripts/vllm_docker.sh up --multi    # soft two-node stubs
 
-export KERROS_LOCAL_LLM=1          # try Ollama → vLLM before cloud
+export KERROS_LOCAL_LLM=1          # try llama.cpp → Ollama → vLLM before cloud
 export KERROS_LLM_PROVIDER=ollama  # force provider
 export OLLAMA_ENDPOINT=http://127.0.0.1:11434/v1
 export OLLAMA_MODEL=llama3.2
@@ -137,6 +145,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 - ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
 - ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
+- Offline RAG / coding / Unsloth export / LiteLLM gateway — Phase B–E after [ADR-050](adr/ADR-050-offline-qwen05-profile.md)
 
 ## Workflow YAML definitions
 

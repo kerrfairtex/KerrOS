@@ -148,6 +148,18 @@ capabilities:
       default_endpoint: "http://127.0.0.1:11434/v1"
       notes: "C-19 ops kit: deploy/ollama/ + ADR-016."
 
+  - name: "provider:llama_cpp"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:LLAMA_BIN", "env:MODEL_PATH"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "local"
+      adapter: "adapters.llm.llama_cpp_adapter"
+      default_model: "models/qwen0.5b-q4.gguf"
+      notes: "ADR-050 offline profile: ChatML + GGUF Q4_K_M via llama.cpp; see config/profiles/offline_qwen05.yaml."
+
   - name: "provider:vllm"
     kind: "provider"
     permissions: ["standard"]

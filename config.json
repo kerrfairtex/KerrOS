@@ -1,5 +1,5 @@
 {
-  "model_path": "models/model.gguf",
+  "model_path": "models/qwen0.5b-q4.gguf",
   "llama_bin": "llama-simple-chat",
   "threads": 4,
   "context_size": 4096,
@@ -43,7 +43,7 @@
     "grep",
     "ps"
   ],
-  "_note": "Secrets (groq_api_key, model paths) are now in .env \u2014 do not add them back here",
+  "_note": "Secrets in .env. Phase A offline: KERROS_OFFLINE_PROFILE=offline_qwen05 + ./scripts/download_qwen05_gguf.sh (ADR-050). Large model still models/model.gguf via /switch large.",
   "knowledge_root": "~/storage/external-1/offline_ai_knowledge",
   "knowledge_index": "~/offline_ai/data/knowledge",
   "auto_index": true,

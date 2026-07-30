@@ -149,9 +149,17 @@ class HealthMonitor:
             self.record("qdrant", "error", str(exc))
 
         try:
-            from adapters.llm.local_llm_probe import probe_ollama, probe_vllm
+            from adapters.llm.local_llm_probe import (
+                probe_llama_cpp,
+                probe_ollama,
+                probe_vllm,
+            )
 
-            for name, probe in (("ollama", probe_ollama), ("vllm", probe_vllm)):
+            for name, probe in (
+                ("llama_cpp", probe_llama_cpp),
+                ("ollama", probe_ollama),
+                ("vllm", probe_vllm),
+            ):
                 comp = probe()
                 report["components"][name] = comp
                 self.record(

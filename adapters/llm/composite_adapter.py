@@ -21,7 +21,7 @@ from adapters.llm.resilience import (
 )
 
 
-_LOCAL_PROVIDERS = ("ollama", "vllm", "local", "litellm")
+_LOCAL_PROVIDERS = ("ollama", "vllm", "local", "litellm", "llama_cpp", "llamacpp", "offline")
 _UNIFIED_PROVIDERS = ("omniroute", "gateway", "unified")
 
 
@@ -35,16 +35,24 @@ class CompositeLLMAdapter:
         self._ollama = None
         self._vllm = None
         self._litellm = None
+        self._llama_cpp = None
         self._last_api: str | None = None
+        # Offline profile (ADR-050) defaults provider to llama_cpp when set.
+        offline_name = os.getenv("KERROS_OFFLINE_PROFILE", "").strip() or str(
+            cfg.get("offline_profile") or ""
+        ).strip()
+        default_provider = str(cfg.get("llm_provider_default", "cloud"))
+        if offline_name and not os.getenv("KERROS_LLM_PROVIDER"):
+            default_provider = "llama_cpp"
         self._default_provider = os.getenv(
             "KERROS_LLM_PROVIDER",
-            str(cfg.get("llm_provider_default", "cloud")),
+            default_provider,
         ).lower()
         self._local_first = os.getenv("KERROS_LOCAL_LLM", "").lower() in (
             "1",
             "true",
             "yes",
-        )
+        ) or bool(offline_name)
         route_policy = str(cfg.get("llm_route_policy", "legacy_fallback")).strip().lower()
         self._unified_first = (
             os.getenv("KERROS_UNIFIED_FIRST", "").lower() in ("1", "true", "yes")
@@ -83,6 +91,12 @@ class CompositeLLMAdapter:
             from adapters.llm.litellm_adapter import LiteLLMAdapter
             self._litellm = LiteLLMAdapter()
         return self._litellm
+
+    def _get_llama_cpp(self):
+        if self._llama_cpp is None:
+            from adapters.llm.llama_cpp_adapter import LlamaCppAdapter
+            self._llama_cpp = LlamaCppAdapter()
+        return self._llama_cpp
 
     @property
     def engine(self):
@@ -159,10 +173,16 @@ class CompositeLLMAdapter:
             return [("vllm", self._get_vllm()), ("cloud", self._get_cloud())]
         if provider == "litellm":
             return [("litellm", self._get_litellm()), ("cloud", self._get_cloud())]
+        if provider in ("llama_cpp", "llamacpp", "offline"):
+            return [
+                ("llama_cpp", self._get_llama_cpp()),
+                ("cloud", self._get_cloud()),
+            ]
         if self._unified_first:
             return _unified_chain()
         if provider in _LOCAL_PROVIDERS or self._local_first:
             return [
+                ("llama_cpp", self._get_llama_cpp()),
                 ("ollama", self._get_ollama()),
                 ("litellm", self._get_litellm()),
                 ("vllm", self._get_vllm()),
@@ -182,6 +202,7 @@ class CompositeLLMAdapter:
             "unified_first": self._unified_first,
             "last_api": self._last_api,
             "omniroute": self._get_omniroute().status(),
+            "llama_cpp": self._get_llama_cpp().status(),
             "ollama": self._get_ollama().status(),
             "vllm": self._get_vllm().status(),
             "litellm": self._get_litellm().status(),

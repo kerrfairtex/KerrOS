@@ -1,4 +1,4 @@
-"""Health wiring for optional Ollama / vLLM (C-19)."""
+"""Health wiring for optional Ollama / vLLM / llama.cpp (C-19 / ADR-050)."""
 
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ from runtime.health import HealthMonitor
 class LocalLLMHealthTest(unittest.TestCase):
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
+    @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
     def test_ollama_fail_fails_overall_when_enabled(
-        self, mock_ollama, mock_vllm, mock_omni, mock_qdrant
+        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant
     ):
         shutdown()
         boot()
@@ -26,6 +27,11 @@ class LocalLLMHealthTest(unittest.TestCase):
         }
         mock_qdrant.return_value = {
             "component": "qdrant",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_llama.return_value = {
+            "provider": "llama_cpp",
             "enabled": False,
             "status": "disabled",
         }
@@ -51,10 +57,11 @@ class LocalLLMHealthTest(unittest.TestCase):
 
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
+    @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
     def test_disabled_local_llm_does_not_fail_health(
-        self, mock_ollama, mock_vllm, mock_omni, mock_qdrant
+        self, mock_ollama, mock_vllm, mock_llama, mock_omni, mock_qdrant
     ):
         shutdown()
         boot()
@@ -67,6 +74,12 @@ class LocalLLMHealthTest(unittest.TestCase):
             "component": "qdrant",
             "enabled": False,
             "status": "disabled",
+        }
+        mock_llama.return_value = {
+            "provider": "llama_cpp",
+            "enabled": False,
+            "status": "disabled",
+            "available": False,
         }
         mock_ollama.return_value = {
             "provider": "ollama",
@@ -85,6 +98,7 @@ class LocalLLMHealthTest(unittest.TestCase):
             self.assertTrue(report["healthy"])
             self.assertEqual(report["components"]["ollama"]["status"], "disabled")
             self.assertEqual(report["components"]["vllm"]["status"], "disabled")
+            self.assertEqual(report["components"]["llama_cpp"]["status"], "disabled")
         finally:
             shutdown()
 
