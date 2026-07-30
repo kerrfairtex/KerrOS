@@ -156,6 +156,13 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "enabled": False,
             "max_workers": 2,
         },
+        # ADR-062: progressive tool search / MCP soft bridge / profile memory.
+        "tool_search": {"enabled": False},
+        "mcp": {
+            "enabled": False,
+            "servers": [],
+        },
+        "profile_memory": {"enabled": True},
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,
