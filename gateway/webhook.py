@@ -193,4 +193,11 @@ def gateway_cmd(action: str, raw: str = "") -> str:
         return json.dumps(gateway_status(), indent=2)
     if action == "inbox":
         return json.dumps({"ok": True, "messages": inbox_snapshot()}, indent=2)
-    return "[gateway] actions: start|stop|status|inbox"
+    if action in ("channel", "channels"):
+        from gateway.channels.registry import channels_cmd
+
+        parts = (raw or "").strip().split(None, 1)
+        sub = parts[0] if parts else "list"
+        rest = parts[1] if len(parts) > 1 else ""
+        return channels_cmd(sub, rest)
+    return "[gateway] actions: start|stop|status|inbox|channel …"
