@@ -116,6 +116,20 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         # ADR-052: soft code index (ripgrep + Fake/tree-sitter) — off by default.
         "code_index_enabled": False,
         "code_index_path": "data/code_index/index.json",
+        # ADR-053: Unsloth LoRA → GGUF export (off by default).
+        "finetune_export": {
+            "enabled": False,
+            "backend": "fake",  # fake | unsloth
+            "method": "lora",
+            "base_model": "unsloth/Qwen2.5-0.5B-Instruct",
+            "dataset_path": "data/finetune/dataset.jsonl",
+            "output_dir": "data/finetune/lora_out",
+            "gguf_out": "models/qwen0.5b-q4.gguf",
+            "quant": "Q4_K_M",
+            "allow_train": False,
+            "allow_export": False,
+            "max_steps": 10,
+        },
         # C-19: self-hosted LLMs — off by default; also via KERROS_LOCAL_LLM / KERROS_*_ENABLED.
         "ollama_enabled": False,
         "vllm_enabled": False,

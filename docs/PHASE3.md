@@ -81,6 +81,9 @@ export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
 # /code-index
 # /symbols HybridMemoryAdapter
 # /code-search def build
+# Phase D finetune (Fake plan; GPU host for real export):
+# ./scripts/export_qwen05_lora_gguf.sh plan
+# /finetune-plan
 python3 cli/chat.py   # /llm shows llama_cpp; memory uses FTS (+ FAISS if enabled)
 
 ./scripts/local_llm_docker.sh up
@@ -152,7 +155,9 @@ Events: `llm.circuit.*` on the kernel EventBus.
 - ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
 - ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
 - ~~Offline RAG (nomic + FAISS / FTS)~~ — [ADR-051](adr/ADR-051-offline-rag-faiss.md)
-- ~~Offline coding index (rg + symbols)~~ — [ADR-052](adr/ADR-052-offline-coding-index.md); Unsloth / LiteLLM / reranker remain Phase D–E
+- ~~Offline coding index (rg + symbols)~~ — [ADR-052](adr/ADR-052-offline-coding-index.md)
+- ~~Unsloth LoRA → GGUF export~~ — [ADR-053](adr/ADR-053-unsloth-lora-gguf-export.md); LiteLLM gateway / reranker remain Phase E+
+- Phase E LiteLLM + llama.cpp server compose — deferred
 
 ## Workflow YAML definitions
 

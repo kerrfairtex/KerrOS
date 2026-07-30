@@ -1,0 +1,2 @@
+{"messages":[{"role":"system","content":"You are a helpful KerrOS offline assistant."},{"role":"user","content":"Say hello."},{"role":"assistant","content":"Hello! I am running offline via llama.cpp."}]}
+{"messages":[{"role":"user","content":"What is ChatML?"},{"role":"assistant","content":"ChatML is the prompt format used by Qwen Instruct models (<|im_start|> / <|im_end|>)."}]}

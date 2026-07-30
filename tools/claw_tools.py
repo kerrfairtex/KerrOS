@@ -496,3 +496,51 @@ def code_search(pattern: str, top_k: int = 20) -> ToolResult:
         return ToolResult(True, "code_search", output="\n".join(lines), data={"hits": hits})
     except Exception as e:
         return ToolResult(False, "code_search", error=str(e))
+
+
+def _finetune_service(force: bool = False):
+    from adapters.llm.unsloth_finetune import (
+        UnslothFinetuneConfig,
+        UnslothFinetuneService,
+    )
+
+    cfg = UnslothFinetuneConfig.from_mapping(
+        {"enabled": True} if force else {},
+        base=get_workspace(),
+    )
+    if not cfg.enabled and force:
+        cfg = UnslothFinetuneConfig.from_mapping(
+            {"enabled": True, "backend": "fake"},
+            base=get_workspace(),
+        )
+    return UnslothFinetuneService(cfg=cfg)
+
+
+def finetune_plan() -> ToolResult:
+    """Plan Unsloth LoRA → GGUF export (Fake by default; ADR-053)."""
+    try:
+        svc = _finetune_service(force=True)
+        out = svc.plan()
+        return ToolResult(
+            True,
+            "finetune_plan",
+            output=json.dumps(out, indent=2, sort_keys=True),
+            data=out,
+        )
+    except Exception as e:
+        return ToolResult(False, "finetune_plan", error=str(e))
+
+
+def finetune_export() -> ToolResult:
+    """Soft-export GGUF (gated; Fake dry-run unless allow_export)."""
+    try:
+        svc = _finetune_service(force=True)
+        out = svc.export()
+        return ToolResult(
+            True,
+            "finetune_export",
+            output=json.dumps(out, indent=2, sort_keys=True),
+            data=out,
+        )
+    except Exception as e:
+        return ToolResult(False, "finetune_export", error=str(e))

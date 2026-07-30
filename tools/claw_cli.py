@@ -114,6 +114,12 @@ def detect_claw_tool(text: str) -> tuple[str | None, dict[str, Any] | None]:
     pattern = raw.split(" ", 1)[1].strip()
     return ("code_search", {"pattern": pattern}) if pattern else (None, None)
 
+  if raw in ("/finetune-plan", "/finetune_plan"):
+    return ("finetune_plan", {})
+
+  if raw in ("/finetune-export", "/finetune_export"):
+    return ("finetune_export", {})
+
   if raw.startswith("/workspace"):
     return ("__workspace__", {})
 
@@ -143,6 +149,8 @@ def claw_tool_help_lines() -> list[tuple[str, str]]:
     ("/code-index [root]", "Rebuild code symbol index"),
     ("/symbols <query>", "Search indexed symbols"),
     ("/code-search <pattern>", "Search file contents (rg)"),
+    ("/finetune-plan", "Plan Unsloth LoRA → GGUF export"),
+    ("/finetune-export", "Soft-export GGUF (gated)"),
     ("/tool <name> <json>", "Call any claw tool with JSON args"),
     ("/workspace", "Show active workspace root"),
   ]

@@ -20,6 +20,8 @@ from tools.claw_tools import (
     code_symbols,
     edit,
     exec_cmd,
+    finetune_export,
+    finetune_plan,
     get_workspace,
     list_dir,
     read,
@@ -183,6 +185,22 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "finetune_plan",
+            "description": "Plan Unsloth LoRA → GGUF Q4_K_M export (Fake by default; ADR-053).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "finetune_export",
+            "description": "Soft-export finetuned weights to GGUF (gated; dry-run unless allow_export).",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
     # ------------------------------------------------------------------
     # Hermes-style Progressive Disclosure skill tools
     # ------------------------------------------------------------------
@@ -205,8 +223,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
             },
         },
-    },
-    {
+    },    {
         "type": "function",
         "function": {
             "name": "skill_view",
@@ -282,6 +299,8 @@ _HANDLERS: dict[str, Handler] = {
     "code_index_build": code_index_build,
     "code_symbols": code_symbols,
     "code_search": code_search,
+    "finetune_plan": finetune_plan,
+    "finetune_export": finetune_export,
     # Hermes-style skill tools
     "skills_list": skills_list,
     "skill_view": skill_view,

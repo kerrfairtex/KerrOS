@@ -193,4 +193,4 @@ capabilities:
     metadata:
       role: "local"
       adapter: "adapters.llm.unsloth_adapter"
-      notes: "Optional local Unsloth inference path."
+      notes: "Optional local Unsloth inference; Phase D LoRA→GGUF soft export in adapters.llm.unsloth_finetune (ADR-053)."

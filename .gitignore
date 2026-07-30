@@ -33,6 +33,11 @@ runtime/logs/
 data/vector_store/
 data/faiss/
 data/code_index/
+data/finetune/lora_out/
+data/finetune/*.jsonl
+!data/finetune/*.example
+!data/finetune/dataset.jsonl.example
+
 data/rag_cache/
 models/*.gguf
 models/*.bin

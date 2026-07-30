@@ -66,3 +66,14 @@ pip install tree-sitter   # optional; Fake regex symbols work without it
 
 Claw tools: `code_index_build`, `code_symbols`, `code_search`
 (`/code-index`, `/symbols`, `/code-search`). Index under `data/code_index/`.
+
+## Unsloth LoRA → GGUF (ADR-053 / Phase D)
+
+```bash
+# Optional GPU host only — never required for CI:
+pip install unsloth   # + CUDA torch stack (operator-owned)
+# llama-quantize from a local llama.cpp build
+./scripts/export_qwen05_lora_gguf.sh plan
+```
+
+Fake plan works without Unsloth. `provisioned_production` stays False.
