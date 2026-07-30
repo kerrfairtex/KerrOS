@@ -45,5 +45,5 @@ supervision tree.
 
 ## Revisit when
 
-~~JetStream soft client / OTP local tree / CA reload~~ — **ADR-028.**
-Remaining: JetStream cluster HA / ACME automation when funded.
+~~JetStream cluster failover + ACME live-dir watch~~ — **ADR-029.**
+Remaining: Supercluster topology ops / ACME HTTP-01 solvers when funded.

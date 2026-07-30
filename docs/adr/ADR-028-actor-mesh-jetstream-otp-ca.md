@@ -44,5 +44,6 @@ contexts until re-dial; tree does not spawn processes.
 
 ## Revisit when
 
-A funded deploy runs a JetStream cluster, needs richer OTP strategies, or
-ACME-backed CA automation / IdP portals / hardware WORM.
+~~JetStream cluster failover + ACME live-dir watch~~ — **ADR-029.**
+A funded deploy needs Supercluster topology automation, ACME HTTP-01/DNS-01
+issuance, IdP portals, or hardware WORM.

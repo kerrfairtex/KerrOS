@@ -103,7 +103,8 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Actor orchestrator foundation — named routes, req/reply, `add_peer`, WAN token gate ([`ADR-018`](docs/adr/ADR-018-actor-mesh-orchestrator-foundation.md))
 - [x] Actor supervision foundation — local heartbeats, TTL liveness, `_sys.ping` ([`ADR-020`](docs/adr/ADR-020-actor-mesh-supervision-foundation.md))
 - [x] Actor mesh mTLS + NATS + remote restart foundation — stdlib TLS, soft nats-py, ServiceManager hook ([`ADR-023`](docs/adr/ADR-023-actor-mesh-mtls-nats-remote.md))
-- [x] JetStream soft + OTP tree + CA reload foundation — durable pub stub, local one-for-one tree, PEM mtime reload ([`ADR-028`](docs/adr/ADR-028-actor-mesh-jetstream-otp-ca.md)); JetStream cluster HA / ACME still deferred
+- [x] JetStream soft + OTP tree + CA reload foundation — durable pub stub, local one-for-one tree, PEM mtime reload ([`ADR-028`](docs/adr/ADR-028-actor-mesh-jetstream-otp-ca.md))
+- [x] JetStream cluster failover + ACME watch — multi-URL client HA + live-dir TLS reload ([`ADR-029`](docs/adr/ADR-029-jetstream-cluster-acme.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))

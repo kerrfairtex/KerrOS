@@ -87,7 +87,7 @@ Optional dep: `requirements-optional.txt`.
 
 ## Deferred (multi-node / scale triggers)
 
-- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-023](adr/ADR-023-actor-mesh-mtls-nats-remote.md) + [ADR-028](adr/ADR-028-actor-mesh-jetstream-otp-ca.md) (JetStream soft / OTP tree / CA reload); JetStream cluster HA / ACME still deferred
+- ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-029](adr/ADR-029-jetstream-cluster-acme.md) (cluster failover + ACME watch)
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

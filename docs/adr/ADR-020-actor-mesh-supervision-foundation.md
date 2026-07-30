@@ -40,4 +40,5 @@ auto-restarted unless the operator supplies `on_dead`.
 
 ~~mTLS / NATS / remote process restart hook~~ — **ADR-023.**
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
-Remaining: JetStream cluster HA / richer OTP strategies when funded.
+~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
+Remaining: richer OTP strategies when funded.

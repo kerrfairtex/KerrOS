@@ -259,7 +259,22 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "enabled": False,
                     "stream": "kerros",
                     "durable": "",
+                    # ADR-029: client-side multi-URL failover (off by default).
+                    "cluster": {
+                        "enabled": False,
+                        "servers": [],  # e.g. ["nats://a:4222","nats://b:4222"]
+                        "failover_retries": 2,
+                        "connect_timeout_s": 2.0,
+                    },
                 },
+            },
+            # ADR-029: ACME / Let's Encrypt live-dir watch (off by default).
+            "acme": {
+                "enabled": False,
+                "live_dir": "",
+                "domain": "",
+                "watch_interval_s": 60.0,
+                "allow_certbot_probe": False,
             },
         },
     }

@@ -45,4 +45,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Local actor heartbeats / liveness~~ — **ADR-020.**
 ~~mTLS / NATS / remote process restart hook~~ — **ADR-023.**
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
-Remaining: JetStream cluster HA / ACME when funded.
+~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
+Remaining: Supercluster topology / ACME solvers when funded.

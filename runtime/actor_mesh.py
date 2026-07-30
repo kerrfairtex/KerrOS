@@ -461,8 +461,10 @@ class ActorMesh:
     routes: dict[str, str] = field(default_factory=dict)
     supervisor: Any = None  # optional ActorSupervisor (ADR-020)
     jetstream: Any = None  # optional JetStreamSoftClient (ADR-028)
+    jetstream_cluster: Any = None  # optional JetStreamClusterClient (ADR-029)
     supervision_tree: Any = None  # optional SupervisionTree (ADR-028)
     tls_holder: Any = None  # optional ReloadingTlsHolder (ADR-028)
+    acme_watcher: Any = None  # optional AcmeCertWatcher (ADR-029)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -778,6 +780,11 @@ class ActorMesh:
             "jetstream": (
                 self.jetstream.stats() if self.jetstream is not None else None
             ),
+            "jetstream_cluster": (
+                self.jetstream_cluster.stats()
+                if self.jetstream_cluster is not None
+                else None
+            ),
             "supervision_tree": (
                 self.supervision_tree.stats()
                 if self.supervision_tree is not None
@@ -785,6 +792,9 @@ class ActorMesh:
             ),
             "tls_reload": (
                 self.tls_holder.stats() if self.tls_holder is not None else None
+            ),
+            "acme": (
+                self.acme_watcher.stats() if self.acme_watcher is not None else None
             ),
         }
 
@@ -983,25 +993,85 @@ def build_actor_mesh(
             strategy=str(tree_raw.get("strategy") or "one_for_one"),
         )
 
-    # ADR-028: optional JetStream soft client (injected or soft nats-py).
+    # ADR-028/029: optional JetStream soft client or cluster failover.
     js_raw = dict(nats_cfg.get("jetstream") or {})
     js_raw.setdefault("url", nats_url)
     js_raw.setdefault("subject_prefix", nats_prefix)
     from dataclasses import replace
 
     from runtime.nats_jetstream import JetStreamSoftClient, jetstream_config_from
+    from runtime.nats_jetstream_cluster import (
+        JetStreamClusterClient,
+        JetStreamClusterConfig,
+    )
 
-    js_cfg = jetstream_config_from(js_raw)
-    injected_js = data.get("_jetstream_client")
-    if js_cfg.enabled or injected_js is not None:
-        effective = js_cfg if js_cfg.enabled else replace(js_cfg, enabled=True)
+    cluster_raw = dict(js_raw.get("cluster") or {})
+    cluster_raw.setdefault("url", nats_url)
+    cluster_raw.setdefault("stream", js_raw.get("stream") or "kerros")
+    cluster_raw.setdefault("durable", js_raw.get("durable") or "")
+    cluster_raw.setdefault("subject_prefix", nats_prefix)
+    cluster_cfg = JetStreamClusterConfig.from_mapping(cluster_raw)
+    injected_cluster = data.get("_jetstream_cluster")
+
+    if cluster_cfg.enabled or injected_cluster is not None:
         try:
-            mesh.jetstream = JetStreamSoftClient(cfg=effective, client=injected_js)
-            mesh.jetstream.start()
+            effective_c = (
+                cluster_cfg
+                if cluster_cfg.enabled
+                else JetStreamClusterConfig.from_mapping(
+                    {**cluster_raw, "enabled": True}
+                )
+            )
+            mesh.jetstream_cluster = JetStreamClusterClient(
+                cfg=effective_c, cluster=injected_cluster
+            )
+            mesh.jetstream_cluster.start()
         except Exception:
-            if injected_js is not None:
+            if injected_cluster is not None:
                 raise
-            mesh.jetstream = None
+            mesh.jetstream_cluster = None
+    else:
+        js_cfg = jetstream_config_from(js_raw)
+        injected_js = data.get("_jetstream_client")
+        if js_cfg.enabled or injected_js is not None:
+            effective = js_cfg if js_cfg.enabled else replace(js_cfg, enabled=True)
+            try:
+                mesh.jetstream = JetStreamSoftClient(
+                    cfg=effective, client=injected_js
+                )
+                mesh.jetstream.start()
+            except Exception:
+                if injected_js is not None:
+                    raise
+                mesh.jetstream = None
+
+    # ADR-029: optional ACME live-dir watcher bound to tls_holder.
+    from runtime.acme_reload import AcmeCertWatcher, AcmeConfig
+
+    acme_cfg = AcmeConfig.from_mapping(data.get("acme") or {}, base=None)
+    if acme_cfg.enabled:
+        watcher = AcmeCertWatcher(cfg=acme_cfg)
+        if mesh.tls_holder is not None:
+            watcher.bind_tls_holder(mesh.tls_holder)
+        else:
+            # Create holder from ACME paths when TLS not otherwise configured.
+            try:
+                from pathlib import Path
+
+                from runtime.acme_reload import acme_paths_to_tls_config
+                from runtime.actor_mesh_tls import ReloadingTlsHolder
+
+                tls_from_acme = acme_paths_to_tls_config(acme_cfg)
+                if Path(tls_from_acme.cert_file).is_file():
+                    holder = ReloadingTlsHolder.from_config(tls_from_acme)
+                    mesh.tls_holder = holder
+                    watcher.bind_tls_holder(holder)
+            except Exception:
+                pass
+        watcher.check_once()
+        if acme_cfg.watch_interval_s > 0:
+            watcher.start_watch()
+        mesh.acme_watcher = watcher
 
     mesh.attach()
     return mesh
