@@ -22,9 +22,11 @@ def _bootstrap() -> None:
         return
     from gateway.channels.discord import DiscordAdapter
     from gateway.channels.telegram import TelegramAdapter
+    from gateway.channels.whatsapp import WhatsAppAdapter
 
     _adapters["telegram"] = TelegramAdapter()
     _adapters["discord"] = DiscordAdapter()
+    _adapters["whatsapp"] = WhatsAppAdapter()
     _bootstrapped = True
 
 
@@ -126,7 +128,32 @@ def channels_cmd(action: str, raw: str = "") -> str:
             {"ok": True, "message": {"channel": msg.channel, "sender": msg.sender, "text": msg.text}},
             indent=2,
         )
+    if action == "soft-webhook" and len(parts) >= 2:
+        # soft-webhook whatsapp :: {"entry":[...]}
+        channel = parts[0]
+        body = " ".join(parts[1:]).strip()
+        if body.startswith("::"):
+            body = body[2:].strip()
+        ad = get_adapter(channel)
+        if not ad or not hasattr(ad, "soft_push_webhook"):
+            return json.dumps({"ok": False, "error": "channel lacks soft_push_webhook"})
+        try:
+            payload = json.loads(body)
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": f"invalid json: {exc}"})
+        msgs = ad.soft_push_webhook(payload)
+        return json.dumps(
+            {
+                "ok": True,
+                "enqueued": len(msgs),
+                "messages": [
+                    {"channel": m.channel, "sender": m.sender, "text": m.text} for m in msgs
+                ],
+            },
+            indent=2,
+        )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|"
-        "send <ch> <chat_id> <text>|soft-push <ch> <text>"
+        "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
+        "soft-webhook <ch> <json>"
     )
