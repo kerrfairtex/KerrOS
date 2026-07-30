@@ -268,7 +268,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     },
                 },
             },
-            # ADR-029/030/031: ACME watch + HTTP-01 + account/DNS-01 (off by default).
+            # ADR-029..032: ACME watch / solvers / account / cloud DNS (off by default).
             "acme": {
                 "enabled": False,
                 "live_dir": "",
@@ -289,12 +289,28 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "dry_run": True,
                     "allow_directory_probe": False,
                 },
+                "new_account": {
+                    "enabled": False,
+                    "allow_live": False,
+                    "transport": "fake",
+                    "terms_of_service_agreed": True,
+                },
                 "dns01": {
                     "enabled": False,
                     "provider": "memory",
+                    "webhook_url": "",
+                    "webhook_token": "",
+                    "cloud": {
+                        "enabled": False,
+                        "provider": "fake",
+                        "allow_live": False,
+                        "webhook_url": "",
+                        "webhook_token": "",
+                        "zone": "",
+                    },
                 },
             },
-            # ADR-030/031: Supercluster topology registry + ops (off by default).
+            # ADR-030..032: Supercluster topology / ops / control-plane (off by default).
             "supercluster": {
                 "enabled": False,
                 "name": "kerros",
@@ -305,6 +321,15 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "enabled": False,
                     "probe_timeout_s": 1.0,
                     "allow_probe": False,
+                },
+                "control_plane": {
+                    "enabled": False,
+                    "config_dir": "data/supercluster_cp",
+                    "allow_write": False,
+                    "allow_monitor_probe": False,
+                    "monitor_urls": [],
+                    "allow_signal_reload": False,
+                    "backend": "memory",
                 },
             },
         },

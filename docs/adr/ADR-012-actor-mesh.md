@@ -52,4 +52,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
 ~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
-Revisit for live Supercluster control-plane / ACME newAccount+cloud DNS when multi-tenant WAN requires them.
+~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
+Revisit for broker process lifecycle / full ACME JOSE+native cloud DNS SDKs when multi-tenant WAN requires them.

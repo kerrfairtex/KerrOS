@@ -48,4 +48,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
 ~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
-Remaining: live Supercluster control-plane / ACME newAccount+cloud DNS when funded.
+~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
+Remaining: broker process lifecycle / full ACME JOSE+native cloud DNS when funded.

@@ -455,6 +455,7 @@ class ActorMesh:
     ADR-029 adds JetStream cluster failover + ACME live-dir watch.
     ADR-030 adds Supercluster topology registry + ACME HTTP-01 solver.
     ADR-031 adds Supercluster topology ops + ACME account/DNS-01.
+    ADR-032 adds Supercluster control-plane + ACME newAccount/cloud DNS.
     """
 
     node_id: str
@@ -473,6 +474,8 @@ class ActorMesh:
     supercluster_ops: Any = None  # optional SuperclusterOps (ADR-031)
     acme_account: Any = None  # optional AcmeAccountRegistry (ADR-031)
     acme_dns01: Any = None  # optional AcmeDns01Solver (ADR-031)
+    supercluster_control: Any = None  # optional SuperclusterControlPlane (ADR-032)
+    acme_new_account: Any = None  # optional AcmeNewAccountClient (ADR-032)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -826,6 +829,16 @@ class ActorMesh:
             "acme_dns01": (
                 self.acme_dns01.stats() if self.acme_dns01 is not None else None
             ),
+            "supercluster_control": (
+                self.supercluster_control.stats()
+                if self.supercluster_control is not None
+                else None
+            ),
+            "acme_new_account": (
+                self.acme_new_account.stats()
+                if self.acme_new_account is not None
+                else None
+            ),
         }
 
 
@@ -1122,6 +1135,16 @@ def build_actor_mesh(
         if mesh.supercluster is None:
             mesh.supercluster = ops.topology
 
+    # ADR-032: Supercluster control-plane (config publish / monitor / signal).
+    from runtime.nats_supercluster_control import build_supercluster_control_plane
+
+    cp = build_supercluster_control_plane(
+        sc_raw.get("control_plane") or {},
+        ops=mesh.supercluster_ops,
+    )
+    if cp is not None:
+        mesh.supercluster_control = cp
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1137,9 +1160,10 @@ def build_actor_mesh(
                 pass
             mesh.acme_http01 = None
 
-    # ADR-031: ACME account registry + DNS-01 solver.
+    # ADR-031/032: ACME account registry + DNS-01 (+ optional cloud provider).
     from runtime.acme_account import build_acme_account_registry
-    from runtime.acme_dns01 import build_acme_dns01_solver
+    from runtime.acme_cloud_dns import build_acme_dns01_with_cloud
+    from runtime.acme_new_account import build_acme_new_account_client
 
     account = build_acme_account_registry(acme_raw.get("account") or {})
     if account is not None:
@@ -1149,9 +1173,17 @@ def build_actor_mesh(
             pass
         mesh.acme_account = account
 
-    dns01 = build_acme_dns01_solver(acme_raw.get("dns01") or {})
+    dns01 = build_acme_dns01_with_cloud(acme_raw.get("dns01") or {})
     if dns01 is not None:
         mesh.acme_dns01 = dns01
+
+    new_acct = build_acme_new_account_client(
+        acme_raw.get("new_account") or {},
+        account=mesh.acme_account,
+        account_cfg=acme_raw.get("account") or {},
+    )
+    if new_acct is not None:
+        mesh.acme_new_account = new_acct
 
     mesh.attach()
     return mesh

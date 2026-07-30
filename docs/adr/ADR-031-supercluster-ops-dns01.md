@@ -44,6 +44,7 @@ DNS-01 does not publish to real DNS.
 
 ## Revisit when
 
-A funded deploy needs live Supercluster control-plane hooks, ACME
-`newAccount`/order issuance, cloud DNS providers, IdP portals, or
-hardware WORM / sealed-cold crypto-shred.
+~~Live Supercluster control-plane / ACME newAccount + cloud DNS~~ — **ADR-032.**
+A funded deploy needs broker process lifecycle, full ACME JOSE / order
+issuance, native cloud DNS SDKs, IdP portals, or hardware WORM /
+sealed-cold crypto-shred.

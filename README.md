@@ -107,6 +107,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] JetStream cluster failover + ACME watch — multi-URL client HA + live-dir TLS reload ([`ADR-029`](docs/adr/ADR-029-jetstream-cluster-acme.md))
 - [x] Supercluster topology + ACME HTTP-01 — registry/validate + stdlib challenge solver ([`ADR-030`](docs/adr/ADR-030-supercluster-http01.md))
 - [x] Supercluster ops + ACME account/DNS-01 — plan/probe/apply + local account + memory DNS-01 ([`ADR-031`](docs/adr/ADR-031-supercluster-ops-dns01.md))
+- [x] Supercluster control-plane + ACME newAccount/cloud DNS — config publish/monitor + fake/webhook DNS ([`ADR-032`](docs/adr/ADR-032-control-plane-acme-live.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))

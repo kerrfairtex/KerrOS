@@ -43,4 +43,5 @@ auto-restarted unless the operator supplies `on_dead`.
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
 ~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
 ~~Supercluster topology ops / ACME account+DNS-01~~ — **ADR-031.**
+~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
 Remaining: richer OTP strategies when funded.
