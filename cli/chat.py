@@ -1295,7 +1295,12 @@ def main():
             response = response.strip()
             divider(); ai_header(mode); typewrite(response); divider()
 
-            saved_files = save_code_blocks(response)
+            # Interactive "[code] Found N… Save to file? [y/n]" — hidden by default.
+            # Opt in: KERROS_CODE_SAVE_PROMPT=1
+            _code_save_prompt = os.environ.get("KERROS_CODE_SAVE_PROMPT", "").strip().lower() in (
+                "1", "true", "yes", "on",
+            )
+            saved_files = save_code_blocks(response) if _code_save_prompt else []
             if saved_files:
                 print(f"  [code] Found {len(saved_files)} code block(s).")
                 choice = input("  Save to file? [y/n] ").strip().lower()
