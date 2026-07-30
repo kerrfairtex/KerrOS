@@ -120,11 +120,12 @@ class RouterHermesToolsTest(unittest.TestCase):
         self.assertIn("2", str(out))
 
 
-class DeferredSubagentsTest(unittest.TestCase):
+class SubagentsAdrTest(unittest.TestCase):
     def test_adr_061_exists(self):
         root = Path(__file__).resolve().parents[2]
-        self.assertTrue((root / "docs/adr/ADR-061-subagent-delegation-deferred.md").is_file())
+        self.assertTrue((root / "docs/adr/ADR-061-subagent-delegation.md").is_file())
         self.assertTrue((root / "docs/adr/ADR-056-tool-call-hooks.md").is_file())
+        self.assertFalse((root / "docs/adr/ADR-061-subagent-delegation-deferred.md").is_file())
 
 
 if __name__ == "__main__":

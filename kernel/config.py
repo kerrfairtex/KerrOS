@@ -151,6 +151,11 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         # ADR-055: adaptive integrations catalog / routing tiers — soft, default coding-aware.
         "routing_tier": "",  # sol | terra | luna | coding | research
         "adaptive_coding": True,
+        # ADR-061: native parallel subagent delegation — default off; RAM-aware.
+        "subagents": {
+            "enabled": False,
+            "max_workers": 2,
+        },
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,

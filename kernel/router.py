@@ -268,6 +268,11 @@ def detect_tool(text, bypass_gate=False):
         return ("execute_pipeline", body)
     if lower.startswith("skills curate") or lower == "/skills curate":
         return ("skills_curate", "")
+    if lower.startswith("delegate ") or lower.startswith("/delegate "):
+        body = text.split(" ", 1)[1].strip() if " " in text else ""
+        return ("delegate_task", body)
+    if lower.startswith("delegate_task "):
+        return ("delegate_task", text.split(" ", 1)[1].strip())
 
     return (None, None)
 
@@ -329,6 +334,7 @@ def run_tool(tool, args):
         "search_past_sessions": _search_past_sessions,
         "execute_pipeline": _execute_pipeline,
         "skills_curate": _skills_curate,
+        "delegate_task": _delegate_task,
     }
     fn = dispatch.get(tool)
     result = fn(args) if fn else "[Unknown tool]"
@@ -1190,3 +1196,37 @@ def _bootstrap_hermes_hooks():
 
 
 _bootstrap_hermes_hooks()
+
+
+def _delegate_task(raw):
+    """Native KerrOS parallel subagents (ADR-061). Requires KERROS_SUBAGENTS=1."""
+    from agents.subagents import delegate_tasks, get_bound_engine, parse_delegate_args
+
+    jobs = parse_delegate_args(str(raw or ""))
+    if not jobs:
+        return (
+            "[delegate] usage: delegate knowledge: <q> || research: <q2>\n"
+            "Enable with KERROS_SUBAGENTS=1 (RAM-aware; max 2 workers)."
+        )
+
+    class _StubEngine:
+        current_mode = "offline"
+
+        def generate(self, *a, **k):
+            return "[subagent] no engine bound"
+
+        def chat(self, *a, **k):
+            return "[subagent] no engine bound"
+
+    engine = get_bound_engine() or _StubEngine()
+    cfg = None
+    try:
+        from core.config import cfg as _cfg
+
+        cfg = _cfg()
+    except Exception:
+        cfg = None
+    out = delegate_tasks(jobs, engine, cfg=cfg)
+    if out.get("summary"):
+        return out["summary"]
+    return str(out.get("error") or out)

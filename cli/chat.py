@@ -145,6 +145,12 @@ def main():
     print(f"  {GR}[kernel]{R} {CY}{kernel.phase.value}{R}  {GY}workspace={kcfg.workspace}{R}")
     init_session()  # reset in-memory session
     engine = AdaptiveEngine()
+    try:
+        from agents.subagents import bind_engine
+
+        bind_engine(engine)
+    except Exception:
+        pass
     spinner = Spinner()
 
     mode = ask_mode(engine, spinner)
@@ -351,6 +357,7 @@ def main():
                 ("/switch small|large","Switch local model"),
                 ("/react <task>",      "ReAct agent — multi-step reasoning"),
                 ("/knowledge <q>",     "Knowledge Agent — RAG-grounded Q&A + live tools"),
+                ("/delegate a:q || b:q2", "Parallel subagents (KERROS_SUBAGENTS=1; ADR-061)"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
@@ -1104,6 +1111,38 @@ def main():
                 typewrite(result)
                 divider()
                 add_message("assistant", result)
+
+        elif user.startswith("/delegate ") or user == "/delegate":
+            from agents.subagents import bind_engine, delegate_tasks, parse_delegate_args
+
+            raw = user[len("/delegate") :].strip()
+            jobs = parse_delegate_args(raw)
+            if not jobs:
+                print(
+                    f"  {RE}Usage: /delegate knowledge: <q> || research: <q2>{R}\n"
+                    f"  {GY}Enable with KERROS_SUBAGENTS=1 (RAM-aware; max 2 workers).{R}"
+                )
+            else:
+                bind_engine(engine)
+                spinner.label = "Delegating"
+                spinner.start()
+                try:
+                    from core.config import cfg as _cfg
+
+                    out = delegate_tasks(jobs, engine, cfg=_cfg())
+                except Exception as exc:
+                    spinner.stop()
+                    print(f"  {RE}[delegate] {exc}{R}")
+                    out = None
+                else:
+                    spinner.stop()
+                if out is not None:
+                    text = out.get("summary") or out.get("error") or str(out)
+                    divider()
+                    ai_header(mode)
+                    typewrite(text)
+                    divider()
+                    add_message("assistant", text[:800])
 
         elif user.startswith("/analyze"):
             from prompts.system import ANALYST_PROMPT
