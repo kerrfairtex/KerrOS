@@ -1,7 +1,7 @@
 """
 agents/subagents.py
 ====================
-Hermes-style subagent delegation (ADR-061) — native KerrOS port.
+Subagent delegation (ADR-061).
 
 Default-off. Enable with KERROS_SUBAGENTS=1.
 Concurrency capped at 2 and reduced further when available RAM is low.

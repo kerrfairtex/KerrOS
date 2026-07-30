@@ -5,7 +5,7 @@
 
 ## Context
 
-Hermes collapses fixed multi-step tool sequences into one sandboxed script
+Fixed multi-step tool sequences should collapse into one sandboxed script
 so the LLM is not invoked at every mechanical step. KerrOS already has
 `code_saver.run_and_verify` and scope gates, but no allowlisted
 tool-RPC pipeline runner.

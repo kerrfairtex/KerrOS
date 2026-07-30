@@ -6,10 +6,10 @@
 
 ## Context
 
-Hermes can spawn concurrent child agents for independent workstreams.
-KerrOS agents were serialized through the REPL. We re-implement the
-*behavior* natively (no Hermes clone): capped parallelism, restricted
-agent set, inherited tool gating.
+Independent workstreams benefit from capped concurrent child agents.
+KerrOS agents were serialized through the REPL. We add KerrOS-native
+parallelism: restricted agent set, inherited tool gating, device-aware RAM
+limits.
 
 Dev hosts may have ample RAM; phones may not. Capability must be
 **device-aware**, not assumed from any cloud IDE VM size.
@@ -25,7 +25,7 @@ Dev hosts may have ample RAM; phones may not. Capability must be
 5. Expose router tool / CLI: `delegate …` / `/delegate`.
 6. Results converge into a text summary for the parent turn.
 
-Out of scope: Hermes messaging gateway, 3-way concurrency, cloning Hermes.
+Out of scope: messaging gateway bridges, 3-way concurrency, unrestricted spawn.
 
 ## Consequences
 

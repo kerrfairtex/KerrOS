@@ -1,4 +1,4 @@
-# ADR-007: Hermes-style Progressive Disclosure Skill System
+# ADR-007: Progressive Disclosure Skill System
 
 **Status:** Accepted  
 **Date:** 2026-07-25  
@@ -13,7 +13,7 @@ Furthermore, as KerrOS is a self-evolving system, agents need a mechanism to sys
 
 ## Decision
 
-Implement a Hermes-style Progressive Disclosure Skill System comprising three distinct levels of architecture to balance orientation and token efficiency:
+Implement a Progressive Disclosure Skill System comprising three distinct levels of architecture to balance orientation and token efficiency:
 
 1. **Level 0 (Low-Cost Indexing) — `skills_list()`**:
    Surfaces a compact, structured catalog index of all available skills at session start. It groups skills by category (e.g., `web_stack`, `ai_patterns`, and `tool_catalog`), providing only the skill name and a brief one-line description. This minimal footprint (~3k tokens) avoids context bloat while keeping the agent oriented.

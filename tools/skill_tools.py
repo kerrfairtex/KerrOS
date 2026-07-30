@@ -1,7 +1,7 @@
 """
 tools/skill_tools.py
 ====================
-Hermes-style Progressive Disclosure skill system for KerrOS.
+Progressive Disclosure skill system for KerrOS.
 
 Three-level architecture:
   Level 0 — skills_list()    : compact index injected at session start (~3 k tokens)

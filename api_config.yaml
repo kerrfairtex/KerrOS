@@ -49,8 +49,8 @@ llm_local:
   litellm:     { env: LITELLM_ENDPOINT,          default: "http://localhost:4000/v1" }
   # Quantized model server (llama.cpp / GGUF models)
   quant:       { env: QUANT_ENDPOINT,            default: "http://localhost:8081/v1" }
-  # NousResearch Hermes models via Ollama (pull: ollama pull hermes3)
-  hermes:      { env: HERMES_ENDPOINT,           default: "http://localhost:11434/v1", model: "hermes3" }
+  # Local Ollama OpenAI-compatible endpoint (set model via config as needed)
+  ollama_chat: { env: OLLAMA_CHAT_ENDPOINT,      default: "http://localhost:11434/v1", model: "llama3.2" }
 
 # Priority order for engine.py fallback chain (edit freely)
 fallback_chain:

@@ -256,7 +256,7 @@ def detect_tool(text, bypass_gate=False):
     if lower.startswith("stripe trigger "):
         return ("stripe_trigger", text[len("stripe trigger "):].strip())
 
-    # Hermes-port recall / pipeline / skills (ADR-058..060)
+    # Session recall / pipeline / skills (ADR-058..060)
     if lower.startswith("search past sessions ") or lower.startswith("/sessions "):
         q = text.split(" ", 3)[-1].strip() if lower.startswith("/sessions ") else text[len("search past sessions "):].strip()
         return ("search_past_sessions", q)
@@ -1174,7 +1174,7 @@ def _skills_curate(_args=""):
     )
 
 
-def _bootstrap_hermes_hooks():
+def _bootstrap_skill_experience_hooks():
     """Register experience recorder post-hook once."""
     try:
         from tools.tool_hooks import list_hooks, register_post_tool_call
@@ -1195,7 +1195,7 @@ def _bootstrap_hermes_hooks():
         pass
 
 
-_bootstrap_hermes_hooks()
+_bootstrap_skill_experience_hooks()
 
 
 def _delegate_task(raw):
