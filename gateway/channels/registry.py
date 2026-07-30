@@ -112,13 +112,14 @@ def send_channel(channel: str, chat_id: str, text: str) -> dict[str, Any]:
 
 def soft_reply_once(*, prefix: str = "[KerrOS]") -> dict[str, Any]:
     """
-    Soft channel reply loop (ADR-072).
+    Soft channel reply loop (ADR-072 + ADR-079 routing).
 
     Poll all running adapters, copy into webhook inbox, index turns into
-    session_store, and send a Soft ack outbound per inbound message.
+    per-channel routed sessions, and send a Soft ack outbound per inbound.
     Does not call an LLM — safe for CI / demos without API keys.
     """
     from gateway import webhook as gw
+    from gateway.channels.routing import index_channel_turn, session_id_for
 
     pulled = poll_all()
     replies: list[dict[str, Any]] = []
@@ -132,28 +133,28 @@ def soft_reply_once(*, prefix: str = "[KerrOS]") -> dict[str, Any]:
                     "chat_id": m.chat_id,
                 }
             )
-        try:
-            from memory.session_store import index_turn
-
-            index_turn(
-                "user",
-                f"[{m.channel}:{m.sender}] {m.text}",
-                source=f"channel:{m.channel}",
-            )
-        except Exception:
-            pass
         ack = f"{prefix} ack ({m.channel}): {m.text[:200]}"
+        sid = index_channel_turn(
+            "user",
+            f"[{m.channel}:{m.sender}] {m.text}",
+            channel=m.channel,
+            chat_id=m.chat_id or "",
+            sender=m.sender or "",
+        )
+        index_channel_turn(
+            "assistant",
+            ack,
+            channel=m.channel,
+            chat_id=m.chat_id or "",
+            sender=m.sender or "",
+        )
         sent = send_channel(m.channel, m.chat_id or "soft", ack)
-        try:
-            from memory.session_store import index_turn
-
-            index_turn("assistant", ack, source=f"channel:{m.channel}")
-        except Exception:
-            pass
         replies.append(
             {
                 "channel": m.channel,
                 "chat_id": m.chat_id,
+                "session_id": sid
+                or session_id_for(m.channel, m.chat_id or "", m.sender or ""),
                 "inbound": m.text,
                 "outbound": ack,
                 "send": sent,
@@ -181,6 +182,26 @@ def channels_cmd(action: str, raw: str = "") -> str:
         from gateway.channels.bridge import llm_reply_once
 
         return json.dumps(llm_reply_once(), indent=2)
+    if action in ("stream-reply", "stream_reply", "reply-stream"):
+        from gateway.channels.bridge import stream_reply_once
+
+        return json.dumps(stream_reply_once(), indent=2)
+    if action in ("slash", "slash-dispatch", "discord-slash") and parts:
+        from gateway.channels.slash import handle_slash_command
+
+        name = parts[0].lstrip("/")
+        body = " ".join(parts[1:]).strip()
+        if body.startswith("::"):
+            body = body[2:].strip()
+        opts: dict[str, Any] = {}
+        if body:
+            try:
+                parsed = json.loads(body)
+                if isinstance(parsed, dict):
+                    opts = parsed
+            except Exception:
+                opts = {"_raw": body}
+        return json.dumps(handle_slash_command(name, opts), indent=2)
     if action in ("gateway-start", "discord-gateway-start"):
         from gateway.channels.discord_gateway import get_discord_gateway
 
@@ -247,6 +268,7 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
+        "stream-reply|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"

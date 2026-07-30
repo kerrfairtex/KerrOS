@@ -98,17 +98,27 @@ class DiscordGateway:
         """Inject a Soft Gateway DISPATCH payload (CI / demos)."""
         evt = {"t": event_name, "d": data or {}, "op": 0, "soft": True}
         self._soft_events.append(evt)
-        self._consume_dispatch(event_name, data or {})
-        return {"ok": True, "event": event_name, "inbox": len(self._inbox)}
+        extra = self._consume_dispatch(event_name, data or {})
+        out = {"ok": True, "event": event_name, "inbox": len(self._inbox)}
+        if extra:
+            out["slash"] = extra
+        return out
 
-    def _consume_dispatch(self, event_name: str, data: dict[str, Any]) -> None:
+    def _consume_dispatch(self, event_name: str, data: dict[str, Any]) -> Optional[dict]:
+        if event_name == "INTERACTION_CREATE":
+            try:
+                from gateway.channels.slash import soft_interaction_create
+
+                return soft_interaction_create(data or {})
+            except Exception as exc:
+                return {"ok": False, "error": str(exc)}
         if event_name != "MESSAGE_CREATE":
-            return
+            return None
         if data.get("author", {}).get("bot"):
-            return
+            return None
         text = str(data.get("content") or "").strip()
         if not text:
-            return
+            return None
         author = data.get("author") or {}
         self._inbox.append(
             InboundMessage(
@@ -119,6 +129,7 @@ class DiscordGateway:
                 raw={"gateway": True, "event": event_name, "data": data},
             )
         )
+        return None
 
     def poll_messages(self) -> list[InboundMessage]:
         if not self._running:

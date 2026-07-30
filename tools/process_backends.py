@@ -197,9 +197,49 @@ class RemoteSandboxBackend:
 
     name = "remote"
 
+    @staticmethod
+    def _fleet_contract() -> dict[str, Any]:
+        """ADR-082 Soft fleet contract: image pin + mount specs."""
+        image = (os.environ.get("KERROS_REMOTE_SANDBOX_IMAGE") or "").strip() or None
+        mounts_raw = (os.environ.get("KERROS_REMOTE_SANDBOX_MOUNTS") or "").strip()
+        mounts: list[dict[str, str]] = []
+        if mounts_raw:
+            if mounts_raw.startswith("["):
+                try:
+                    parsed = json.loads(mounts_raw)
+                    if isinstance(parsed, list):
+                        for item in parsed:
+                            if isinstance(item, dict) and item.get("source"):
+                                mounts.append(
+                                    {
+                                        "source": str(item.get("source")),
+                                        "target": str(item.get("target") or item.get("source")),
+                                        "mode": str(item.get("mode") or "ro"),
+                                    }
+                                )
+                except Exception:
+                    mounts = []
+            else:
+                # path:target[:ro|rw],path2:target2
+                for part in mounts_raw.split(","):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    bits = part.split(":")
+                    if len(bits) >= 2:
+                        mounts.append(
+                            {
+                                "source": bits[0],
+                                "target": bits[1],
+                                "mode": bits[2] if len(bits) > 2 else "ro",
+                            }
+                        )
+        return {"image": image, "mounts": mounts}
+
     def spawn(self, command: str, *, cwd: Optional[str] = None) -> BackendHandle:
         allow = _truthy(os.environ.get("KERROS_REMOTE_SANDBOX"))
         url = (os.environ.get("KERROS_REMOTE_SANDBOX_URL") or "").strip()
+        contract = self._fleet_contract()
         if not allow or not url:
             return BackendHandle(
                 status="exited",
@@ -207,15 +247,24 @@ class RemoteSandboxBackend:
                 output=(
                     "[remote soft] would run on remote sandbox fleet; set "
                     "KERROS_REMOTE_SANDBOX=1 and KERROS_REMOTE_SANDBOX_URL. "
+                    f"image={contract.get('image') or 'default'} "
+                    f"mounts={len(contract.get('mounts') or [])} "
                     f"command={command}"
                 ),
-                meta={"backend": "remote", "soft": True, "cwd": cwd or os.getcwd()},
+                meta={
+                    "backend": "remote",
+                    "soft": True,
+                    "cwd": cwd or os.getcwd(),
+                    "contract": contract,
+                },
             )
         payload = json.dumps(
             {
                 "command": command,
                 "cwd": cwd or os.getcwd(),
                 "source": "kerros-bg",
+                "image": contract.get("image"),
+                "mounts": contract.get("mounts") or [],
             }
         ).encode("utf-8")
         req = urllib.request.Request(

@@ -1,11 +1,10 @@
 """
 cli/tui.py
 ==========
-Light full-screen terminal UI for KerrOS (ADR-078).
+Light full-screen terminal UI for KerrOS (ADR-078 / ADR-083).
 
-Uses prompt_toolkit Application: conversation pane + input bar.
-Brand chrome kept minimal (wordmark line). Soft-safe without an LLM —
-type text to echo locally; bind an engine later for live chat.
+Uses prompt_toolkit Application: conversation pane + status/trace pane +
+input bar. Soft-safe without an LLM.
 
 Launch:
   python3 -m cli.tui
@@ -16,6 +15,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from typing import Any, Callable, List, Optional
 
 TAGLINE = "SECURE BY DESIGN. BUILT FOR CONTROL."
@@ -28,7 +28,7 @@ def _truthy(v: Any) -> bool:
 
 
 class KerrTUI:
-    """Minimal full-screen REPL shell."""
+    """Full-screen REPL shell with conversation + status/trace panes (ADR-083)."""
 
     def __init__(
         self,
@@ -43,30 +43,72 @@ class KerrTUI:
             "Type a message and press Enter. /exit or Ctrl-C to quit. /help for commands.",
             "",
         ]
+        self.trace: List[str] = []
+        self._started = time.strftime("%H:%M:%S")
+        self.trace_event("boot", f"tui ready at {self._started}")
 
     @staticmethod
     def _soft_echo(text: str) -> str:
         return f"[soft] {text}"
+
+    def trace_event(self, kind: str, detail: str) -> None:
+        stamp = time.strftime("%H:%M:%S")
+        self.trace.append(f"{stamp} · {kind} · {detail}"[:120])
+        if len(self.trace) > 80:
+            self.trace = self.trace[-60:]
+
+    def status_text(self) -> str:
+        mode = "llm" if _truthy(os.environ.get("KERROS_TUI_LLM")) else "soft"
+        header = [
+            f"STATUS  mode={mode}",
+            f"trace={len(self.trace)}  lines={len(self.lines)}",
+            "─" * 28,
+        ]
+        body = self.trace[-14:] or ["(no events yet)"]
+        return "\n".join(header + body)
 
     def handle(self, user: str) -> Optional[str]:
         text = (user or "").strip()
         if not text:
             return None
         if text in ("/exit", "/quit", ":q"):
+            self.trace_event("exit", "user quit")
             return "__EXIT__"
         if text == "/help":
-            return "Commands: /help /clear /exit — otherwise Soft-echo (or bound LLM)."
+            help_txt = (
+                "Commands: /help /clear /trace /status /exit — "
+                "otherwise Soft-echo (or bound LLM)."
+            )
+            self.lines.append(f"KerrOS › {help_txt}")
+            self.lines.append("")
+            self.trace_event("help", "shown")
+            return None
         if text == "/clear":
             self.lines = [f"{self.title}  —  {TAGLINE}", ""]
+            self.trace_event("clear", "conversation cleared")
+            return None
+        if text == "/trace":
+            self.lines.append("KerrOS › recent trace:")
+            for row in self.trace[-8:]:
+                self.lines.append(f"  {row}")
+            self.lines.append("")
+            return None
+        if text == "/status":
+            self.lines.append(f"KerrOS › {self.status_text().splitlines()[0]}")
+            self.lines.append("")
+            self.trace_event("status", "shown")
             return None
         self.lines.append(f"You › {text}")
+        self.trace_event("user", text[:60])
         try:
             reply = self.reply_fn(text)
         except Exception as exc:
             reply = f"[error] {exc}"
+            self.trace_event("error", str(exc)[:60])
+        else:
+            self.trace_event("assistant", str(reply)[:60])
         self.lines.append(f"KerrOS › {reply}")
         self.lines.append("")
-        # Cap buffer
         if len(self.lines) > 400:
             self.lines = self.lines[-300:]
         return None
@@ -76,7 +118,7 @@ class KerrTUI:
             from prompt_toolkit.application import Application
             from prompt_toolkit.buffer import Buffer
             from prompt_toolkit.key_binding import KeyBindings
-            from prompt_toolkit.layout import HSplit, Layout, Window
+            from prompt_toolkit.layout import HSplit, Layout, VSplit, Window
             from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
             from prompt_toolkit.styles import Style
         except Exception as exc:
@@ -85,6 +127,7 @@ class KerrTUI:
             return self._line_fallback()
 
         output_control = FormattedTextControl(lambda: "\n".join(self.lines[-80:]))
+        status_control = FormattedTextControl(self.status_text)
         input_buffer = Buffer()
 
         def refresh() -> None:
@@ -107,19 +150,21 @@ class KerrTUI:
                 return
             refresh()
 
-        body = HSplit(
+        panes = VSplit(
             [
                 Window(content=output_control, wrap_lines=True),
+                Window(width=1, char="│"),
+                Window(content=status_control, width=34, wrap_lines=True),
+            ]
+        )
+        body = HSplit(
+            [
+                panes,
                 Window(height=1, char="─"),
                 Window(BufferControl(buffer=input_buffer), height=1),
             ]
         )
-        style = Style.from_dict(
-            {
-                "": "#d4a843",
-                "frame": "#b03030",
-            }
-        )
+        style = Style.from_dict({"": "#d4a843", "frame": "#b03030"})
         app = Application(
             layout=Layout(body, focused_element=input_buffer),
             key_bindings=kb,
@@ -143,7 +188,6 @@ class KerrTUI:
             code = self.handle(user)
             if code == "__EXIT__":
                 return 0
-            # Print last kerr line
             for line in self.lines[-3:]:
                 if line.startswith("KerrOS"):
                     print(line)
