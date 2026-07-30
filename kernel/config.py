@@ -503,6 +503,34 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "token": "",
                     "auto_sync": False,
                 },
+                # ADR-042: live operator-sdk / controller-runtime facade.
+                "operator_sdk": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | kubectl
+                    "allow_live": False,
+                    "allow_write": False,
+                    "namespace": "kerros",
+                    "kubectl_bin": "kubectl",
+                    "project_dir": "deploy/k8s/operator",
+                    "reconcile_interval_s": 5.0,
+                    "leader_identity": "kerros-controller-0",
+                    "autostart": False,
+                    "desired": [],
+                },
+                # ADR-042: deep vendor CMDB SDKs.
+                "cmdb_vendor_sdk": {
+                    "enabled": False,
+                    "vendor": "servicenow",  # servicenow | device42
+                    "backend": "fake",  # fake | pysnow | device42
+                    "allow_live": False,
+                    "instance": "",
+                    "base_url": "",
+                    "username": "",
+                    "password": "",
+                    "token": "",
+                    "table": "cmdb_ci_server",
+                    "auto_sync": False,
+                },
             },
             # ADR-039: systemd timer packaging (off by default; under actor_mesh root).
             "systemd_timers": {
@@ -530,6 +558,19 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "output_dir": "deploy/packaging",
                 "allow_write": False,
                 "allow_install": False,
+            },
+            # ADR-042: apt/yum repo publish foundation.
+            "distro_publish": {
+                "enabled": False,
+                "backend": "fake",  # fake | reprepro | createrepo | auto
+                "formats": ["deb", "rpm"],
+                "staging_dir": "deploy/packaging/repos",
+                "package_name": "kerros",
+                "version": "0.1.0",
+                "allow_write": False,
+                "allow_publish": False,
+                "allow_remote": False,
+                "remote_url": "",
             },
         },
     }

@@ -58,4 +58,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~In-cluster operators / CMDB / systemd timers~~ — **ADR-039.**
 ~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
 ~~Auditor-signed SoA / SAML SP~~ — **ADR-041.**
-Remaining: live operator-sdk controllers / vendor CMDB SDKs / apt-yum publish / auditor evidence packs / production SAML federation when funded.
+~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
+Remaining: Go operator binaries / certified vendor partnerships / remote apt-yum mirrors / auditor evidence packs / production SAML federation when funded.

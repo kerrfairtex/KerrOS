@@ -462,6 +462,7 @@ class ActorMesh:
     ADR-038 adds fleet inventory + K8s operator + ACME renewal timers.
     ADR-039 adds in-cluster operator + CMDB sync + systemd timer packaging.
     ADR-040 adds CRD/operator-sdk stubs + commercial CMDB + distro packages.
+    ADR-042 adds live operator-sdk controller + vendor CMDB SDKs + apt/yum publish.
     """
 
     node_id: str
@@ -497,6 +498,9 @@ class ActorMesh:
     k8s_crd: Any = None  # optional K8sCrdFacade (ADR-040)
     cmdb_commercial: Any = None  # optional CommercialCmdbClient (ADR-040)
     distro_packages: Any = None  # optional DistroPackager (ADR-040)
+    operator_sdk: Any = None  # optional OperatorSdkController (ADR-042)
+    cmdb_vendor_sdk: Any = None  # optional VendorCmdbClient (ADR-042)
+    distro_publish: Any = None  # optional DistroPublisher (ADR-042)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -563,6 +567,11 @@ class ActorMesh:
         if self.k8s_incluster is not None:
             try:
                 self.k8s_incluster.stop()
+            except Exception:
+                pass
+        if self.operator_sdk is not None:
+            try:
+                self.operator_sdk.stop()
             except Exception:
                 pass
         self._stop.set()
@@ -943,6 +952,21 @@ class ActorMesh:
             "distro_packages": (
                 self.distro_packages.stats()
                 if self.distro_packages is not None
+                else None
+            ),
+            "operator_sdk": (
+                self.operator_sdk.stats()
+                if self.operator_sdk is not None
+                else None
+            ),
+            "cmdb_vendor_sdk": (
+                self.cmdb_vendor_sdk.stats()
+                if self.cmdb_vendor_sdk is not None
+                else None
+            ),
+            "distro_publish": (
+                self.distro_publish.stats()
+                if self.distro_publish is not None
                 else None
             ),
         }
@@ -1332,6 +1356,23 @@ def build_actor_mesh(
     if cmdb_c is not None:
         mesh.cmdb_commercial = cmdb_c
 
+    # ADR-042: live operator-sdk / controller-runtime facade.
+    from runtime.k8s_operator_sdk import build_operator_sdk_controller
+
+    opsdk = build_operator_sdk_controller(sc_raw.get("operator_sdk") or {})
+    if opsdk is not None:
+        mesh.operator_sdk = opsdk
+
+    # ADR-042: deep vendor CMDB SDKs.
+    from runtime.cmdb_vendor_sdk import build_vendor_cmdb
+
+    vendor = build_vendor_cmdb(
+        sc_raw.get("cmdb_vendor_sdk") or {},
+        inventory=mesh.fleet_inventory,
+    )
+    if vendor is not None:
+        mesh.cmdb_vendor_sdk = vendor
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1436,6 +1477,13 @@ def build_actor_mesh(
     distro = build_distro_packager(data.get("distro_packages") or {})
     if distro is not None:
         mesh.distro_packages = distro
+
+    # ADR-042: apt/yum repo publish.
+    from runtime.distro_publish import build_distro_publisher
+
+    pub = build_distro_publisher(data.get("distro_publish") or {})
+    if pub is not None:
+        mesh.distro_publish = pub
 
     mesh.attach()
     return mesh

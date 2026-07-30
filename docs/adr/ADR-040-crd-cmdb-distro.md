@@ -44,5 +44,6 @@ kubectl / install remain opt-in.
 
 ## Revisit when
 
-A contract funds a real operator-sdk project, deep vendor CMDB SDKs, or
-apt/yum publish pipelines.
+~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
+A contract funds a real Go/Helm operator project, certified vendor
+partnerships, or remote mirror publish automation.

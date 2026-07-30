@@ -44,5 +44,7 @@ remain opt-in.
 
 ## Revisit when
 
-A contract funds a real operator-sdk controller, deep commercial CMDB
-SDKs, or apt/yum package publish — beyond ADR-040 stubs.
+~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
+~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
+A contract funds Go operator binaries, certified vendor partnerships, or
+remote apt/yum mirror publish.
