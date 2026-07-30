@@ -27,4 +27,4 @@ same inbox without custom glue for every deploy.
 
 ## Revisit when
 
-WhatsApp/Signal adapters or a full desktop TUI session bridge is required.
+Signal Soft / live WhatsApp Cloud API (see ADR-070) or a full desktop TUI session bridge is required.

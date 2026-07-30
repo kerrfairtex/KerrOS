@@ -21,12 +21,14 @@ def _bootstrap() -> None:
     if _bootstrapped:
         return
     from gateway.channels.discord import DiscordAdapter
+    from gateway.channels.signal import SignalAdapter
     from gateway.channels.telegram import TelegramAdapter
     from gateway.channels.whatsapp import WhatsAppAdapter
 
     _adapters["telegram"] = TelegramAdapter()
     _adapters["discord"] = DiscordAdapter()
     _adapters["whatsapp"] = WhatsAppAdapter()
+    _adapters["signal"] = SignalAdapter()
     _bootstrapped = True
 
 

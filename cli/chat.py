@@ -334,7 +334,7 @@ def main():
                 ("bg spawn|poll|kill",   "Background process registry"),
                 ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
                 ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
-                ("gateway channel …",    "Telegram/Discord/WhatsApp Soft (+live REST) (ADR-066/069/070)"),
+                ("gateway channel …",    "TG/Discord/WA/Signal Soft (+live REST) (ADR-066…071)"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
