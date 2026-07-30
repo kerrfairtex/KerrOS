@@ -61,4 +61,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
 ~~Go operator binaries / certified vendor partnerships / remote mirrors~~ — **ADR-043.**
 ~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
-Remaining: shipped Go/Helm images / vendor-issued certificates / public apt-yum mirrors / auditor-issued certificates / full XMLDSig when funded.
+~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
+Remaining: shipped Go/Helm images / vendor-issued certificates / public apt-yum mirrors / accredited ISO certs / HSM xmlsec when funded.

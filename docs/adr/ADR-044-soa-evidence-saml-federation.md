@@ -43,5 +43,6 @@ live tools remain opt-in.
 
 ## Revisit when
 
-An LGU contract funds auditor-issued evidence certificates or full
-XMLDSig / encrypted-assertion production federation.
+~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
+An LGU contract funds accredited auditor certificates or production
+xmlsec/HSM-backed XMLDSig and XML encryption.

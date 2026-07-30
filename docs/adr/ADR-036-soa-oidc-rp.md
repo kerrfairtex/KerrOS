@@ -40,4 +40,5 @@ in CI against a Fake IdP.
 
 ~~Auditor-signed SoA / SAML SP foundation~~ — **ADR-041.**
 ~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
-An LGU contract funds auditor-issued certificates or full XMLDSig production federation.
+~~Auditor-issued certificates / full XMLDSig~~ — **ADR-045.**
+An LGU contract funds accredited ISO certificates or HSM-backed XMLDSig.

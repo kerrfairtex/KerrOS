@@ -263,6 +263,26 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "default_idp": "",
             "idps": [],
         },
+        # ADR-045: auditor-issued certificates (off by default).
+        "auditor_cert": {
+            "enabled": False,
+            "backend": "fake",  # fake | openssl
+            "allow_live": False,
+            "allow_write": False,
+            "allow_claim": False,
+            "ca_name": "KerrOS Auditor CA",
+            "ca_key_path": "",
+            "subject": "KerrOS Evidence Pack",
+            "output_dir": "data/soa/certs",
+        },
+        # ADR-045: full XMLDSig / XML encryption foundation (off by default).
+        "saml_xmldsig": {
+            "enabled": False,
+            "backend": "fake",  # fake | xmlsec
+            "allow_live": False,
+            "key_path": "",
+            "allow_encryption": False,
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,
