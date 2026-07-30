@@ -56,6 +56,12 @@ class KerrTUI:
         self.trace.append(f"{stamp} · {kind} · {detail}"[:120])
         if len(self.trace) > 80:
             self.trace = self.trace[-60:]
+        try:
+            from gateway.channels.trace import append_trace
+
+            append_trace(f"tui:{kind}", {"detail": detail[:200]})
+        except Exception:
+            pass
 
     def status_text(self) -> str:
         mode = "llm" if _truthy(os.environ.get("KERROS_TUI_LLM")) else "soft"

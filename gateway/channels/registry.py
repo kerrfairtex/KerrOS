@@ -186,6 +186,14 @@ def channels_cmd(action: str, raw: str = "") -> str:
         from gateway.channels.bridge import stream_reply_once
 
         return json.dumps(stream_reply_once(), indent=2)
+    if action in ("tool-reply", "tool_reply", "reply-tools"):
+        from gateway.channels.tool_agent import tool_reply_once
+
+        return json.dumps(tool_reply_once(), indent=2)
+    if action in ("trace", "trace-list"):
+        from gateway.channels.trace import format_trace
+
+        return format_trace(limit=30)
     if action in ("slash", "slash-dispatch", "discord-slash") and parts:
         from gateway.channels.slash import handle_slash_command
 
@@ -268,7 +276,7 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
-        "stream-reply|slash <name> [json]|"
+        "stream-reply|tool-reply|trace|slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"

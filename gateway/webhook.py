@@ -86,14 +86,52 @@ class _Handler(BaseHTTPRequestHandler):
         self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
+        length = int(self.headers.get("Content-Length") or 0)
+        raw = self.rfile.read(max(0, min(length, 100_000)))
+
+        # ADR-084 Soft Discord Interactions endpoint
+        if self.path in ("/v1/interactions", "/interactions"):
+            from gateway.channels.interactions import (
+                handle_interactions_payload,
+                verify_interaction_request,
+            )
+
+            headers = {k: v for k, v in self.headers.items()}
+            verified = verify_interaction_request(headers, raw)
+            if not verified.get("ok"):
+                self._json(401, {"ok": False, "error": verified.get("error"), "verify": verified})
+                return
+            try:
+                payload = json.loads(raw.decode("utf-8") or "{}")
+            except Exception:
+                self._json(400, {"ok": False, "error": "invalid json"})
+                return
+            if not isinstance(payload, dict):
+                self._json(400, {"ok": False, "error": "json object required"})
+                return
+            # PING must return type 1 quickly
+            if int(payload.get("type") or 0) == 1:
+                self._json(200, {"type": 1})
+                return
+            resp = handle_interactions_payload(payload)
+            with _lock:
+                _inbox.append(
+                    {
+                        "channel": "discord",
+                        "sender": "interaction",
+                        "text": str(((payload.get("data") or {}) if isinstance(payload.get("data"), dict) else {}).get("name") or "interaction"),
+                        "chat_id": str(payload.get("channel_id") or ""),
+                    }
+                )
+            self._json(200, resp)
+            return
+
         if self.path not in ("/v1/message", "/message"):
             self._json(404, {"ok": False, "error": "not found"})
             return
         if not self._auth_ok():
             self._json(401, {"ok": False, "error": "unauthorized"})
             return
-        length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(max(0, min(length, 100_000)))
         try:
             payload = json.loads(raw.decode("utf-8") or "{}")
         except Exception:
@@ -154,7 +192,12 @@ def start_gateway(
         _server = ThreadingHTTPServer((host, port), _Handler)
         _thread = threading.Thread(target=_server.serve_forever, daemon=True)
         _thread.start()
-    return {"ok": True, "host": host, "port": port, "endpoints": ["/health", "/v1/message", "/v1/inbox"]}
+    return {
+        "ok": True,
+        "host": host,
+        "port": port,
+        "endpoints": ["/health", "/v1/message", "/v1/inbox", "/v1/interactions"],
+    }
 
 
 def stop_gateway() -> dict[str, Any]:
