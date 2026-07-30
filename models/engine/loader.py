@@ -234,10 +234,32 @@ def load_api_config() -> dict:
 def resolve_provider(name: str) -> dict:
     """Get {env, base_url, value} for one provider, reading the key from os.environ."""
     cfg = load_api_config()
+    # Tier alias: sol/terra/luna/coding/research → first ready member.
+    tiers = cfg.get("routing_tiers") or {}
+    if name in tiers:
+        try:
+            from adapters.integrations.registry import resolve_tier
+
+            hit = resolve_tier(name, cfg)
+            if hit.get("ok") and hit.get("provider"):
+                name = str(hit["provider"])
+        except Exception:
+            pass
     for category in ("llm_cloud", "llm_local"):
         if name in cfg.get(category, {}):
             entry = dict(cfg[category][name])
-            key_or_endpoint = os.environ.get(entry.get("env"), entry.get("default"))
+            env_names = [entry.get("env")] + list(entry.get("env_aliases") or [])
+            key_or_endpoint = None
+            for env_name in env_names:
+                if not env_name:
+                    continue
+                val = os.environ.get(str(env_name))
+                if val:
+                    key_or_endpoint = val
+                    entry["env"] = env_name
+                    break
+            if key_or_endpoint is None:
+                key_or_endpoint = entry.get("default")
             entry["value"] = key_or_endpoint
             return entry
     return {}

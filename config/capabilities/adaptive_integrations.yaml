@@ -1,0 +1,160 @@
+version: 1
+# Soft adaptive integrations catalog (ADR-055).
+# Keys live in local .env (gitignored). setup_state reflects catalog presence,
+# not live API health — use /integrations or api_status.py for env readiness.
+capabilities:
+  - name: "integration:adaptive_catalog"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      adapter: "adapters.integrations.registry"
+      config: "api_config.yaml"
+      notes: "Catalog + Sol/Terra/Luna/coding/research tier resolver; never prints secrets."
+
+  - name: "integration:routing_tier_coding"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      tier: "coding"
+      providers: ["deepseek", "codx", "anthropic", "openai", "kimi", "litellm", "groq"]
+      notes: "KERROS_ROUTING_TIER=coding or KERROS_ADAPTIVE_CODING=1"
+
+  - name: "integration:crewai"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:CREWAI_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "agent_frameworks"
+      pip: "crewai"
+      notes: "Often reuses OPENAI_API_KEY; SDK not bundled in KerrOS core."
+
+  - name: "integration:autogen"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:AUTOGEN_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "agent_frameworks"
+      pip: "autogen-agentchat"
+
+  - name: "integration:agentverse"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:AGENTVERSE_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "agent_frameworks"
+      env_aliases: ["ASI_ONE_API_KEY", "ASI_ONE_KEY"]
+
+  - name: "integration:aider"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["cli:aider"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "coding_agents"
+      docs: "https://aider.chat"
+
+  - name: "integration:goose"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["cli:goose"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "coding_agents"
+
+  - name: "integration:opencode"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["cli:opencode"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "coding_agents"
+
+  - name: "integration:codex_cli"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:OPENAI_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "coding_agents"
+      cli: "codex"
+
+  - name: "integration:pgvector"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: ["env:PGVECTOR_DB_URL"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "vector_db"
+      notes: "Operator-owned; FTS remains KerrOS MemoryPort primary."
+
+  - name: "integration:litellm"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: ["env:LITELLM_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "llm_local"
+      notes: "ADR-054 offline gateway or cloud LiteLLM proxy."
+
+  - name: "integration:tavily"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: ["env:TAVILY_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "search_and_research"
+
+  - name: "integration:semantic_scholar"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: ["env:SEMANTIC_SCHOLAR_GRAPH"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "search_and_research"
+
+  - name: "integration:chromium_cdp"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:CHROMIUM_CDP_URL"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "browser_automation"
+
+  - name: "integration:stable_diffusion"
+    kind: "integration"
+    permissions: ["elevated"]
+    dependencies: ["env:SD_A1111_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "image_generation"
+
+  - name: "integration:chatterbox"
+    kind: "integration"
+    permissions: ["standard"]
+    dependencies: ["env:CHATTERBOX_ENDPOINT"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      section: "tts"

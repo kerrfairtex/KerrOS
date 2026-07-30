@@ -3,11 +3,14 @@
 # Each provider maps to an env var name only — never hardcode keys here.
 
 llm_cloud:
-  anthropic:   { env: ANTHROPIC_API_KEY,   base_url: "https://api.anthropic.com/v1", model: "claude-sonnet-4-6" }
-  openai:      { env: OPENAI_API_KEY,      base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" }
+  anthropic:   { env: ANTHROPIC_API_KEY,   base_url: "https://api.anthropic.com/v1", model: "claude-opus-4-7",
+                 models: { default: "claude-opus-4-7", coding: "claude-opus-4-7", fast: "claude-sonnet-4-6" } }
+  openai:      { env: OPENAI_API_KEY,      base_url: "https://api.openai.com/v1", model: "gpt-5.2",
+                 models: { default: "gpt-5.2", coding: "gpt-5.2", fast: "gpt-4o-mini" } }
   groq:        { env: GROQ_API_KEY,        base_url: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" }
   gemini:      { env: GEMINI_API_KEY,      base_url: "https://generativelanguage.googleapis.com/v1beta" }
-  deepseek:    { env: DEEPSEEK_API_KEY,    base_url: "https://api.deepseek.com/v1", model: "deepseek-chat" }
+  deepseek:    { env: DEEPSEEK_API_KEY,    base_url: "https://api.deepseek.com/v1", model: "deepseek-reasoner",
+                 models: { default: "deepseek-reasoner", coding: "deepseek-reasoner", chat: "deepseek-chat" } }
   cohere:      { env: COHERE_API_KEY,      base_url: "https://api.cohere.ai/v1" }
   nvidia_nim:  { env: NVIDIA_API_KEY,      base_url: "https://integrate.api.nvidia.com/v1", model: "meta/llama-3.1-8b-instruct" }
   openrouter:  { env: OPENROUTER_API_KEY,  base_url: "https://openrouter.ai/api/v1", model: "auto" }
@@ -16,7 +19,10 @@ llm_cloud:
   # hardcoded id: curl $base_url/models -H "Authorization: ******"
   cerebras:    { env: CEREBRAS_API_KEY,    base_url: "https://api.cerebras.ai/v1", model: "REPLACE_ME" }
   sambanova:   { env: SAMBANOVA_API_KEY,   base_url: "https://api.sambanova.ai/v1", model: "REPLACE_ME" }
-  asi_one:     { env: ASI_ONE_KEY,         base_url: "https://api.asi1.ai/v1" }
+  # Fetch.ai Agentverse / ASI:One — ASI_ONE_API_KEY is preferred; ASI_ONE_KEY legacy alias
+  asi_one:     { env: ASI_ONE_API_KEY,     env_aliases: [ASI_ONE_KEY], base_url: "https://api.asi1.ai/v1" }
+  agentverse:  { env: AGENTVERSE_API_KEY,  env_aliases: [ASI_ONE_API_KEY, ASI_ONE_KEY],
+                 base_url: "https://agentverse.ai/v1", notes: "Fetch.ai Agentverse; often shares ASI:One credentials" }
   # Kimi (Moonshot AI) — strong at coding, long-context, and reasoning tasks
   kimi:        { env: KIMI_API_KEY,        base_url: "https://api.moonshot.cn/v1", model: "moonshot-v1-32k" }
   # Tencent Hunyuan — research, multilingual, and long-context tasks
@@ -27,6 +33,9 @@ llm_cloud:
   verge_ai:    { env: VERGE_AI_KEY,        base_url: "https://api.verge.ai/v1", model: "verge-1" }
   # CodX AI coding assistant
   codx:        { env: CODX_API_KEY,        base_url: "https://api.codx.ai/v1", model: "codx-pro" }
+  # Snowflake Cortex (LLM via Snowflake account)
+  snowflake_cortex: { env: SNOWFLAKE_PAT_KEY, endpoint_env: SNOWFLAKE_PAT_ENDPOINT,
+                      notes: "Uses Snowflake PAT; Cortex model selected server-side" }
 
 llm_local:
   ollama:      { env: OLLAMA_ENDPOINT,           default: "http://localhost:11434/v1" }
@@ -65,20 +74,26 @@ fallback_chain:
   - kobold_cpp
   - local_ai
 
-# Sol / Terra / Luna — KerrOS routing tier aliases
+# Sol / Terra / Luna — KerrOS routing tier aliases (+ coding / research)
 # Reference these in routing config to target a capability tier rather than a
 # specific provider.  The engine resolves the tier to its member providers in
 # priority order and applies the normal fallback logic within the tier.
 routing_tiers:
   sol:
     description: "Fast / lightweight tier — lowest latency, cost-efficient"
-    providers:   [groq, cerebras, litellm]
+    providers:   [groq, cerebras, sambanova, litellm]
   terra:
     description: "Balanced tier — capability + speed tradeoff"
-    providers:   [deepseek, kimi, openrouter, litellm]
+    providers:   [deepseek, kimi, codx, openrouter, litellm]
   luna:
     description: "Heavy / capable tier — maximum quality for complex tasks"
-    providers:   [anthropic, hunyuan, nvidia_nim]
+    providers:   [anthropic, openai, hunyuan, nvidia_nim, gemini]
+  coding:
+    description: "Adaptive coding / execution preference order"
+    providers:   [deepseek, codx, anthropic, openai, kimi, dyad, verge_ai, litellm, groq, huggingface]
+  research:
+    description: "Long-context research / academic synthesis"
+    providers:   [anthropic, gemini, hunyuan, openai, deepseek, openrouter, litellm]
 
 vector_db:
   milvus:   { env: MILVUS_ENDPOINT,    default: "http://localhost:19530" }
@@ -86,11 +101,11 @@ vector_db:
   chroma:   { env: CHROMA_DB_ENDPOINT, default: "http://localhost:8000" }
   # pgvector — PostgreSQL with the pgvector extension
   # Install: CREATE EXTENSION IF NOT EXISTS vector;
-  pgvector: { env: PGVECTOR_DB_URL,    default: "******localhost:5432/vectordb",
-              notes: "Requires pgvector extension installed in PostgreSQL" }
+  pgvector: { env: PGVECTOR_DB_URL,    default: "postgresql://localhost:5432/vectordb",
+              notes: "Requires pgvector extension installed in PostgreSQL; not default KerrOS MemoryPort" }
 
 database:
-  postgresql: { env: LOCAL_POSTGRESQL, default: "******localhost:5432/barmm_db" }
+  postgresql: { env: LOCAL_POSTGRESQL, default: "postgresql://localhost:5432/barmm_db" }
   snowflake:
     pat_env: SNOWFLAKE_PAT_KEY
     endpoint_env: SNOWFLAKE_PAT_ENDPOINT
@@ -114,6 +129,30 @@ search_and_research:
     graph:           { env: SEMANTIC_SCHOLAR_GRAPH,           default: "https://api.semanticscholar.org/graph/v1" }
     recommendations: { env: SEMANTIC_SCHOLAR_RECOMMENDATIONS, default: "https://api.semanticscholar.org/recommendations/v1" }
     datasets:        { env: SEMANTIC_SCHOLAR_DATASETS,        default: "https://api.semanticscholar.org/datasets/v1" }
+  openalex:          { env: OPENALEX_API_KEY,  base_url: "https://api.openalex.org",
+                       notes: "OpenAlex; email/polite pool via OPENALEX_MAILTO when keyless" }
+  openalex_mailto:   { env: OPENALEX_MAILTO }
+  connected_papers:  { env: CONNECTED_PAPERS_API_KEY, base_url: "https://api.connectedpapers.com" }
+  elicit:            { env: ELICIT_API_KEY,    base_url: "https://api.elicit.com" }
+  consensus:         { env: CONSENSUS_API_KEY, base_url: "https://api.consensus.app" }
+  s2orc:             { env: S2ORC_API_KEY,     env_aliases: [SEMANTIC_SCHOLAR_GRAPH],
+                       notes: "Semantic Scholar S2ORC corpus access; often shares S2 credentials" }
+  grobid:            { env: GROBID_ENDPOINT,   default: "http://localhost:8070",
+                       notes: "Local GROBID PDF→TEI service" }
+  asreview:          { env: ASREVIEW_ENDPOINT, default: "http://localhost:5000",
+                       notes: "ASReview active learning for systematic reviews" }
+  rayyan:            { env: RAYYAN_API_KEY,    base_url: "https://rayyan.ai/api/v1" }
+
+academic_writing:
+  jenni:       { env: JENNI_API_KEY,       base_url: "https://api.jenni.ai" }
+  paperpal:    { env: PAPERPAL_API_KEY,    base_url: "https://api.paperpal.com" }
+  paperguide:  { env: PAPERGUIDE_API_KEY,  base_url: "https://api.paperguide.ai" }
+  scispace:    { env: SCISPACE_API_KEY,    base_url: "https://api.typeset.io" }
+  writefull:   { env: WRITEFULL_API_KEY,   base_url: "https://api.writefull.com" }
+  trinka:      { env: TRINKA_API_KEY,      base_url: "https://api.trinka.ai" }
+  latex:
+    notes: "Local TeX toolchain (texlive / tectonic) — not an API"
+    cli: tectonic
 
 image_generation:
   stable_diffusion:
@@ -140,6 +179,7 @@ coding_agents:
     notes: "AI pair programmer in your terminal. pip install aider-chat"
     model_env: AIDER_MODEL
     docs: "https://aider.chat"
+    cli: aider
   cline:
     notes: "VS Code extension — AI coding agent. Configures its own LLM backend."
     docs: "https://github.com/cline/cline"
@@ -147,13 +187,42 @@ coding_agents:
     notes: "Block's open-source AI agent. pip install goose-ai"
     model_env: GOOSE_MODEL
     docs: "https://github.com/block/goose"
+    cli: goose
   opencode:
     notes: "Terminal AI coding assistant. npm install -g opencode-ai"
     model_env: OPENCODE_MODEL
     docs: "https://opencode.ai"
+    cli: opencode
   codex_cli:
     notes: "OpenAI Codex CLI. npm install -g @openai/codex. Uses OPENAI_API_KEY."
     docs: "https://github.com/openai/codex"
+    cli: codex
+    env: OPENAI_API_KEY
+  tabnine:
+    notes: "Tabnine Enterprise — IDE completion; configure via TABNINE_API_KEY / enterprise host"
+    env: TABNINE_API_KEY
+    endpoint_env: TABNINE_ENDPOINT
+    docs: "https://www.tabnine.com"
+
+# Multi-agent frameworks (soft catalog — SDKs operator-installed)
+agent_frameworks:
+  crewai:
+    env: CREWAI_API_KEY
+    env_aliases: [OPENAI_API_KEY]
+    notes: "CrewAI crews; often reuses OPENAI_API_KEY for underlying LLM"
+    docs: "https://docs.crewai.com"
+    pip: crewai
+  autogen:
+    env: AUTOGEN_API_KEY
+    env_aliases: [OPENAI_API_KEY, AZURE_OPENAI_API_KEY]
+    notes: "Microsoft AutoGen; typically uses OpenAI-compatible keys"
+    docs: "https://microsoft.github.io/autogen/"
+    pip: autogen-agentchat
+  agentverse:
+    env: AGENTVERSE_API_KEY
+    env_aliases: [ASI_ONE_API_KEY, ASI_ONE_KEY]
+    notes: "Fetch.ai Agentverse agent hosting"
+    docs: "https://agentverse.ai"
 
 # Browser automation
 browser_automation:
@@ -178,12 +247,19 @@ apache_services:
     notes: "Apache Airflow — workflow orchestration"
 
 utility_services:
-  deepl:      { env: DEEPL_API_KEY,     base_url: "https://api-free.deepl.com/v2" }
-  elevenlabs: { env: ELEVENLAB_API_KEY, base_url: "https://api.elevenlabs.io/v1" }
+  deepl:       { env: DEEPL_API_KEY,      base_url: "https://api-free.deepl.com/v2" }
+  deepl_write: { env: DEEPL_WRITE_API_KEY, env_aliases: [DEEPL_API_KEY],
+                 base_url: "https://api-free.deepl.com/v2/write", notes: "DeepL Write; may share DEEPL_API_KEY" }
+  deepl_voice: { env: DEEPL_VOICE_API_KEY, env_aliases: [DEEPL_API_KEY],
+                 notes: "DeepL Voice — product availability varies by account" }
+  elevenlabs:  { env: ELEVENLAB_API_KEY,  base_url: "https://api.elevenlabs.io/v1",
+                 model: "eleven_v3", notes: "Prefer Eleven v3 model when account supports it" }
+  enverson:    { env: ENVERSON_API_KEY,   notes: "Enverson AI — operator endpoint via ENVERSON_ENDPOINT" ,
+                 endpoint_env: ENVERSON_ENDPOINT }
   # NOTE: a ghp_... key is a GitHub Personal Access Token, not a Copilot
   # inference key — Copilot has no public chat-completions API. Use this
   # for GitHub REST/GraphQL calls (repos, issues, PRs) only.
-  capilot:    { env: CAPILOT_API_KEY, base_url: "https://api.github.com" }
+  capilot:     { env: CAPILOT_API_KEY, base_url: "https://api.github.com" }
 
 deploy:
   github:
@@ -219,6 +295,12 @@ deploy:
     api_key_env: STRIPE_API_KEY
     secret_key_env: STRIPE_SECRET_KEY
     publishable_key_env: STRIPE_PUBLISHABLE_KEY
+  resend:
+    api_key_env: RESEND_API_KEY
+  docker:
+    notes: "Local Docker Engine — no cloud API key; DOCKER_HOST optional"
+    endpoint_env: DOCKER_HOST
+    legacy_key_env: DOCKER_API_KEY
   git_identity:
     author_name_env: GIT_AUTHOR_NAME
     author_email_env: GIT_AUTHOR_EMAIL
@@ -230,3 +312,4 @@ app_specific:
 
 docs:
   latex: "LaTeX (local toolchain, not an API — ensure texlive/tectonic installed)"
+  opensource_tools: "Prefer local open-source CLIs (rg, git, docker, python) via claw /exec safe_commands"

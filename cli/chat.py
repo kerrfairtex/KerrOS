@@ -257,7 +257,48 @@ def main():
                 if engine._multi.dead_apis:
                     print(f"  {RE}Dead (auth failed): {', '.join(engine._multi.dead_apis)}{R}")
             else:
-                print(f"  {GY}Online mode not initialized yet.{R}")
+                print(f"  {GY}Online mode not initialized yet — showing catalog instead.{R}")
+            try:
+                from adapters.integrations.registry import catalog_status, format_status_lines, resolve_for_task
+                st = catalog_status()
+                print(f"  {BL}catalog{R} ready={st.get('ready_count')} needs_setup={st.get('needs_setup_count')}")
+                coding = resolve_for_task("coding")
+                if coding.get("ok"):
+                    print(f"  {GR}coding tier → {coding.get('provider')} ({coding.get('model') or ''}){R}")
+                else:
+                    print(f"  {GY}coding tier: no provider key configured yet{R}")
+                print(f"  {GY}Tip: /integrations [section|coding] — full catalog{R}")
+            except Exception as exc:
+                print(f"  {GY}integrations catalog unavailable: {exc}{R}")
+            divider()
+
+        elif user == "/integrations" or user.startswith("/integrations "):
+            divider()
+            try:
+                from adapters.integrations.registry import (
+                    catalog_status,
+                    format_status_lines,
+                    list_tiers,
+                    resolve_tier,
+                )
+                arg = user[len("/integrations"):].strip().lower()
+                if arg in ("sol", "terra", "luna", "coding", "research"):
+                    tiers = list_tiers()
+                    spec = tiers.get(arg) or {}
+                    print(f"  {BL}tier:{arg}{R} {spec.get('description', '')}")
+                    print(f"  providers: {', '.join(spec.get('providers') or [])}")
+                    print(f"  resolve: {resolve_tier(arg)}")
+                else:
+                    section = arg or None
+                    ready_only = False
+                    if arg == "ready":
+                        section = None
+                        ready_only = True
+                    st = catalog_status(sections=[section] if section else None)
+                    for line in format_status_lines(st, section=section, ready_only=ready_only):
+                        print(f"  {line}")
+            except Exception as exc:
+                print(f"  {RE}integrations error: {exc}{R}")
             divider()
 
         elif user=="/mode":
@@ -302,6 +343,7 @@ def main():
                 ("/scope policy",      "Show declarative scope_policy.yaml"),
                 ("/scope policy export","Regenerate docs/SCOPE_POLICY.md"),
                 ("/apistatus",         "Show online API health/dead status"),
+                ("/integrations",      "Adaptive catalog / tiers (coding, sol, terra…)"),
                 ("/setkey groq <key>", "Set Groq API key"),
                 ("/switch small|large","Switch local model"),
                 ("/react <task>",      "ReAct agent — multi-step reasoning"),

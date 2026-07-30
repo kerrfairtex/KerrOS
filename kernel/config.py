@@ -148,6 +148,9 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "compose_dir": "deploy/llama_cpp",
             "allow_live": False,
         },
+        # ADR-055: adaptive integrations catalog / routing tiers — soft, default coding-aware.
+        "routing_tier": "",  # sol | terra | luna | coding | research
+        "adaptive_coding": True,
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,
