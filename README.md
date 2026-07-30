@@ -107,6 +107,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] General-purpose `EventBus` (separate from decision-log audit trail)
 - [x] Scheduler + workflow DAG engine (+ SQLite run persistence / resume)
 - [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
+- [x] Self-hosted LLM ops (C-19) — Ollama loopback compose + health probes ([`ADR-016`](docs/adr/ADR-016-local-llm-ops.md), `deploy/ollama/`)
 - [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
 - [x] Cron expressions — `Scheduler.schedule_cron` / `runtime/cron.py` (5-field)
 - [x] Workflow YAML definitions — `runtime/workflow_yaml.py` / `config/workflows/` ([`ADR-010`](docs/adr/ADR-010-workflow-yaml.md))

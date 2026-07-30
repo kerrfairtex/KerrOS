@@ -25,7 +25,7 @@
 | C-16 | IPC actor-mesh (nng/socket) | Runtime | §1 Phase 2 | Foundation — ADR-012 (`runtime/actor_mesh.py`) |
 | C-17 | Docker (server-side) | Deployment | §1 Phase 2 | Foundation — ADR-011 (`deploy/event_mesh/`) |
 | C-18 | pgvector → Qdrant migration | Storage | §3, §6 Phase 2 | Foundation — ADR-015 (`deploy/qdrant/`, optional hybrid sidecar) |
-| C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Deferred |
+| C-19 | Self-hosted models via vLLM/Ollama | Adapter (behind LLMPort) | §6 Phase 3 | Foundation — ADR-016 (`deploy/ollama/`, `adapters/llm/local_llm_probe.py`) |
 
 **Missing specifications flagged:** exact current path of `scope_gate.py`, `store.py`, and `multi_api.py` were not confirmed in prior repo scans — each Phase-1 issue below that touches these must begin with a path-confirmation step before editing.
 
@@ -118,7 +118,7 @@ docs/
 
 **Phase 2 — trigger: first paying use of a rented server.** Full IPC mesh (only if running 2+ machines), Docker server-side, pgvector→Qdrant if RAG scale demands it. Decompose into issues only once triggered.
 
-**Phase 3 — trigger: JOTHAM revenue funds a GPU.** Self-hosted models via vLLM/Ollama, added as a new adapter behind the already-existing `LLMPort` — no kernel change required by design.
+**Phase 3 — trigger: JOTHAM revenue funds a GPU.** Self-hosted models via vLLM/Ollama behind `LLMPort` — adapters + Ollama ops foundation landed (ADR-016); full GPU/vLLM host kit remains operator-owned until the trigger.
 
 ---
 

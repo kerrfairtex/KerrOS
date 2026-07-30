@@ -148,6 +148,27 @@ class HealthMonitor:
             }
             self.record("qdrant", "error", str(exc))
 
+        try:
+            from adapters.llm.local_llm_probe import probe_ollama, probe_vllm
+
+            for name, probe in (("ollama", probe_ollama), ("vllm", probe_vllm)):
+                comp = probe()
+                report["components"][name] = comp
+                self.record(
+                    name,
+                    comp.get("status", "unknown"),
+                    comp.get("base_url", ""),
+                )
+                if comp.get("enabled") and comp.get("status") != "ok":
+                    report["healthy"] = False
+        except Exception as exc:
+            report["components"]["ollama"] = {
+                "status": "error",
+                "provider": "ollama",
+                "error": str(exc),
+            }
+            self.record("ollama", "error", str(exc))
+
         return report
 
     def summary(self, service_manager=None) -> str:

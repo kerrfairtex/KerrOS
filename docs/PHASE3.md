@@ -15,6 +15,8 @@
 | **Workflow run store** | `runtime/workflow_store.py` | `data/workflows/runs.db` checkpoints |
 | **Ollama adapter** | `adapters/llm/ollama_adapter.py` | Local LLM via OpenAI-compatible API |
 | **vLLM adapter** | `adapters/llm/vllm_adapter.py` | Self-hosted vLLM inference |
+| **Local LLM probe** | `adapters/llm/local_llm_probe.py` | Health probes for Ollama / vLLM (C-19) |
+| **Ollama Docker** | `deploy/ollama/` | Loopback Ollama sidecar + `scripts/local_llm_docker.sh` |
 | **Composite LLM** | `adapters/llm/composite_adapter.py` | Local-first with cloud fallback |
 | **OmniRoute telemetry** | `adapters/llm/omniroute_telemetry.py` | Parse `X-OmniRoute-*` cost/usage headers → `omniroute.usage` EventBus events |
 | **Event mesh** | `runtime/event_mesh.py` | LocalEventMesh + Null/File/HTTP stubs (ADR-008) |
@@ -58,20 +60,26 @@ engine.register(WorkflowDefinition(
 run = engine.run("demo")
 ```
 
-### Local LLM
+### Local LLM (C-19)
 
-Set environment variables:
+Adapters already implement `LLMPort`. Ops foundation: loopback Ollama compose +
+HTTP probes wired into `HealthMonitor` ([`ADR-016`](adr/ADR-016-local-llm-ops.md)).
 
 ```bash
+./scripts/local_llm_docker.sh up
+./scripts/local_llm_docker.sh pull llama3.2
+./scripts/local_llm_docker.sh probe
+
 export KERROS_LOCAL_LLM=1          # try Ollama → vLLM before cloud
 export KERROS_LLM_PROVIDER=ollama  # force provider
-export OLLAMA_ENDPOINT=http://localhost:11434/v1
+export OLLAMA_ENDPOINT=http://127.0.0.1:11434/v1
 export OLLAMA_MODEL=llama3.2
-export VLLM_ENDPOINT=http://localhost:8000/v1
+export VLLM_ENDPOINT=http://127.0.0.1:8000/v1
 export VLLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
 ```
 
-Or pass `provider_hint` in `llm_complete()` / `LLMPort.complete()`.
+vLLM is bring-your-own GPU endpoint (same `/v1/models` probe). Or pass
+`provider_hint` in `llm_complete()` / `LLMPort.complete()`.
 
 ## CLI
 
@@ -118,6 +126,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 ## Deferred
 
 - Authenticated WAN / full actor orchestrator (beyond ADR-012 foundation)
+- In-repo `deploy/vllm/` GPU compose (probe/env only until a funded GPU host)
 
 ## Workflow YAML definitions
 

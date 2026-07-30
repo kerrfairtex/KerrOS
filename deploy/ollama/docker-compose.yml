@@ -1,0 +1,26 @@
+# KerrOS local Ollama sidecar (C-19 / ADR-016).
+#
+# Host ports bind to 127.0.0.1 only. After `up`, pull a model:
+#   docker exec kerros-ollama ollama pull llama3.2
+#   or: ./scripts/local_llm_docker.sh pull llama3.2
+#
+# KerrOS client:
+#   export KERROS_LOCAL_LLM=1
+#   export OLLAMA_ENDPOINT=http://127.0.0.1:11434/v1
+#   export OLLAMA_MODEL=llama3.2
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.6.5}
+    container_name: kerros-ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OLLAMA_HOST_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+
+volumes:
+  ollama-data:
+    name: kerros-ollama-data
