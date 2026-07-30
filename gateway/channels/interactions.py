@@ -36,12 +36,40 @@ def soft_sign(timestamp: str, body: bytes, *, key: Optional[str] = None) -> str:
     return hmac.new(secret, msg, hashlib.sha256).hexdigest()
 
 
+def _verify_ed25519(timestamp: str, body: bytes, signature_hex: str) -> dict[str, Any]:
+    """
+    ADR-092: optional live Ed25519 verify when PyNaCl is installed and Soft is off.
+    Public key is hex in KERROS_DISCORD_PUBLIC_KEY.
+    """
+    pub_hex = (os.environ.get("KERROS_DISCORD_PUBLIC_KEY") or "").strip()
+    if not pub_hex:
+        return {"ok": False, "error": "missing KERROS_DISCORD_PUBLIC_KEY", "mode": "ed25519"}
+    try:
+        from nacl.exceptions import BadSignatureError  # type: ignore
+        from nacl.signing import VerifyKey  # type: ignore
+    except Exception:
+        return {
+            "ok": False,
+            "error": "PyNaCl not installed — Soft HMAC or pip install pynacl",
+            "mode": "ed25519-missing",
+        }
+    try:
+        key = VerifyKey(bytes.fromhex(pub_hex))
+        msg = (timestamp or "").encode("utf-8") + (body or b"")
+        key.verify(msg, bytes.fromhex(signature_hex))
+        return {"ok": True, "mode": "ed25519"}
+    except BadSignatureError:
+        return {"ok": False, "error": "invalid Ed25519 signature", "mode": "ed25519"}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "mode": "ed25519"}
+
+
 def verify_interaction_request(
     headers: Mapping[str, str],
     body: bytes,
 ) -> dict[str, Any]:
     """
-    Verify Soft (or passthrough) interaction signature.
+    Verify Soft HMAC or optional live Ed25519 (ADR-084 / ADR-092).
 
     Soft headers:
       X-Signature-Timestamp
@@ -66,12 +94,9 @@ def verify_interaction_request(
         if hmac.compare_digest(expect, sig.lower()):
             return {"ok": True, "mode": "soft-hmac"}
         return {"ok": False, "error": "invalid Soft signature", "mode": "soft"}
-    # Non-Soft: require soft still unless crypto available (kept Soft-safe)
-    return {
-        "ok": False,
-        "error": "live Ed25519 verify not configured — enable Soft or install crypto",
-        "mode": "unset",
-    }
+    if not ts or not sig:
+        return {"ok": False, "error": "missing signature headers", "mode": "ed25519"}
+    return _verify_ed25519(ts, body, sig)
 
 
 def handle_interactions_payload(payload: dict[str, Any]) -> dict[str, Any]:

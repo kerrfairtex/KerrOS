@@ -194,6 +194,21 @@ def channels_cmd(action: str, raw: str = "") -> str:
         from gateway.channels.tool_loop import tool_loop_reply_once
 
         return json.dumps(tool_loop_reply_once(), indent=2)
+    if action in ("plan-reply", "planner", "planner-reply"):
+        from gateway.channels.planner_agent import planner_reply_once
+
+        return json.dumps(planner_reply_once(), indent=2)
+    if action in ("signal-ingest", "signal_ingest") and parts:
+        from gateway.channels.signal_relay import ingest_signal_payload
+
+        body = " ".join(parts).strip()
+        if body.startswith("::"):
+            body = body[2:].strip()
+        try:
+            payload = json.loads(body)
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": f"invalid json: {exc}"})
+        return json.dumps(ingest_signal_payload(payload), indent=2)
     if action in ("trace", "trace-list"):
         from gateway.channels.trace import format_trace
 
@@ -305,8 +320,9 @@ def channels_cmd(action: str, raw: str = "") -> str:
         )
     return (
         "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|llm-reply|"
-        "stream-reply|tool-reply|tool-loop|trace|trace-export [json|cef]|"
-        "identity link|unlink|resolve|list|slash <name> [json]|"
+        "stream-reply|tool-reply|tool-loop|plan-reply|signal-ingest <json>|"
+        "trace|trace-export [json|cef]|identity link|unlink|resolve|list|"
+        "slash <name> [json]|"
         "gateway-start|gateway-stop|gateway-status|gateway-dispatch <EVENT> <json>|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"

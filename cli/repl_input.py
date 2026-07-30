@@ -106,6 +106,7 @@ def _extra_commands() -> list[str]:
         "gateway channel stream-reply",
         "gateway channel tool-reply",
         "gateway channel tool-loop",
+        "gateway channel plan-reply",
         "gateway channel trace",
         "gateway channel trace-export json",
         "gateway channel identity list",

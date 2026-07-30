@@ -89,6 +89,26 @@ class _Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(max(0, min(length, 100_000)))
 
+        # ADR-091 Soft Signal relay
+        if self.path in ("/v1/signal", "/signal"):
+            if not self._auth_ok():
+                self._json(401, {"ok": False, "error": "unauthorized"})
+                return
+            try:
+                payload = json.loads(raw.decode("utf-8") or "{}")
+            except Exception:
+                self._json(400, {"ok": False, "error": "invalid json"})
+                return
+            if not isinstance(payload, dict):
+                self._json(400, {"ok": False, "error": "json object required"})
+                return
+            from gateway.channels.signal_relay import ingest_signal_payload
+
+            result = ingest_signal_payload(payload)
+            code = 200 if result.get("ok") else 400
+            self._json(code, result)
+            return
+
         # ADR-084 Soft Discord Interactions endpoint
         if self.path in ("/v1/interactions", "/interactions"):
             from gateway.channels.interactions import (
@@ -196,7 +216,13 @@ def start_gateway(
         "ok": True,
         "host": host,
         "port": port,
-        "endpoints": ["/health", "/v1/message", "/v1/inbox", "/v1/interactions"],
+        "endpoints": [
+            "/health",
+            "/v1/message",
+            "/v1/inbox",
+            "/v1/interactions",
+            "/v1/signal",
+        ],
     }
 
 
