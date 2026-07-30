@@ -26,4 +26,4 @@ webhook inbox pump, without taking a live Cloud API dependency yet.
 
 ## Revisit when
 
-Meta Cloud API live path or Signal Soft adapter is funded.
+Meta Cloud API live path is funded (Signal Soft is ADR-071).
