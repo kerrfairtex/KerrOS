@@ -1,8 +1,8 @@
 # KerrOS local LLM (C-19) — Ollama sidecar
 
 Self-hosted models behind `LLMPort` via existing `OllamaAdapter` / `VLLMAdapter`.
-This kit runs **Ollama** on loopback. vLLM usually needs a GPU host — see
-[`ADR-016`](../../docs/adr/ADR-016-local-llm-ops.md) for probe/env only.
+This kit runs **Ollama** on loopback. For vLLM (GPU host), see
+[`deploy/vllm/`](../vllm/) and [`ADR-048`](../../docs/adr/ADR-048-vllm-ops-kit.md).
 
 ## Quickstart
 

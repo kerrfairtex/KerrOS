@@ -63,12 +63,17 @@ run = engine.run("demo")
 ### Local LLM (C-19)
 
 Adapters already implement `LLMPort`. Ops foundation: loopback Ollama compose +
-HTTP probes wired into `HealthMonitor` ([`ADR-016`](adr/ADR-016-local-llm-ops.md)).
+HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)) and soft vLLM kit
+([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`).
 
 ```bash
 ./scripts/local_llm_docker.sh up
 ./scripts/local_llm_docker.sh pull llama3.2
 ./scripts/local_llm_docker.sh probe
+
+# Optional GPU host:
+# ./scripts/vllm_docker.sh up
+# ./scripts/vllm_docker.sh probe
 
 export KERROS_LOCAL_LLM=1          # try Ollama → vLLM before cloud
 export KERROS_LLM_PROVIDER=ollama  # force provider
@@ -78,8 +83,8 @@ export VLLM_ENDPOINT=http://127.0.0.1:8000/v1
 export VLLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
 ```
 
-vLLM is bring-your-own GPU endpoint (same `/v1/models` probe). Or pass
-`provider_hint` in `llm_complete()` / `LLMPort.complete()`.
+vLLM uses the same `/v1/models` probe. Or pass `provider_hint` in
+`llm_complete()` / `LLMPort.complete()`.
 
 ## CLI
 
@@ -125,8 +130,8 @@ Events: `llm.circuit.*` on the kernel EventBus.
 
 ## Deferred
 
-- ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-039](adr/ADR-039-incluster-cmdb-systemd.md)
-- In-repo `deploy/vllm/` GPU compose (probe/env only until a funded GPU host)
+- ~~Authenticated WAN / full actor orchestrator~~ — Phase 2 foundation through [ADR-046](adr/ADR-046-mesh-lgu-foundation-arc-complete.md)
+- ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); auth proxy / multi-node / automated model pull stay contract-gated
 
 ## Workflow YAML definitions
 

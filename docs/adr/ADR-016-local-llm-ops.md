@@ -36,10 +36,11 @@ Enabled when `KERROS_LOCAL_LLM=1`, `KERROS_LLM_PROVIDER=ollama|vllm`, or
 **Positive:** Operators can run Ollama beside KerrOS; `/health` and `/llm`
 reflect local availability; backlog C-19 marked foundation.
 
-**Negative:** Pulling models is still a manual `ollama pull`; vLLM deploy
-remains operator-owned.
+**Negative:** Pulling models is still a manual `ollama pull`; vLLM GPU
+toolkit + weights remain operator-owned (soft kit in ADR-048).
 
 ## Revisit when
 
-A funded GPU host needs a first-class `deploy/vllm/` kit — add compose then,
-still behind the same probes/adapters.
+~~First-class `deploy/vllm/` kit~~ — **ADR-048** (soft GPU/CPU profiles).
+A funded deploy needs auth proxy, multi-node vLLM, or automated model
+provisioning.

@@ -158,7 +158,7 @@ capabilities:
       role: "local"
       adapter: "adapters.llm.vllm_adapter"
       default_endpoint: "http://127.0.0.1:8000/v1"
-      notes: "BYO GPU endpoint; same OpenAI-compat probe as Ollama (ADR-016)."
+      notes: "C-19 soft kit: deploy/vllm/ + ADR-048; same OpenAI-compat probe as Ollama."
 
   - name: "provider:litellm"
     kind: "provider"

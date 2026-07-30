@@ -1,0 +1,68 @@
+# KerrOS local vLLM sidecar (C-19 / ADR-048).
+#
+# Soft on-ramp for a funded GPU host. Host ports bind to 127.0.0.1 only.
+# Model weights are operator-owned (not bundled). Default profile is unused
+# so accidental `docker compose up` does nothing — start with:
+#   ./scripts/vllm_docker.sh up          # uses --profile vllm
+#   ./scripts/vllm_docker.sh up --cpu    # CPU profile (experimental smoke)
+#
+# KerrOS client:
+#   export KERROS_LOCAL_LLM=1
+#   export KERROS_VLLM_ENABLED=1
+#   export VLLM_ENDPOINT=http://127.0.0.1:8000/v1
+#   export VLLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
+
+services:
+  vllm:
+    profiles: ["vllm"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5}
+    container_name: kerros-vllm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${VLLM_HOST_PORT:-8000}:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    # GPU reservation (Compose v2 + NVIDIA Container Toolkit).
+    # Ignored on hosts without a GPU runtime — container may fail to start.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-meta-llama/Llama-3.2-3B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+
+  # Experimental CPU smoke profile — may be slow / unsupported on some tags.
+  # Prefer --profile vllm on a real GPU host.
+  vllm-cpu:
+    profiles: ["cpu"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5}
+    container_name: kerros-vllm-cpu
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${VLLM_HOST_PORT:-8000}:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      VLLM_TARGET_DEVICE: cpu
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-facebook/opt-125m}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+
+volumes:
+  vllm-cache:
+    name: kerros-vllm-cache
