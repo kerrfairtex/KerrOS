@@ -9,6 +9,14 @@ def init_session():
     """Call on startup to reset in-memory session. Does not wipe memory.json."""
     global _short
     _short = []
+    try:
+        from memory.session_store import start_session
+        from core.session_hooks import emit_session_hook
+
+        sid = start_session()
+        emit_session_hook("session_start", {"session_id": sid})
+    except Exception:
+        pass
 
 def _load(p, d):
     if not os.path.exists(p): return d
@@ -62,6 +70,12 @@ def add_message(role, content):
         from memory.session_fts import index_message
 
         index_message(role, content, ts=ts, source="live")
+    except Exception:
+        pass
+    try:
+        from memory.session_store import index_turn
+
+        index_turn(role, content, ts=ts, source="live")
     except Exception:
         pass
     if len(_short) >= 15:

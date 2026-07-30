@@ -361,6 +361,9 @@ def main():
                 ("profile memory …",     "Durable MEMORY.md/USER.md notes (ADR-062)"),
                 ("tool search <q>",      "Progressive tool disclosure (KERROS_TOOL_SEARCH=1)"),
                 ("agent cron …",         "Persisted agent cron jobs (data/agent_cron)"),
+                ("list sessions",        "List indexed chat sessions (ADR-063)"),
+                ("browse session <id>",  "Browse turns in a past session"),
+                ("bg spawn|poll|kill",   "Background process registry"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
@@ -1373,15 +1376,27 @@ def main():
                 if c and len(c)>3 and len(c)<500 and not any(b in c for b in bad):
                     clean_hist.append({"role":m["role"],"content":c})
             try:
-                from core.message_policy import prepare_history
                 from core.config import cfg as _cfg
+                from core.context_compressor import compress_context
+                from core.message_policy import prepare_history, should_compress
 
                 _c = _cfg()
-                clean_hist, _meta = prepare_history(
-                    clean_hist,
-                    context_size=int(_c.get("context_size") or 4096),
-                    max_tokens=int(_c.get("max_tokens") or 512),
-                )
+                _ctx = int(_c.get("context_size") or 4096)
+                _max = int(_c.get("max_tokens") or 512)
+                if should_compress(clean_hist, context_size=_ctx, max_tokens=_max):
+                    clean_hist, _meta = compress_context(
+                        clean_hist,
+                        keep_last=6,
+                        engine=engine,
+                        context_size=_ctx,
+                        max_tokens=_max,
+                    )
+                else:
+                    clean_hist, _meta = prepare_history(
+                        clean_hist,
+                        context_size=_ctx,
+                        max_tokens=_max,
+                    )
             except Exception:
                 pass
             response = generate_complete(engine, 

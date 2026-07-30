@@ -293,6 +293,15 @@ def detect_tool(text, bypass_gate=False):
         return ("mcp_discover", "")
     if lower.startswith("approve exec") or lower.startswith("/approve-exec"):
         return ("approve_exec", text.split(" ", 1)[-1] if " " in text else "")
+    if lower.startswith("browse session ") or lower.startswith("/browse-session "):
+        sid = text.split(" ", 2)[-1].strip()
+        return ("browse_session", sid)
+    if lower in ("list sessions", "/sessions", "sessions list"):
+        return ("list_sessions", "")
+    if lower.startswith("bg ") or lower.startswith("/bg "):
+        return ("bg_process", text.split(" ", 1)[1].strip())
+    if lower in ("bg", "/bg"):
+        return ("bg_process", "list")
 
     return (None, None)
 
@@ -361,6 +370,9 @@ def run_tool(tool, args):
         "agent_cron": _agent_cron,
         "mcp_discover": _mcp_discover,
         "approve_exec": _approve_exec,
+        "browse_session": _browse_session,
+        "list_sessions": _list_sessions,
+        "bg_process": _bg_process,
     }
     fn = dispatch.get(tool)
     result = fn(args) if fn else "[Unknown tool]"
@@ -1179,9 +1191,46 @@ def _stripe_trigger(args):
 
 def _search_past_sessions(query):
     from memory.session_fts import format_search_results, search_past_sessions
+    from memory.session_store import format_session_hits, search_sessions, summarize_hits
 
-    hits = search_past_sessions(str(query or ""), top_k=8)
-    return format_search_results(hits)
+    q = str(query or "")
+    hits = search_sessions(q, top_k=8)
+    if hits:
+        body = format_session_hits(hits)
+        try:
+            extra = summarize_hits(hits)
+            if extra and extra not in body:
+                body = body + "\n" + extra
+        except Exception:
+            pass
+        return body
+    # Fallback to ADR-058 flat FTS
+    hits2 = search_past_sessions(q, top_k=8)
+    return format_search_results(hits2)
+
+
+def _browse_session(raw):
+    import json
+    from memory.session_store import browse_session
+
+    return json.dumps(browse_session(str(raw or "").strip()), indent=2)
+
+
+def _list_sessions(_raw):
+    import json
+    from memory.session_store import list_sessions
+
+    return json.dumps({"ok": True, "sessions": list_sessions()}, indent=2)
+
+
+def _bg_process(raw):
+    from tools.process_registry import bg_process
+
+    text = str(raw or "list").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    return bg_process(action, rest)
 
 
 def _execute_pipeline(script):

@@ -163,6 +163,7 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "servers": [],
         },
         "profile_memory": {"enabled": True},
+        "context_compress": {"llm": False},
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,
