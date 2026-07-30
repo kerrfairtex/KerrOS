@@ -92,6 +92,7 @@ def _extra_commands() -> list[str]:
         "gateway status",
         "gateway channel list",
         "gateway channel start whatsapp",
+        "gateway channel soft-reply",
         "list sessions",
         "resume latest",
         "skills hub list",

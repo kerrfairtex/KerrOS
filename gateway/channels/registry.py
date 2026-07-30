@@ -102,6 +102,58 @@ def send_channel(channel: str, chat_id: str, text: str) -> dict[str, Any]:
     return ad.send(OutboundMessage(channel=channel, chat_id=chat_id, text=text))
 
 
+def soft_reply_once(*, prefix: str = "[KerrOS]") -> dict[str, Any]:
+    """
+    Soft channel reply loop (ADR-072).
+
+    Poll all running adapters, copy into webhook inbox, index turns into
+    session_store, and send a Soft ack outbound per inbound message.
+    Does not call an LLM — safe for CI / demos without API keys.
+    """
+    from gateway import webhook as gw
+
+    pulled = poll_all()
+    replies: list[dict[str, Any]] = []
+    for m in pulled:
+        with gw._lock:
+            gw._inbox.append(
+                {
+                    "channel": m.channel,
+                    "sender": m.sender,
+                    "text": m.text,
+                    "chat_id": m.chat_id,
+                }
+            )
+        try:
+            from memory.session_store import index_turn
+
+            index_turn(
+                "user",
+                f"[{m.channel}:{m.sender}] {m.text}",
+                source=f"channel:{m.channel}",
+            )
+        except Exception:
+            pass
+        ack = f"{prefix} ack ({m.channel}): {m.text[:200]}"
+        sent = send_channel(m.channel, m.chat_id or "soft", ack)
+        try:
+            from memory.session_store import index_turn
+
+            index_turn("assistant", ack, source=f"channel:{m.channel}")
+        except Exception:
+            pass
+        replies.append(
+            {
+                "channel": m.channel,
+                "chat_id": m.chat_id,
+                "inbound": m.text,
+                "outbound": ack,
+                "send": sent,
+            }
+        )
+    return {"ok": True, "pulled": len(pulled), "replies": replies}
+
+
 def channels_cmd(action: str, raw: str = "") -> str:
     import json
 
@@ -115,6 +167,8 @@ def channels_cmd(action: str, raw: str = "") -> str:
         return json.dumps(stop_channel(parts[0]), indent=2)
     if action == "pump":
         return json.dumps(pump_to_webhook_inbox(), indent=2)
+    if action in ("soft-reply", "reply-once", "soft_reply"):
+        return json.dumps(soft_reply_once(), indent=2)
     if action == "send" and len(parts) >= 3:
         channel, chat_id = parts[0], parts[1]
         text = " ".join(parts[2:])
@@ -155,7 +209,7 @@ def channels_cmd(action: str, raw: str = "") -> str:
             indent=2,
         )
     return (
-        "[channels] actions: list|start <name>|stop <name>|pump|"
+        "[channels] actions: list|start <name>|stop <name>|pump|soft-reply|"
         "send <ch> <chat_id> <text>|soft-push <ch> <text>|"
         "soft-webhook <ch> <json>"
     )
