@@ -209,7 +209,9 @@ def ai_header(mode: str) -> None:
 
 
 def prompt_input() -> str:
-    return input(f"\n  {GOLD}⚔{R} {YL}{BOL}You{R}  {GOLD}›{R} ").strip()
+    from cli.repl_input import prompt_line
+
+    return prompt_line(f"\n  {GOLD}⚔{R} {YL}{BOL}You{R}  {GOLD}›{R} ")
 
 
 def ask_online_prompt() -> str:

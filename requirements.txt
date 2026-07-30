@@ -2,6 +2,7 @@
 python-dotenv>=1.0.0
 requests>=2.31.0
 PyYAML>=6.0
+prompt_toolkit>=3.0.0
 
 # Optional: cloud LLM providers (used by core/multi_api.py when keys are set)
 groq>=0.9.0
