@@ -203,6 +203,24 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "allow_discovery_probe": False,
             "session_ttl_s": 3600.0,
         },
+        # ADR-036: OIDC relying party (off by default).
+        "oidc_rp": {
+            "enabled": False,
+            "client_id": "kerros",
+            "client_secret": "",
+            "redirect_uri": "http://127.0.0.1:8080/oidc/callback",
+            "issuer": "https://idp.test",
+            "scopes": ["openid", "profile", "email"],
+            "allow_live": False,
+            "allow_discovery_probe": False,
+        },
+        # ADR-036: SoA draft foundation (off by default).
+        "compliance_soa": {
+            "enabled": False,
+            "org_name": "KerrOS",
+            "output_dir": "data/soa",
+            "allow_write": False,
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,
@@ -324,6 +342,12 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "allow_crypto": False,
                     "allow_live": False,
                 },
+                "issuance": {
+                    "enabled": False,
+                    "allow_live": False,
+                    "challenge": "dns-01",
+                    "allow_crypto": False,
+                },
                 "dns01": {
                     "enabled": False,
                     "provider": "memory",
@@ -377,6 +401,13 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "allow_spawn": False,
                     "autostart": False,
                     "extra_args": [],
+                },
+                "broker_fleet": {
+                    "enabled": False,
+                    "backend": "memory",
+                    "allow_spawn": False,
+                    "autostart": False,
+                    "members": [],
                 },
             },
         },

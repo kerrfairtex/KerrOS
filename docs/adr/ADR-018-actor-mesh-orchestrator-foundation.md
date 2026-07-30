@@ -51,4 +51,6 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
 ~~Broker lifecycle / ACME JOSE + cloud DNS SDKs~~ — **ADR-033.**
 ~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
-Remaining: multi-broker fleets / production ACME issuance / certified SoA when funded.
+~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
+~~SoA draft / OIDC RP~~ — **ADR-036.**
+Remaining: remote fleet orchestration / auditor-signed SoA / SAML when funded.

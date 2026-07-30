@@ -45,5 +45,5 @@ requires explicit `allow_shred`.
 
 ## Revisit when
 
-An LGU contract funds certified appliance integration, full OIDC/SAML
-RP, or SoA evidence packaging.
+~~SoA draft / OIDC RP~~ — **ADR-036.**
+An LGU contract funds auditor-signed SoA packaging or SAML / production IdP hardening.

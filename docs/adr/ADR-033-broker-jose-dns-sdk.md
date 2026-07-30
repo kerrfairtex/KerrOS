@@ -45,5 +45,6 @@ SDK calls remain opt-in.
 
 ## Revisit when
 
-A funded deploy needs multi-node broker fleets, production ACME issuance
-automation, or mandatory cloud SDK packaging.
+~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
+A funded deploy needs remote fleet orchestration or packaged production
+ACME automation against Let's Encrypt.

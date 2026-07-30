@@ -457,6 +457,7 @@ class ActorMesh:
     ADR-031 adds Supercluster topology ops + ACME account/DNS-01.
     ADR-032 adds Supercluster control-plane + ACME newAccount/cloud DNS.
     ADR-033 adds broker lifecycle + ACME JOSE/order + cloud DNS SDK facades.
+    ADR-035 adds multi-broker fleets + ACME issuance pipeline.
     """
 
     node_id: str
@@ -479,6 +480,8 @@ class ActorMesh:
     acme_new_account: Any = None  # optional AcmeNewAccountClient (ADR-032)
     nats_broker: Any = None  # optional NatsBrokerLifecycle (ADR-033)
     acme_jose: Any = None  # optional AcmeOrderClient (ADR-033)
+    nats_broker_fleet: Any = None  # optional BrokerFleet (ADR-035)
+    acme_issuance: Any = None  # optional AcmeIssuanceClient (ADR-035)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -530,6 +533,11 @@ class ActorMesh:
         if self.nats_broker is not None:
             try:
                 self.nats_broker.stop()
+            except Exception:
+                pass
+        if self.nats_broker_fleet is not None:
+            try:
+                self.nats_broker_fleet.stop_all()
             except Exception:
                 pass
         self._stop.set()
@@ -853,6 +861,16 @@ class ActorMesh:
             "acme_jose": (
                 self.acme_jose.stats() if self.acme_jose is not None else None
             ),
+            "nats_broker_fleet": (
+                self.nats_broker_fleet.stats()
+                if self.nats_broker_fleet is not None
+                else None
+            ),
+            "acme_issuance": (
+                self.acme_issuance.stats()
+                if self.acme_issuance is not None
+                else None
+            ),
         }
 
 
@@ -1166,6 +1184,13 @@ def build_actor_mesh(
     if broker is not None:
         mesh.nats_broker = broker
 
+    # ADR-035: multi-broker fleet manager.
+    from runtime.nats_broker_fleet import build_broker_fleet
+
+    fleet = build_broker_fleet(sc_raw.get("broker_fleet") or {})
+    if fleet is not None:
+        mesh.nats_broker_fleet = fleet
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1227,6 +1252,18 @@ def build_actor_mesh(
     )
     if order_client is not None:
         mesh.acme_jose = order_client
+
+    # ADR-035: ACME issuance pipeline (fake challenge→finalize→cert).
+    from runtime.acme_issuance import build_acme_issuance_client
+
+    issuance = build_acme_issuance_client(
+        acme_raw.get("issuance") or {},
+        order_client=mesh.acme_jose,
+        directory_url=directory,
+        solver=mesh.acme_dns01 or mesh.acme_http01,
+    )
+    if issuance is not None:
+        mesh.acme_issuance = issuance
 
     mesh.attach()
     return mesh

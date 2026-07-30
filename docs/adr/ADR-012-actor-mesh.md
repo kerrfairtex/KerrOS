@@ -55,4 +55,6 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Supercluster control-plane / ACME newAccount+cloud DNS~~ — **ADR-032.**
 ~~Broker lifecycle / ACME JOSE + cloud DNS SDKs~~ — **ADR-033.**
 ~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
-Revisit for multi-broker fleets / production ACME issuance / certified SoA when funded.
+~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
+~~SoA draft / OIDC RP~~ — **ADR-036.**
+Revisit for remote fleet orchestration / auditor-signed SoA / SAML when funded.
