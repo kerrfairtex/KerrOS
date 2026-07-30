@@ -268,13 +268,27 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     },
                 },
             },
-            # ADR-029: ACME / Let's Encrypt live-dir watch (off by default).
+            # ADR-029/030: ACME live-dir watch + optional HTTP-01 solver (off by default).
             "acme": {
                 "enabled": False,
                 "live_dir": "",
                 "domain": "",
                 "watch_interval_s": 60.0,
                 "allow_certbot_probe": False,
+                "http01": {
+                    "enabled": False,
+                    "bind": "127.0.0.1",
+                    "port": 0,
+                    "path_prefix": "/.well-known/acme-challenge",
+                },
+            },
+            # ADR-030: Supercluster / gateway / leafnode topology registry (off by default).
+            "supercluster": {
+                "enabled": False,
+                "name": "kerros",
+                "clusters": [],
+                "gateways": [],
+                "leafnodes": [],
             },
         },
     }

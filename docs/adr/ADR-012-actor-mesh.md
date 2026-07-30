@@ -50,4 +50,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Local actor supervision~~ — **ADR-020.**
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
-Revisit for Supercluster topology / ACME solvers when multi-tenant WAN requires them.
+~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
+Revisit for Supercluster topology ops / ACME account+DNS-01 when multi-tenant WAN requires them.

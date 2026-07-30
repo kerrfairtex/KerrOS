@@ -452,6 +452,8 @@ class ActorMesh:
     ADR-018 adds named actors, routes, request/reply, and ``add_peer``.
     ADR-020 adds optional local supervision (``supervisor``).
     ADR-028 adds optional JetStream soft client, OTP tree, CA reload holder.
+    ADR-029 adds JetStream cluster failover + ACME live-dir watch.
+    ADR-030 adds Supercluster topology registry + ACME HTTP-01 solver.
     """
 
     node_id: str
@@ -465,6 +467,8 @@ class ActorMesh:
     supervision_tree: Any = None  # optional SupervisionTree (ADR-028)
     tls_holder: Any = None  # optional ReloadingTlsHolder (ADR-028)
     acme_watcher: Any = None  # optional AcmeCertWatcher (ADR-029)
+    supercluster: Any = None  # optional SuperclusterTopology (ADR-030)
+    acme_http01: Any = None  # optional AcmeHttp01Solver (ADR-030)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -506,6 +510,11 @@ class ActorMesh:
         if self.supervisor is not None:
             try:
                 self.supervisor.detach()
+            except Exception:
+                pass
+        if self.acme_http01 is not None:
+            try:
+                self.acme_http01.stop()
             except Exception:
                 pass
         self._stop.set()
@@ -796,6 +805,12 @@ class ActorMesh:
             "acme": (
                 self.acme_watcher.stats() if self.acme_watcher is not None else None
             ),
+            "supercluster": (
+                self.supercluster.stats() if self.supercluster is not None else None
+            ),
+            "acme_http01": (
+                self.acme_http01.stats() if self.acme_http01 is not None else None
+            ),
         }
 
 
@@ -1048,7 +1063,8 @@ def build_actor_mesh(
     # ADR-029: optional ACME live-dir watcher bound to tls_holder.
     from runtime.acme_reload import AcmeCertWatcher, AcmeConfig
 
-    acme_cfg = AcmeConfig.from_mapping(data.get("acme") or {}, base=None)
+    acme_raw = dict(data.get("acme") or {})
+    acme_cfg = AcmeConfig.from_mapping(acme_raw, base=None)
     if acme_cfg.enabled:
         watcher = AcmeCertWatcher(cfg=acme_cfg)
         if mesh.tls_holder is not None:
@@ -1072,6 +1088,29 @@ def build_actor_mesh(
         if acme_cfg.watch_interval_s > 0:
             watcher.start_watch()
         mesh.acme_watcher = watcher
+
+    # ADR-030: Supercluster topology registry (in-memory; does not start NATS).
+    from runtime.nats_supercluster import build_supercluster_topology
+
+    topo = build_supercluster_topology(data.get("supercluster") or {})
+    if topo is not None:
+        topo.validate()
+        mesh.supercluster = topo
+
+    # ADR-030: optional ACME HTTP-01 challenge solver.
+    from runtime.acme_http01 import build_acme_http01_solver
+
+    http01 = build_acme_http01_solver(acme_raw.get("http01") or {})
+    if http01 is not None:
+        try:
+            http01.start()
+            mesh.acme_http01 = http01
+        except Exception:
+            try:
+                http01.stop()
+            except Exception:
+                pass
+            mesh.acme_http01 = None
 
     mesh.attach()
     return mesh

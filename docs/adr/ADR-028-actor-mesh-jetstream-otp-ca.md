@@ -45,5 +45,6 @@ contexts until re-dial; tree does not spawn processes.
 ## Revisit when
 
 ~~JetStream cluster failover + ACME live-dir watch~~ — **ADR-029.**
-A funded deploy needs Supercluster topology automation, ACME HTTP-01/DNS-01
+~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
+A funded deploy needs Supercluster topology ops, ACME account+DNS-01
 issuance, IdP portals, or hardware WORM.

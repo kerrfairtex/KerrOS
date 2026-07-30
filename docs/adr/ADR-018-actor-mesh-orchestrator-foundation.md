@@ -46,4 +46,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~mTLS / NATS / remote process restart hook~~ — **ADR-023.**
 ~~JetStream soft / OTP local tree / CA reload~~ — **ADR-028.**
 ~~JetStream cluster failover + ACME watch~~ — **ADR-029.**
-Remaining: Supercluster topology / ACME solvers when funded.
+~~Supercluster topology / ACME HTTP-01~~ — **ADR-030.**
+Remaining: Supercluster topology ops / ACME account+DNS-01 when funded.
