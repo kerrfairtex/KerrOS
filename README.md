@@ -1,201 +1,369 @@
-# KerrOS × OmniRoute — Single Source of Truth
-Architecture & Build Roadmap — v0.1, July 25, 2026
+# KerrOS
 
-## Product scope (locked)
+**Python 3 terminal AI assistant** with a small DI kernel, ports/adapters,
+workspace claw tools, RAG memory, and optional local or cloud LLMs.
 
-KerrOS is an **open-source local AI router/proxy gateway**.  
-It is not a governance platform. Its target outcomes are:
-- persistent conversational memory (deterministic keyword + vector recall),
-- one unified local endpoint for provider routing,
-- per-tool setup abstraction through kernel-managed capabilities,
-- self-extensible workflows/skills/tools with auditable guardrails.
+Repo alias: `offline_ai` (many modules resolve paths under `~/offline_ai`).
 
-## 0. Provenance — public vs. private
+KerrOS is **not** OmniRoute. OmniRoute is an optional OpenAI-compatible
+meta-provider KerrOS can call. LiteLLM / llama.cpp / Ollama / vLLM are likewise
+optional sidecars — default off.
 
-| 🌐 Public (independently verifiable) | 🔒 Private (your project state only) |
-|---|---|
-| OmniRoute architecture, features, security model — github.com/diegosouzapw/OmniRoute, release v3.8.49, MIT, ⭐26.6k | KerrOS's target AIOS/kernel architecture — from your uploaded README.md |
-| | KerrOS's actual current build state (RAG, agents, scope_gate, DevOps pipeline) — from prior session notes, not yet reflected in the public README |
+---
 
-Left column is checkable against the repo. Right column is accurate only as far as your own build log is — this doc doesn't independently verify KerrOS's code, it reconciles two different framings of the same project that you've given me at different times.
+## Quick start
 
-## 1. The one decision to make before P0
+```bash
+# Resolve hard-coded ~/offline_ai paths
+ln -sfn "$PWD" "$HOME/offline_ai"
 
-Your README describes a **general-purpose kernel**: it owns lifecycle management, capability discovery, dependency injection, scheduling, security enforcement, state management, and service orchestration — plus a separate Capability Registry, Service Manager, Event Bus, and Policy Engine.
+pip install -r requirements.txt
+cp .env.example .env   # set GROQ_API_KEY for online mode
 
-That's materially bigger than the kernel you already ADR'd. That decision — logged as resolved — explicitly **rejected** a full IPC actor-mesh orchestrator as premature, and defined "kernel" narrowly as `router.py` + 3 Ports (LLM/Memory/Tool) + a minimal watchdog + the scope_gate decision log, with agents staying in userspace and calling the kernel rather than the kernel owning them.
+python3 cli/chat.py
+```
 
-Two different architectures, not two names for one thing. Building toward the README's version without revisiting that ADR is exactly the undocumented drift ADRs exist to catch. Two honest paths:
+- With internet: prompts `Online mode? [y/n]`.
+- Online needs a cloud key (e.g. `GROQ_API_KEY`).
+- Offline needs a local llama.cpp binary + GGUF under `models/` (gitignored).
+- Claw slash-commands (`/read`, `/exec`, …) run **before** any LLM call and
+  work without a model or API key.
 
-- **A — Grow into it.** Keep the narrow kernel now (it's sized right for 3.7GB RAM / $0 budget). Treat P0–P6 as target-state you earn into as your existing Phase 2/3 infra triggers hit (rented server, GPU funded) — same milestone-gating you already use. Log an ADR now saying "P0–P6 is target-state, gated the same way as the existing roadmap."
-- **B — Commit now.** If the README is a real decision to rebuild as a formal AIOS starting immediately, that's legitimate — but it reverses the earlier ADR's reasoning, and the reversal deserves its own ADR entry, not a silent supersede.
+```bash
+# Tests
+./scripts/run_tests.sh
+# or: python3 -m unittest discover -s tests -p 'test_*.py' -t .
+```
 
-Everything below works under either path — only the *timing* changes. Given your zero-cost/phone-RAM constraints haven't changed, A is the more grounded default, but that's yours to log, not mine to pick.
+No Node build is required for the app (root `package.json` is optional MCP tooling only).
 
-## 2. Principle-by-principle reality check
+---
 
-Checked against what's actually built on `main` (July 2026):
+## What KerrOS is
+
+| Is | Is not |
+|----|--------|
+| Terminal AIOS / REPL assistant | A public LLM gateway product |
+| Kernel + ports + adapters | OmniRoute itself |
+| FTS-primary RAG + optional vectors | A bundled 238K-chunk knowledge dump |
+| Soft/Fake on-ramps for local LLM/RAG/coding | Production TLS / HA seals by default |
+
+**Target outcomes:** persistent chat + knowledge recall, one operator-chosen LLM
+path (cloud or local), capability manifests for tools/providers, auditable
+scope gates, self-extensible workflows/skills.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph cli [CLI]
+    Chat["cli/chat.py REPL"]
+  end
+
+  subgraph kernel [Kernel]
+    Boot["boot / DI container"]
+    Access["kernel/access facade"]
+    Caps["capability_registry"]
+    DLog["decision_log"]
+    Cfg["kernel/config"]
+  end
+
+  subgraph ports [Ports]
+    LLM["llm_port"]
+    Mem["memory_port"]
+    Tool["tool_port"]
+    Emb["embedding_port"]
+    CI["code_index_port"]
+  end
+
+  subgraph adapters [Adapters]
+    Comp["CompositeLLMAdapter"]
+    Hybrid["HybridMemoryAdapter"]
+    Claw["ClawToolAdapter"]
+    ST["SentenceTransformersAdapter"]
+  end
+
+  subgraph runtime [Runtime]
+    Bus["EventBus"]
+    Sched["Scheduler"]
+    WF["WorkflowEngine"]
+    Health["HealthMonitor"]
+    SM["ServiceManager / kerrd"]
+  end
+
+  subgraph data [Data]
+    FTS["rag_store.db FTS5"]
+    FAISS["faiss soft / optional"]
+    ChatMem["memory / profile / episodic JSON"]
+    CodeIdx["code_index/"]
+  end
+
+  Chat --> Boot
+  Chat --> Access
+  Boot --> Caps
+  Boot --> ports
+  Boot --> runtime
+  Access --> LLM
+  Access --> Mem
+  Access --> Tool
+  LLM --> Comp
+  Mem --> Hybrid
+  Tool --> Claw
+  Emb --> ST
+  Hybrid --> FTS
+  Hybrid --> FAISS
+  Comp --> Bus
+  Health --> Comp
+```
+
+### Layers
+
+| Layer | Path | Role |
+|-------|------|------|
+| **CLI** | `cli/chat.py` | REPL, mode switch, slash-commands, agent entrypoints |
+| **Kernel** | `kernel/` | Boot lifecycle, config, DI, access facade, capabilities, decision log, watchdog |
+| **Ports** | `ports/` | Interfaces: LLM, Memory, Tool, Embedding, CodeIndex, Storage, Search, … |
+| **Adapters** | `adapters/` | Implementations behind ports (composite LLM, hybrid memory, claw, …) |
+| **Runtime** | `runtime/` | EventBus, scheduler, workflows, health, services, optional mesh |
+| **Agents** | `agents/` | Userspace Knowledge / Security / Code / Research / Planner / Reflection / Document |
+| **RAG** | `rag/` | SQLite FTS store + path guards |
+| **Memory** | `memory/` | Session, profile, episodic → semantic helpers |
+| **Tools** | `tools/` | Claw FS/exec, scope gate, router tools, devops |
+| **Config** | `config/` | Capabilities, profiles, scope policy, workflow YAML |
+| **Deploy** | `deploy/` | Optional Docker kits (ollama, vllm, llama_cpp, omniroute, qdrant, …) |
+| **Docs** | `docs/adr/` | Architecture decisions (ADR-001 … ADR-054+) |
+
+Boot phases: `INIT → CONFIG → SERVICES → PORTS → READY`
+(`kernel/boot.py`, `docs/KERNEL_CONTRACT.md`).
+
+---
+
+## Request workflow
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant R as cli/chat.py
+  participant C as Claw / slash handlers
+  participant G as scope_gate / router
+  participant K as kernel access
+  participant L as llm_port / LLMEngine
+  participant M as memory_port / RAG
+
+  U->>R: input line
+  R->>C: claw / built-in slash?
+  alt claw or slash handled
+    C-->>U: tool / status output
+  else router tool
+    R->>G: detect_tool + scope_gate
+    G->>K: run_tool
+    K-->>U: tool result
+  else chat
+    R->>M: optional recall / context
+    R->>L: generate_complete / chat
+    L-->>U: streamed or typed reply
+  end
+```
+
+### REPL order of operations
+
+1. **`kernel_boot()`** — DI, capabilities, ports, runtime services.
+2. **Mode** — online (`CompositeLLMAdapter` / cloud) or offline (`LLMEngine` + GGUF).
+3. For each line:
+   1. Built-in slash (`/help`, `/health`, `/llm`, `/workflows`, …).
+   2. **Claw** (`/read`, `/exec`, …) — **no LLM**.
+   3. Router tools + **`scope_gate`** (fail-closed).
+   4. Agents (`/knowledge`, `/plan`, `/reflect`, …).
+   5. Otherwise LLM generation with context builders (`core/context.py`).
+
+Interactive “[code] Save to file?” after fenced replies is **off by default**
+(`KERROS_CODE_SAVE_PROMPT=1` to restore).
+
+---
+
+## LLM routing
+
+`adapters/llm/composite_adapter.py` sits behind `llm_port`.
+
+| Control | Effect |
+|---------|--------|
+| Default | `llm_provider_default=cloud` (Groq-primary multi-API chain) |
+| `KERROS_LLM_PROVIDER` | Force start: `cloud`, `ollama`, `vllm`, `litellm`, `llama_cpp` / `offline`, `omniroute` |
+| `KERROS_LOCAL_LLM=1` | Local-first: llama_cpp → ollama → litellm → vllm → cloud |
+| `KERROS_OFFLINE_PROFILE=offline_qwen05` | Offline combo profile; prefers `llama_cpp` when provider unset |
+| `KERROS_USE_OMNIROUTE=1` | Enable OmniRoute meta-provider (**default off**) |
+| Resilience | Circuit breaker / cooldown / lockout per provider (`/llm`, `/llm reset`) |
+
+CLI: `/llm` shows availability and circuit state.
+
+---
+
+## Offline combo (ADR-050 … ADR-054)
+
+Operator-owned weights and Docker. CI covers Fake plans + compose YAML guards,
+not live GPU/containers.
+
+| Phase | ADR | Surface | Live when |
+|-------|-----|---------|-----------|
+| **A** Profile + llama.cpp | [050](docs/adr/ADR-050-offline-qwen05-profile.md) | `config/profiles/offline_qwen05.yaml`, `LlamaCppAdapter` | Binary + GGUF present |
+| **B** RAG | [051](docs/adr/ADR-051-offline-rag-faiss.md) | nomic embed + FAISS soft; **FTS primary** | Optional `sentence-transformers` / `faiss-cpu` |
+| **C** Coding index | [052](docs/adr/ADR-052-offline-coding-index.md) | `/code-index`, `/symbols`, `/code-search` | Index built; symbols Fake-regex unless grammars funded |
+| **D** Unsloth → GGUF | [053](docs/adr/ADR-053-unsloth-lora-gguf-export.md) | `/finetune-plan`, `/finetune-export` | GPU + `allow_train` / `allow_export` (Fake plan by default) |
+| **E** LiteLLM gateway | [054](docs/adr/ADR-054-offline-litellm-llamacpp.md) | `deploy/llama_cpp/`, `scripts/llama_cpp_docker.sh` | `up --litellm` + `probe` on a host with GGUF |
+
+```bash
+./scripts/download_qwen05_gguf.sh
+export KERROS_OFFLINE_PROFILE=offline_qwen05
+export LLAMA_BIN=~/llama.cpp/build/bin/llama-cli
+export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
+
+# Optional Phase E gateway (not verified until containers are up):
+# ./scripts/llama_cpp_docker.sh up --litellm
+# export LITELLM_ENDPOINT=http://127.0.0.1:4000/v1
+# export KERROS_LLM_PROVIDER=litellm
+```
+
+---
+
+## Memory & RAG
+
+| Store | Path / component | Job |
+|-------|------------------|-----|
+| **Primary RAG** | `data/rag_store.db` (SQLite FTS5) | Knowledge retrieve / ingest |
+| **Hybrid vectors** | FAISS soft (`data/faiss/…`) and/or Qdrant `kerros_memory` | Additive semantic recall; default off |
+| **Chat memory** | `data/memory.json`, `profile.json`, `semantic.json`, `episodic.json` | Session / profile / lessons |
+| **Code index** | `data/code_index/` | Symbols + ripgrep — **not** merged into RAG |
+
+`HybridMemoryAdapter` merges FTS + optional vector hits. Ingest via
+`/ingest`, `/learn`, import scripts (`import_owasp.py`, `import_cve.py`, …).
+Large cyber corpora are **operator-imported**, not guaranteed in a fresh clone.
+
+**OmniRoute memory stays separate** — see [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md)
+and `rag/path_guard.py`. OmniRoute is never a MemoryPort backend.
+
+Reranker and pgvector are **not** implemented as default KerrOS paths.
+
+---
+
+## Claw workspace tools
+
+Handled in the REPL before LLM. Workspace defaults to repo root
+(`KERROS_WORKSPACE` to override). `exec` only allows `config.json`
+`safe_commands` and cannot escape the workspace.
+
+| Command | Action |
+|---------|--------|
+| `/read <path>` | Read file |
+| `/write <path> :: <content>` | Write file |
+| `/edit <path> :: <old> :: <new>` | Patch file |
+| `/list` `/ls` [`-r`] [path] | List |
+| `/exec` `/run <cmd>` | Allowlisted exec |
+| `/remove` `/rm <path>` | Delete |
+| `/code-index` [root] | Rebuild code index |
+| `/symbols <q>` | Symbol search |
+| `/code-search` `/rg <pat>` | Content search |
+| `/finetune-plan` / `/finetune-export` | Soft Unsloth path |
+| `/tool <name> <json>` | Invoke registered tool |
+| `/workspace` | Show workspace root |
+
+---
+
+## Other useful slash commands
+
+| Area | Commands |
+|------|----------|
+| Mode / LLM | `/online`, `/offline`, `/mode`, `/llm`, `/apistatus` |
+| Kernel / ops | `/kernel`, `/health`, `/services`, `/capabilities`, `/decisions` |
+| Events / jobs | `/events`, `/schedule`, `/workflows` |
+| Memory / RAG | `/memory`, `/recall`, `/sources`, `/ingest`, `/search` |
+| Agents | `/knowledge`, `/security`, `/code`, `/research`, `/plan`, `/react` |
+| Scope | `/scope`, `/scope arm-deploy`, `/scope policy` |
+
+`/help` lists the live set for your build.
+
+---
+
+## Configuration
+
+| File | Role |
+|------|------|
+| `config.json` | Model paths, threads, RAG flags, `safe_commands`, knowledge paths |
+| `kernel/config.py` | Typed defaults + env overlays (providers, FAISS, mesh, …) |
+| `.env` / `.env.example` | API keys and feature flags |
+| `config/profiles/offline_qwen05.yaml` | Offline combo A–E |
+| `config/capabilities/*.yaml` | Capability manifests → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
+| `config/scope_policy.yaml` | Declarative tool policy → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md) |
+| `config/workflows/*.yaml` | Workflow DAGs |
+
+Regenerate capability docs after manifest edits:
+
+```bash
+python3 scripts/render_capabilities.py
+python3 scripts/render_scope_policy.py
+```
+
+---
+
+## OmniRoute (optional)
+
+- Capability: **one** meta-provider (`config/capabilities/omniroute.yaml`).
+- Default: **off** (`use_omniroute: False` / unset `KERROS_USE_OMNIROUTE`).
+- Endpoint default: `http://127.0.0.1:20128/v1`.
+- Deploy kit: [`deploy/omniroute/`](deploy/omniroute/) (loopback-only publish).
+- Health: `HealthMonitor` component `omniroute`.
+- Usage events: `X-OmniRoute-*` → EventBus topic `omniroute.usage`.
+- Security notes: [`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md).
+
+Do not expand OmniRoute’s upstream provider catalog into KerrOS manifests.
+
+---
+
+## Principles (as built)
 
 | Principle | Status | Evidence |
-|---|---|---|
-| Least Privilege | ✅ Strong | `scope_gate.py` fail-closed blocking, explicit-command gating, time-limited arm/disarm on deploy tools; `shell=False` + `safe_commands` for exec |
-| Loose Coupling | 🟡 Partial | Ports pattern (LLM/Memory/Tool/Storage/DB/Embedding/Search) + `kernel/access.py`; residual direct imports in batch `import_*.py` scripts |
-| High Cohesion | 🟡 Likely | Single-responsibility agent split (Knowledge/Security/Code/Research/Planner/Reflection/Document) |
-| Kernel First | 🟡 Partial | True for security/dispatch decisions; agents stay userspace by design (`kernel/access` facades) |
-| Capability Driven | ✅ Strong | `kernel/capability_registry.py` + manifests for claw, router (scope_policy), devops, agents, multi_api providers, ports; OmniRoute stays one meta-provider |
-| Single Source of Truth (docs from manifests) | ✅ Strong | `scripts/render_capabilities.py` → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) (`--check` for drift) |
-| Deterministic Behavior (config-driven) | 🟡 Partial | `kernel/config.py` + `config.json` / env; tool detection still largely code-driven |
-| Documentation as Code | ✅ Strong | Capability + scope policy docs generated (`docs/CAPABILITIES.md`, `docs/SCOPE_POLICY.md`); ADRs remain hand-written |
+|-----------|--------|----------|
+| Least privilege | Strong | `scope_gate` fail-closed; `shell=False` + `safe_commands` |
+| Ports / adapters | Strong | LLM / Memory / Tool / Embedding / CodeIndex |
+| Capability-driven | Strong | Manifests + registry + generated docs |
+| Docs from manifests | Strong | `render_capabilities.py` / `render_scope_policy.py` |
+| Deterministic config | Partial | `kernel/config` + env; some tool detection still code-driven |
+| Soft defaults | Strong | Local LLM, FAISS, OmniRoute, finetune, gateway seals off by default |
 
-Net: P0–P3 foundations are in place. **P1 Capability Registry covers claw, scope-gated router tools, devops, agents, multi_api providers, and ports** — regenerate docs after manifest edits.
+---
 
-## 3. Unified repo structure
+## Documentation map
 
-Mapping the README's proposed layout onto what's already built, so nothing gets orphaned:
+| Doc | Contents |
+|-----|----------|
+| [`AGENTS.md`](AGENTS.md) | Cloud/dev agent notes (symlink, tests, claw) |
+| [`docs/PHASE2.md`](docs/PHASE2.md) | Runtime / services foundation |
+| [`docs/PHASE3.md`](docs/PHASE3.md) | Events, workflows, local LLM ops |
+| [`docs/adr/`](docs/adr/) | ADR-001 … ADR-054+ |
+| [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) | Generated capability table |
+| [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md) | Generated scope policy |
+| [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md) | KerrOS ↔ OmniRoute memory boundary |
+| [`docs/KERNEL_CONTRACT.md`](docs/KERNEL_CONTRACT.md) | Kernel contract |
 
-| README dir | Maps to (already built) | Notes |
-|---|---|---|
-| `core/` | `cli/chat.py`, `tools/router.py`, `core/context.py` | canonical active path; `agents/supervisor/` is confirmed dead code, don't migrate it |
-| `agents/` | Knowledge, Security, Code, Research, Planner, Reflection, Document agents | ReactAgent pattern, from scratch |
-| `tools/` | `tools/router.py` dispatch, `tools/scope_gate.py`, `tools/code_saver.py`, 8 DevOps tools | |
-| `providers/` | `multi_api.py` (Groq primary, NVIDIA NIM, 8-API fallback) | **OmniRoute becomes a new entry here** — §5, P1 |
-| `registry/` | `kernel/capability_registry.py`, `config/capabilities/` | P1 — manifests + generated [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
-| `knowledge/` | RAG store: 238K chunks, 13 categories (NIST/CWE/CVE/Sigma/YARA/CISA KEV) | |
-| `memory/` | `runtime/daily_learning.py`, episodic→semantic consolidation, hybrid memory adapter | |
-| `workflows/` | `runtime/workflows.py` DAG engine + YAML defs | P3; [`ADR-010`](docs/adr/ADR-010-workflow-yaml.md) |
-| `services/` | `kerrd`, `runtime/services.py`, `kernel/watchdog.py` | |
-| `skills/` | progressive-disclosure skills (ADR-007) | |
-| `docs/`, `docs/adr/` | ADR-001..007 (Accepted) + PHASE2/PHASE3 docs | |
+---
 
-## 4. OmniRoute — verified, condensed (🌐)
+## Soft vs live (honesty bar)
 
-- Node.js/TypeScript, MIT license, self-hosted, OpenAI-compatible `/v1` endpoint, default port `20128`
-- 290 providers, 90+ free tiers (40+ free forever), 19 routing strategies, 4-tier fallback (Subscription → API key → Cheap → Free)
-- 3-layer resilience: provider circuit breaker, per-key cooldown, per-model lockout
-- 12-engine compression stack (RTK, Caveman, LLMLingua-2, etc.), ~78–95% token savings on tool-heavy sessions, code/JSON always byte-preserved
-- MCP server (104 tools, 31 scopes) + A2A JSON-RPC agent protocol — externally controllable, not just callable
-- Security: AES-256-GCM key encryption at rest, prompt-injection guard with a red-team eval suite, opt-in PII redaction, loopback-only process routes, and a **MITM/TPROXY decrypt feature with a locally-trusted CA** — flagged as the top audit item in §6
-- Deploys via Docker (AMD64+ARM64), npm, Electron, or Termux itself
+Many advanced tracks are **foundations**: Fake planners, loopback compose,
+default-off flags. They become live only when an operator supplies binaries,
+weights, Docker, GPU, or tokens and runs the documented probe.
 
-## 5. Roadmap: P0 → P6
+Examples that stay Fake / unsealed until then:
 
-### P0 — Kernel Foundation
-**Status: done (foundation).**
-- [x] Kernel contract, boot lifecycle, DI — `kernel/contract.py`, `boot.py`, `container.py` (ADR-004)
-- [x] Config module — `kernel/config.py` (+ `core/config.py` legacy)
-- [x] Decision log + scope_gate / verify_* audit wiring (KOS-008..010)
-- [x] Watchdog + Code Agent subprocess IPC (KOS-011, KOS-012)
+- Phase E LiteLLM gateway (`production_gateway` always False until funded live verify)
+- Unsloth train/export (`provisioned_production` always False)
+- vLLM proxy / multi-node / model-pull residuals
+- Actor-mesh / ACME / CMDB soft kits in later ADRs
 
-### P1 — Capability Registry
-**Status: foundation complete (expanded coverage).**
-- [x] Minimal manifest schema + registry — `kernel/capability_registry.py`, `config/capabilities/`
-- [x] Boot registers `capability_registry` and bootstraps claw tool definitions
-- [x] Manifests for claw FS tools, scope_policy router tools, agents, DevOps (+ extras), multi_api providers, ports
-- [x] OmniRoute touchpoint: register it as **one** capability entry (a meta-provider), not 290 — let OmniRoute's own dashboard stay the source of truth for its provider catalog
-- [x] Generate docs/status from manifests (Documentation as Code) — `scripts/render_capabilities.py` → [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md)
-- [x] Parity tests — claw / `scope_policy` / multi_api keys ↔ manifests (`tests/unit_kernel/test_capability_manifest_parity.py`)
+---
 
-### P2 — Runtime (`kerrd`, service manager, IPC, health)
-**Status: foundation implemented** (`docs/PHASE2.md`, ADR-005).
-- [x] `kerrd` + `ServiceManager` + `HealthMonitor` + in-process service bus
-- [x] Code Agent IPC worker (`runtime/ipc.py`, `agents/code/subprocess_runner.py`)
-- [x] IPC actor-mesh foundation (nng/socket) — `runtime/actor_mesh.py` ([`ADR-012`](docs/adr/ADR-012-actor-mesh.md)); optional `pynng`
-- [x] Actor orchestrator foundation — named routes, req/reply, `add_peer`, WAN token gate ([`ADR-018`](docs/adr/ADR-018-actor-mesh-orchestrator-foundation.md))
-- [x] Actor supervision foundation — local heartbeats, TTL liveness, `_sys.ping` ([`ADR-020`](docs/adr/ADR-020-actor-mesh-supervision-foundation.md))
-- [x] Actor mesh mTLS + NATS + remote restart foundation — stdlib TLS, soft nats-py, ServiceManager hook ([`ADR-023`](docs/adr/ADR-023-actor-mesh-mtls-nats-remote.md))
-- [x] JetStream soft + OTP tree + CA reload foundation — durable pub stub, local one-for-one tree, PEM mtime reload ([`ADR-028`](docs/adr/ADR-028-actor-mesh-jetstream-otp-ca.md))
-- [x] JetStream cluster failover + ACME watch — multi-URL client HA + live-dir TLS reload ([`ADR-029`](docs/adr/ADR-029-jetstream-cluster-acme.md))
-- [x] Supercluster topology + ACME HTTP-01 — registry/validate + stdlib challenge solver ([`ADR-030`](docs/adr/ADR-030-supercluster-http01.md))
-- [x] Supercluster ops + ACME account/DNS-01 — plan/probe/apply + local account + memory DNS-01 ([`ADR-031`](docs/adr/ADR-031-supercluster-ops-dns01.md))
-- [x] Supercluster control-plane + ACME newAccount/cloud DNS — config publish/monitor + fake/webhook DNS ([`ADR-032`](docs/adr/ADR-032-control-plane-acme-live.md))
-- [x] Broker lifecycle + ACME JOSE + cloud DNS SDK facades — memory/subprocess broker, JWS/order, Route53/CF soft ([`ADR-033`](docs/adr/ADR-033-broker-jose-dns-sdk.md))
-- [x] Hardware WORM + crypto-shred + IdP portals — appliance mirror, DEK shred, data-subject portal ([`ADR-034`](docs/adr/ADR-034-hardware-worm-cryptoshred-idp.md))
-- [x] Multi-broker fleets + ACME issuance — fleet manager + fake challenge→cert pipeline ([`ADR-035`](docs/adr/ADR-035-broker-fleet-acme-issuance.md))
-- [x] SoA draft + OIDC RP — ISO SoA foundation + authorization-code RP ([`ADR-036`](docs/adr/ADR-036-soa-oidc-rp.md))
-- [x] Remote fleet orchestration + packaged production ACME — fake/HTTP/SSH agents + certbot/acme.sh soft ([`ADR-037`](docs/adr/ADR-037-remote-fleet-prod-acme.md))
-- [x] Fleet inventory + K8s operator + ACME renewal timers — CMDB-lite, Fake/kubectl operator, tickable renew ([`ADR-038`](docs/adr/ADR-038-inventory-k8s-renewal.md))
-- [x] In-cluster operator + CMDB sync + systemd timers — FakeInformer reconcile, CMDB→inventory, unit packaging ([`ADR-039`](docs/adr/ADR-039-incluster-cmdb-systemd.md))
-- [x] CRD packaging + commercial CMDB + distro packages — NatsBroker CRD stubs, ServiceNow/Device42 sync, .deb/.rpm metadata ([`ADR-040`](docs/adr/ADR-040-crd-cmdb-distro.md))
-- [x] Auditor-signed SoA + SAML SP — detached SoA signatures + Fake IdP ACS ([`ADR-041`](docs/adr/ADR-041-soa-audit-saml.md))
-- [x] Auditor evidence packs + SAML federation — SoA pack assemble/zip + multi-IdP Fake XML crypto ([`ADR-044`](docs/adr/ADR-044-soa-evidence-saml-federation.md))
-- [x] Auditor-issued certificates + full XMLDSig — Fake/soft auditor CA over pack digests + XMLDSig envelopes ([`ADR-045`](docs/adr/ADR-045-auditor-cert-xmldsig.md))
-- [x] Mesh / LGU foundation arc complete — stop soft-stub ADRs; residuals stay contract-only ([`ADR-046`](docs/adr/ADR-046-mesh-lgu-foundation-arc-complete.md), [`docs/decisions/mesh-lgu-foundation-arc.md`](docs/decisions/mesh-lgu-foundation-arc.md))
-- [x] Production soft on-ramps — Helm/OCI images, vendor-issued certs, public mirrors, ISO CoC, HSM xmlsec ([`ADR-047`](docs/adr/ADR-047-prod-onramps-helm-iso-hsm.md))
-- [x] Live operator-sdk + vendor CMDB SDKs + apt/yum publish — controller reconcile, pysnow/Device42 soft, repo staging ([`ADR-042`](docs/adr/ADR-042-operator-sdk-vendor-apt.md))
-- [x] Go operator binaries + certified vendor partnerships + remote mirrors — Go stubs, partnership evidence, gated rsync/HTTP push ([`ADR-043`](docs/adr/ADR-043-go-operator-vendor-mirrors.md))
-- [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
-- [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
-- [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))
-- [x] LGU audit RBAC + SIEM forwarder — token roles + webhook/syslog ([`ADR-021`](docs/adr/ADR-021-decision-log-rbac-siem.md))
-- [x] LGU Object Lock soft + ISO audit map — local/S3 mirror + control map ([`ADR-022`](docs/adr/ADR-022-decision-log-object-lock-iso-map.md))
-- [x] Jurisdiction privacy foundation — egress hash/redact + GDPR/DPDP map ([`ADR-024`](docs/adr/ADR-024-jurisdiction-privacy-foundation.md))
-- [x] Residency stamp + erasure request ledger — egress region + side ledger, never rewrite WORM ([`ADR-025`](docs/adr/ADR-025-residency-erasure-ledger.md))
-- [x] Sealed-cold erasure review + transfer ledger — review outcomes + SCC/adequacy intents ([`ADR-026`](docs/adr/ADR-026-sealed-cold-erasure-transfers.md))
-- [x] Automated transfer pipeline — local_copy / http_put execute for ledger intents ([`ADR-027`](docs/adr/ADR-027-automated-transfer-pipeline.md)); hardware WORM / crypto-shred / IdP portals foundation in [`ADR-034`](docs/adr/ADR-034-hardware-worm-cryptoshred-idp.md)
-- [x] OmniRoute touchpoint: health-check the droplet's `/v1` like any managed service (`HealthMonitor` / `/health` / `kerrd health`)
+## License / related
 
-### P3 — Event Infrastructure
-**Status: foundation implemented** (`docs/PHASE3.md`, ADR-006).
-- [x] General-purpose `EventBus` (separate from decision-log audit trail)
-- [x] Scheduler + workflow DAG engine (+ SQLite run persistence / resume)
-- [x] Local LLM adapters (Ollama/vLLM) behind `LLMPort` / `CompositeLLMAdapter`
-- [x] Self-hosted LLM ops (C-19) — Ollama loopback compose + health probes ([`ADR-016`](docs/adr/ADR-016-local-llm-ops.md), `deploy/ollama/`); soft vLLM kit ([`ADR-048`](docs/adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`); soft residuals ([`ADR-049`](docs/adr/ADR-049-local-llm-residuals.md))
-- [x] Offline Qwen 0.5B profile (Phase A) — ChatML + GGUF Q4_K_M + llama.cpp LLMPort ([`ADR-050`](docs/adr/ADR-050-offline-qwen05-profile.md), `config/profiles/offline_qwen05.yaml`)
-- [x] Offline RAG (Phase B) — nomic-embed + FAISS soft / SQLite FTS primary ([`ADR-051`](docs/adr/ADR-051-offline-rag-faiss.md))
-- [x] Offline coding index (Phase C) — ripgrep + Fake/tree-sitter symbols ([`ADR-052`](docs/adr/ADR-052-offline-coding-index.md))
-- [x] Unsloth LoRA → GGUF export (Phase D) — Fake/soft plan+export ([`ADR-053`](docs/adr/ADR-053-unsloth-lora-gguf-export.md))
-- [x] Offline LiteLLM + llama.cpp gateway (Phase E) — loopback compose + Fake planner ([`ADR-054`](docs/adr/ADR-054-offline-litellm-llamacpp.md), `deploy/llama_cpp/`); live containers still operator-owned / unverified
-- [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
-- [x] Cron expressions — `Scheduler.schedule_cron` / `runtime/cron.py` (5-field)
-- [x] Workflow YAML definitions — `runtime/workflow_yaml.py` / `config/workflows/` ([`ADR-010`](docs/adr/ADR-010-workflow-yaml.md))
-- [x] YAML tool/LLM actions — gated `tool` / `llm` builtins ([`ADR-013`](docs/adr/ADR-013-workflow-yaml-tool-llm.md))
-- [x] Event mesh foundation — `LocalEventMesh` + transport Protocol ([`ADR-008`](docs/adr/ADR-008-event-mesh-foundation.md))
-- [x] Event mesh transport — durable SQLite broker + peer discovery ([`ADR-009`](docs/adr/ADR-009-event-mesh-transport.md))
-- [x] Docker event mesh (C-17) — HTTP ingest + Compose kit ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
-- [x] Authenticated mesh — shared-secret HTTP + actor envelopes ([`ADR-014`](docs/adr/ADR-014-authenticated-mesh.md))
-- [x] OmniRoute touchpoint: `X-OmniRoute-*` cost/usage headers as event sources (`omniroute.usage` on EventBus)
-
-### P4 — Security
-**Status: ahead of earlier status tables.** `scope_gate.py` is a working fail-closed policy engine; shell/calc hardening landed.
-- [x] Formalize rules as declarative data — `config/scope_policy.yaml` (offensive/deploy tool classes, arm defaults, messages)
-- [x] Generate scope policy docs — `scripts/render_scope_policy.py` → [`docs/SCOPE_POLICY.md`](docs/SCOPE_POLICY.md)
-- [x] Full audit checklist in §6 (OmniRoute bind/AES/promptfoo + DevOps tokens)
-- [x] Confirm DevOps tokens are scoped least-privilege per service — [`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md), `tools/devops_tokens.py`
-
-### P5 — Storage
-**Status: most mature phase relative to the plan.** 238K-chunk RAG, dedup, phrase-match scoring, hybrid memory, optional Qdrant.
-- [x] Lexical phrase-match scoring in `rag/store.py`; hybrid/vector path via adapters
-- [x] Keep OmniRoute's own FTS5+vector memory separate from KerrOS RAG — [`docs/MEMORY_SEPARATION.md`](docs/MEMORY_SEPARATION.md) (`rag/path_guard.py`)
-- [x] Optional Qdrant sidecar (C-18) — `deploy/qdrant/`, migrate script, health probe ([`ADR-015`](docs/adr/ADR-015-qdrant-optional-vector-store.md))
-
-### P6 — Autonomous Runtime
-**Status: seed started (Reflection Agent + LLM resilience).**
-- [x] Reflection Agent (episode review, lesson logging) — `/reflect` → `reflections.json` + high-confidence → `semantic.lessons_learned`
-- [x] OmniRoute-inspired 3-layer resilience — circuit breaker / cooldown / lockout per composite provider (`adapters/llm/resilience.py`, `/llm`)
-
-## 6. Security audit checklist
-
-**OmniRoute side (once integrated):**
-- [x] Never bind OmniRoute beyond `127.0.0.1` without a reverse proxy — loopback compose + CI guards ([`deploy/omniroute/`](deploy/omniroute/), [`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
-- [x] Verify AES-256-GCM key storage config matches threat model — `STORAGE_ENCRYPTION_KEY` / Termux vs droplet notes in audit doc + `.env.example`
-- [x] Run promptfoo red-team against **KerrOS** RAG-injected prompts — fixtures + stub config ([`eval/omniroute_rag_promptfoo/`](eval/omniroute_rag_promptfoo/)); operator run via `scripts/run_omniroute_rag_promptfoo.sh`
-
-**KerrOS side (independent of OmniRoute):**
-- [x] `scope_gate.py` fail-closed default; deploy arm window expires server-side (`deploy_armed_until`)
-- [x] `verify_identity`/`verify_business` log SHA-256 digests, not raw PII (KOS-010)
-- [x] 8-tool DevOps pipeline (GitHub/Supabase/Vercel/Netlify/Railway/Cloudflare/Stripe) — least-privilege token checklist + shape checks ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md)); Stripe live keys refused
-- [x] Shell exec uses `shell=False` + metachar rejection; `_calc` uses AST safe math (no `eval`)
-
-## 7. Immediate next actions
-1. [x] Confirm DevOps tokens are scoped least-privilege per service ([`docs/DEVOPS_TOKEN_SCOPING.md`](docs/DEVOPS_TOKEN_SCOPING.md); `python3 scripts/check_devops_tokens.py`)
-2. [x] Re-provision DigitalOcean droplet + OmniRoute loopback kit — [`docs/DROPLET_RUNBOOK.md`](docs/DROPLET_RUNBOOK.md) (`scripts/omniroute_droplet.sh verify`)
-3. [x] Wire OmniRoute health into `HealthMonitor` / kerrd (`components.omniroute`)
-4. [x] Persist workflow state / resume; [x] cron; [x] event mesh (ADR-008/009/011/014); [x] workflow YAML + tool/LLM (ADR-010/013); [x] actor mesh (ADR-012/018)
-5. [x] Complete remaining §6 OmniRoute security audit checklist items ([`docs/OMNIROUTE_SECURITY_AUDIT.md`](docs/OMNIROUTE_SECURITY_AUDIT.md))
-6. [x] P3 OmniRoute touchpoint: `X-OmniRoute-*` cost/usage → `omniroute.usage` events
-
-## 8. Open decisions log — don't resolve these silently
-- Kernel scope: narrow (ADR'd) vs. full AIOS (README) — §1; default remains path A (earn into P0–P6)
-- ~~Event bus: generalize the audit log vs. keep it audit-only~~ — **resolved (ADR-006):** separate `EventBus` for runtime events; decision log stays audit-only
-- Vector vs. lexical RAG scoring — P5; both exist (lexical default + hybrid/Qdrant adapters)
-- ~~LGU/government audit-grade vs. general-purpose scoping~~ — **resolved (KOS-013):** general-purpose scope adopted, see [`docs/decisions/scope-lgu-vs-general.md`](docs/decisions/scope-lgu-vs-general.md)
+See repository license file. OmniRoute (external project) is MIT and remains a
+separate system KerrOS may call over `/v1`.
