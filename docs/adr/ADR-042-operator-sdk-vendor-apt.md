@@ -45,5 +45,6 @@ tools remain opt-in.
 
 ## Revisit when
 
-A contract funds a real Go/Helm operator-sdk project, certified vendor
-SDK partnerships, or remote apt/yum mirror publish automation.
+~~Go operator binaries / certified vendor partnerships / remote mirrors~~ — **ADR-043.**
+A contract funds shipping a Go/Helm operator image, a vendor-issued
+partnership certificate, or automated public apt/yum mirror publish.

@@ -63,4 +63,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
 ~~Auditor-signed SoA / SAML SP~~ — **ADR-041.**
 ~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
-Revisit for Go operator binaries / certified vendor partnerships / remote apt-yum mirrors / auditor evidence packs / production SAML federation when funded.
+~~Go operator binaries / certified vendor partnerships / remote mirrors~~ — **ADR-043.**
+Revisit for shipped Go/Helm images / vendor-issued certificates / public apt-yum mirrors / auditor evidence packs / production SAML federation when funded.

@@ -531,6 +531,28 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "table": "cmdb_ci_server",
                     "auto_sync": False,
                 },
+                # ADR-043: Go operator binary packaging.
+                "go_operator": {
+                    "enabled": False,
+                    "module_path": "github.com/kerros/nats-operator",
+                    "project_dir": "deploy/k8s/operator/go",
+                    "binary_name": "kerros-nats-operator",
+                    "image": "kerros/nats-operator:dev",
+                    "allow_write": False,
+                    "allow_build": False,
+                    "allow_image": False,
+                },
+                # ADR-043: certified vendor partnership facade.
+                "vendor_cert": {
+                    "enabled": False,
+                    "backend": "fake",  # fake | http
+                    "allow_live": False,
+                    "allow_write": False,
+                    "output_dir": "data/vendor_cert",
+                    "url_template": "",
+                    "token": "",
+                    "org_name": "KerrOS",
+                },
             },
             # ADR-039: systemd timer packaging (off by default; under actor_mesh root).
             "systemd_timers": {
@@ -571,6 +593,16 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                 "allow_publish": False,
                 "allow_remote": False,
                 "remote_url": "",
+            },
+            # ADR-043: remote apt/yum mirror push.
+            "remote_mirror": {
+                "enabled": False,
+                "backend": "fake",  # fake | rsync | http
+                "staging_dir": "deploy/packaging/repos",
+                "remote_url": "",
+                "token": "",
+                "allow_remote": False,
+                "allow_write": False,
             },
         },
     }

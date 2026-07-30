@@ -46,5 +46,6 @@ remain opt-in.
 
 ~~CRD packaging / commercial CMDB / distro packages~~ — **ADR-040.**
 ~~Live operator-sdk / vendor CMDB SDKs / apt-yum publish~~ — **ADR-042.**
-A contract funds Go operator binaries, certified vendor partnerships, or
-remote apt/yum mirror publish.
+~~Go operator binaries / certified vendor partnerships / remote mirrors~~ — **ADR-043.**
+A contract funds shipped Go/Helm images, vendor-issued certificates, or
+public apt/yum mirror publish.

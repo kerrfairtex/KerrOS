@@ -463,6 +463,7 @@ class ActorMesh:
     ADR-039 adds in-cluster operator + CMDB sync + systemd timer packaging.
     ADR-040 adds CRD/operator-sdk stubs + commercial CMDB + distro packages.
     ADR-042 adds live operator-sdk controller + vendor CMDB SDKs + apt/yum publish.
+    ADR-043 adds Go operator binaries + certified vendor partnerships + remote mirrors.
     """
 
     node_id: str
@@ -501,6 +502,9 @@ class ActorMesh:
     operator_sdk: Any = None  # optional OperatorSdkController (ADR-042)
     cmdb_vendor_sdk: Any = None  # optional VendorCmdbClient (ADR-042)
     distro_publish: Any = None  # optional DistroPublisher (ADR-042)
+    go_operator: Any = None  # optional GoOperatorPackager (ADR-043)
+    vendor_cert: Any = None  # optional VendorCertRegistry (ADR-043)
+    remote_mirror: Any = None  # optional RemoteMirrorPublisher (ADR-043)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -969,6 +973,21 @@ class ActorMesh:
                 if self.distro_publish is not None
                 else None
             ),
+            "go_operator": (
+                self.go_operator.stats()
+                if self.go_operator is not None
+                else None
+            ),
+            "vendor_cert": (
+                self.vendor_cert.stats()
+                if self.vendor_cert is not None
+                else None
+            ),
+            "remote_mirror": (
+                self.remote_mirror.stats()
+                if self.remote_mirror is not None
+                else None
+            ),
         }
 
 
@@ -1373,6 +1392,20 @@ def build_actor_mesh(
     if vendor is not None:
         mesh.cmdb_vendor_sdk = vendor
 
+    # ADR-043: Go operator binary packaging.
+    from runtime.k8s_go_operator import build_go_operator
+
+    go_op = build_go_operator(sc_raw.get("go_operator") or {})
+    if go_op is not None:
+        mesh.go_operator = go_op
+
+    # ADR-043: certified vendor partnership facade.
+    from runtime.cmdb_vendor_cert import build_vendor_cert
+
+    vcert = build_vendor_cert(sc_raw.get("vendor_cert") or {})
+    if vcert is not None:
+        mesh.vendor_cert = vcert
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1484,6 +1517,13 @@ def build_actor_mesh(
     pub = build_distro_publisher(data.get("distro_publish") or {})
     if pub is not None:
         mesh.distro_publish = pub
+
+    # ADR-043: remote apt/yum mirror push.
+    from runtime.distro_remote_mirror import build_remote_mirror
+
+    mirror = build_remote_mirror(data.get("remote_mirror") or {})
+    if mirror is not None:
+        mesh.remote_mirror = mirror
 
     mesh.attach()
     return mesh
