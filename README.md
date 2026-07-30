@@ -112,6 +112,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Hardware WORM + crypto-shred + IdP portals — appliance mirror, DEK shred, data-subject portal ([`ADR-034`](docs/adr/ADR-034-hardware-worm-cryptoshred-idp.md))
 - [x] Multi-broker fleets + ACME issuance — fleet manager + fake challenge→cert pipeline ([`ADR-035`](docs/adr/ADR-035-broker-fleet-acme-issuance.md))
 - [x] SoA draft + OIDC RP — ISO SoA foundation + authorization-code RP ([`ADR-036`](docs/adr/ADR-036-soa-oidc-rp.md))
+- [x] Remote fleet orchestration + packaged production ACME — fake/HTTP/SSH agents + certbot/acme.sh soft ([`ADR-037`](docs/adr/ADR-037-remote-fleet-prod-acme.md))
 - [x] Docker event mesh kit — `deploy/event_mesh/` two-node HTTP compose ([`ADR-011`](docs/adr/ADR-011-docker-event-mesh.md))
 - [x] LGU audit immutability foundation — decision_log hash chain + JSONL export + port hooks ([`ADR-017`](docs/adr/ADR-017-decision-log-tamper-evidence-export.md))
 - [x] LGU software-WORM + retention — sealed JSONL segments + `audit_retention` ([`ADR-019`](docs/adr/ADR-019-decision-log-worm-retention.md))

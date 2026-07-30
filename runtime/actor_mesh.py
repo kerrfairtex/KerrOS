@@ -458,6 +458,7 @@ class ActorMesh:
     ADR-032 adds Supercluster control-plane + ACME newAccount/cloud DNS.
     ADR-033 adds broker lifecycle + ACME JOSE/order + cloud DNS SDK facades.
     ADR-035 adds multi-broker fleets + ACME issuance pipeline.
+    ADR-037 adds remote fleet orchestration + packaged production ACME.
     """
 
     node_id: str
@@ -482,6 +483,8 @@ class ActorMesh:
     acme_jose: Any = None  # optional AcmeOrderClient (ADR-033)
     nats_broker_fleet: Any = None  # optional BrokerFleet (ADR-035)
     acme_issuance: Any = None  # optional AcmeIssuanceClient (ADR-035)
+    remote_fleet: Any = None  # optional RemoteFleetOrchestrator (ADR-037)
+    acme_production: Any = None  # optional AcmeProductionClient (ADR-037)
     _handlers: dict[str, ActorHandler] = field(default_factory=dict, init=False, repr=False)
     _pending: dict[str, tuple[threading.Event, dict[str, Any]]] = field(
         default_factory=dict, init=False, repr=False
@@ -871,6 +874,16 @@ class ActorMesh:
                 if self.acme_issuance is not None
                 else None
             ),
+            "remote_fleet": (
+                self.remote_fleet.stats()
+                if self.remote_fleet is not None
+                else None
+            ),
+            "acme_production": (
+                self.acme_production.stats()
+                if self.acme_production is not None
+                else None
+            ),
         }
 
 
@@ -1191,6 +1204,13 @@ def build_actor_mesh(
     if fleet is not None:
         mesh.nats_broker_fleet = fleet
 
+    # ADR-037: remote fleet orchestration (fake/http/ssh agents).
+    from runtime.nats_remote_fleet import build_remote_fleet_orchestrator
+
+    remote = build_remote_fleet_orchestrator(sc_raw.get("remote_fleet") or {})
+    if remote is not None:
+        mesh.remote_fleet = remote
+
     # ADR-030: optional ACME HTTP-01 challenge solver.
     from runtime.acme_http01 import build_acme_http01_solver
 
@@ -1264,6 +1284,13 @@ def build_actor_mesh(
     )
     if issuance is not None:
         mesh.acme_issuance = issuance
+
+    # ADR-037: packaged production ACME (certbot/acme.sh soft + fake).
+    from runtime.acme_production import build_acme_production_client
+
+    prod = build_acme_production_client(acme_raw.get("production") or {})
+    if prod is not None:
+        mesh.acme_production = prod
 
     mesh.attach()
     return mesh

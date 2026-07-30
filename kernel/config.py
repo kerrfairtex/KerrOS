@@ -348,6 +348,16 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "challenge": "dns-01",
                     "allow_crypto": False,
                 },
+                "production": {
+                    "enabled": False,
+                    "tool": "fake",  # fake | certbot | acme.sh
+                    "allow_live": False,
+                    "staging": True,
+                    "domains": [],
+                    "email": "",
+                    "live_dir": "data/acme_live",
+                    "auto_issue": False,
+                },
                 "dns01": {
                     "enabled": False,
                     "provider": "memory",
@@ -408,6 +418,15 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
                     "allow_spawn": False,
                     "autostart": False,
                     "members": [],
+                },
+                "remote_fleet": {
+                    "enabled": False,
+                    "transport": "fake",  # fake | http | ssh
+                    "allow_live": False,
+                    "http_base_url": "",
+                    "http_token": "",
+                    "ssh_bin": "ssh",
+                    "hosts": [],
                 },
             },
         },

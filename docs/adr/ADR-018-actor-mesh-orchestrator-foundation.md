@@ -53,4 +53,5 @@ fans frames to all connections (receivers filter on `target_node`).
 ~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
 ~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
-Remaining: remote fleet orchestration / auditor-signed SoA / SAML when funded.
+~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
+Remaining: inventory/K8s operators / auditor-signed SoA / SAML when funded.

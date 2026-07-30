@@ -57,4 +57,5 @@ stays local). Wire auth: shared secret via ADR-014 (not TLS).
 ~~Hardware WORM / crypto-shred / IdP portals~~ — **ADR-034.**
 ~~Multi-broker fleets / ACME issuance~~ — **ADR-035.**
 ~~SoA draft / OIDC RP~~ — **ADR-036.**
-Revisit for remote fleet orchestration / auditor-signed SoA / SAML when funded.
+~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
+Revisit for inventory/K8s operators / auditor-signed SoA / SAML when funded.

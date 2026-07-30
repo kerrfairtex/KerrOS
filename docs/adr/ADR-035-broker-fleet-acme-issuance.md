@@ -39,5 +39,6 @@ stays opt-in.
 
 ## Revisit when
 
-A funded deploy needs remote host orchestration or packaged production
-ACME automation against Let's Encrypt.
+~~Remote fleet orchestration / packaged production ACME~~ — **ADR-037.**
+A contract funds inventory-driven orchestration, Kubernetes operators, or
+fully automated production LE renewal timers.
