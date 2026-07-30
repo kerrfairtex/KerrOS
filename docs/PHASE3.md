@@ -67,7 +67,7 @@ HTTP probes ([`ADR-016`](adr/ADR-016-local-llm-ops.md)), soft vLLM kit
 ([`ADR-048`](adr/ADR-048-vllm-ops-kit.md), `deploy/vllm/`), soft
 residuals ([`ADR-049`](adr/ADR-049-local-llm-residuals.md): proxy /
 multi-node / model pull), and offline Qwen 0.5B + llama.cpp
-([`ADR-050`](adr/ADR-050-offline-qwen05-profile.md)).
+([`ADR-050`](adr/ADR-050-offline-qwen05-profile.md) … [`ADR-054`](adr/ADR-054-offline-litellm-llamacpp.md)).
 
 ```bash
 # Offline Phase A (llama.cpp + ChatML + Qwen0.5B GGUF):
@@ -84,6 +84,11 @@ export MODEL_PATH=~/offline_ai/models/qwen0.5b-q4.gguf
 # Phase D finetune (Fake plan; GPU host for real export):
 # ./scripts/export_qwen05_lora_gguf.sh plan
 # /finetune-plan
+# Phase E gateway (loopback; needs GGUF in models/):
+# ./scripts/llama_cpp_docker.sh up --litellm
+# export LLAMA_CPP_SERVER_ENDPOINT=http://127.0.0.1:8080/v1
+# export LITELLM_ENDPOINT=http://127.0.0.1:4000/v1
+# export KERROS_LLM_PROVIDER=litellm
 python3 cli/chat.py   # /llm shows llama_cpp; memory uses FTS (+ FAISS if enabled)
 
 ./scripts/local_llm_docker.sh up
@@ -156,8 +161,8 @@ Events: `llm.circuit.*` on the kernel EventBus.
 - ~~In-repo `deploy/vllm/` GPU compose~~ — soft kit in [ADR-048](adr/ADR-048-vllm-ops-kit.md); soft residuals in [ADR-049](adr/ADR-049-local-llm-residuals.md); production edge TLS / multi-node HA / auto weight provision stay contract-gated
 - ~~Offline RAG (nomic + FAISS / FTS)~~ — [ADR-051](adr/ADR-051-offline-rag-faiss.md)
 - ~~Offline coding index (rg + symbols)~~ — [ADR-052](adr/ADR-052-offline-coding-index.md)
-- ~~Unsloth LoRA → GGUF export~~ — [ADR-053](adr/ADR-053-unsloth-lora-gguf-export.md); LiteLLM gateway / reranker remain Phase E+
-- Phase E LiteLLM + llama.cpp server compose — deferred
+- ~~Unsloth LoRA → GGUF export~~ — [ADR-053](adr/ADR-053-unsloth-lora-gguf-export.md)
+- ~~Phase E LiteLLM + llama.cpp server compose~~ — [ADR-054](adr/ADR-054-offline-litellm-llamacpp.md); production TLS/public LiteLLM, reranker, pgvector remain funded upgrades
 
 ## Workflow YAML definitions
 

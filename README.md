@@ -144,6 +144,7 @@ Mapping the README's proposed layout onto what's already built, so nothing gets 
 - [x] Offline RAG (Phase B) — nomic-embed + FAISS soft / SQLite FTS primary ([`ADR-051`](docs/adr/ADR-051-offline-rag-faiss.md))
 - [x] Offline coding index (Phase C) — ripgrep + Fake/tree-sitter symbols ([`ADR-052`](docs/adr/ADR-052-offline-coding-index.md))
 - [x] Unsloth LoRA → GGUF export (Phase D) — Fake/soft plan+export ([`ADR-053`](docs/adr/ADR-053-unsloth-lora-gguf-export.md))
+- [x] Offline LiteLLM + llama.cpp gateway (Phase E) — loopback compose + Fake planner ([`ADR-054`](docs/adr/ADR-054-offline-litellm-llamacpp.md), `deploy/llama_cpp/`)
 - [x] Persistent workflow state / resume — `runtime/workflow_store.py` → `data/workflows/runs.db`
 - [x] Cron expressions — `Scheduler.schedule_cron` / `runtime/cron.py` (5-field)
 - [x] Workflow YAML definitions — `runtime/workflow_yaml.py` / `config/workflows/` ([`ADR-010`](docs/adr/ADR-010-workflow-yaml.md))

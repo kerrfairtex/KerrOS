@@ -1,16 +1,18 @@
-# KerrOS offline profile — Phase A–D (ADR-050 … ADR-053)
+# KerrOS offline profile — Phase A–E (ADR-050 … ADR-054)
 #
 # Activate:
 #   export KERROS_OFFLINE_PROFILE=offline_qwen05
 #
-# Phase D finetune (Fake plan by default):
-#   ./scripts/export_qwen05_lora_gguf.sh plan
-#   /finetune-plan
+# Phase E gateway:
+#   ./scripts/llama_cpp_docker.sh up --litellm
+#   export LLAMA_CPP_SERVER_ENDPOINT=http://127.0.0.1:8080/v1
+#   export LITELLM_ENDPOINT=http://127.0.0.1:4000/v1
+#   export KERROS_LLM_PROVIDER=litellm
 
 name: offline_qwen05
-version: 4
+version: 5
 prompt_format: chatml
-description: "Qwen2.5-0.5B + RAG + coding index + Unsloth LoRA→GGUF soft export"
+description: "Qwen2.5-0.5B offline combo + LiteLLM/llama.cpp gateway"
 
 model:
   id: Qwen2.5-0.5B-Instruct
@@ -21,14 +23,14 @@ model:
 
 runtime:
   provider: llama_cpp
-  mode: subprocess
+  mode: subprocess        # or http when LLAMA_CPP_SERVER_ENDPOINT is set
   chatml: true
+  server_endpoint: http://127.0.0.1:8080/v1
 
-# Phase D — consumed by adapters/llm/unsloth_finetune.py
 finetune:
   method: unsloth
   backend: fake
-  enabled: false          # set true or KERROS_FINETUNE=1 to plan
+  enabled: false
   base_model: unsloth/Qwen2.5-0.5B-Instruct
   dataset_path: data/finetune/dataset.jsonl
   output_dir: data/finetune/lora_out
@@ -59,5 +61,11 @@ coding:
   tree_sitter: true
   index_path: data/code_index/index.json
 
+# Phase E — LiteLLM gateway over llama.cpp (ADR-054); off by default
 litellm:
-  enabled: false
+  enabled: false          # KERROS_LITELLM_ENABLED=1 / KERROS_LLM_PROVIDER=litellm
+  endpoint: http://127.0.0.1:4000/v1
+  model: qwen0.5b-q4
+  compose_dir: deploy/llama_cpp
+  allow_live: false
+

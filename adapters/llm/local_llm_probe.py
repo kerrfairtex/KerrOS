@@ -197,3 +197,64 @@ def probe_vllm(
         api_key=str(key or "").strip(),
         timeout=timeout,
     )
+
+
+def is_litellm_enabled(cfg: dict[str, Any] | None = None) -> bool:
+    data = cfg or {}
+    if _truthy(os.getenv("KERROS_LITELLM_ENABLED", data.get("litellm_enabled", False))):
+        return True
+    provider = (
+        os.getenv("KERROS_LLM_PROVIDER")
+        or str(data.get("llm_provider_default") or "")
+    ).lower()
+    if provider == "litellm":
+        return True
+    if os.getenv("LITELLM_ENDPOINT", "").strip():
+        return True
+    try:
+        from adapters.llm.offline_profile import (
+            is_offline_profile_active,
+            load_offline_profile,
+        )
+
+        if is_offline_profile_active(data):
+            profile = load_offline_profile(cfg=data)
+            litellm = profile.get("litellm") if isinstance(profile, dict) else None
+            if isinstance(litellm, dict) and _truthy(litellm.get("enabled", False)):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def resolve_litellm_url(cfg: dict[str, Any] | None = None) -> str:
+    _ = cfg
+    return endpoint_from_env("LITELLM_ENDPOINT", "http://127.0.0.1:4000/v1").rstrip("/")
+
+
+def probe_litellm(
+    base_url: Optional[str] = None,
+    *,
+    api_key: Optional[str] = None,
+    timeout: float = 2.0,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    try:
+        from kernel.config import load_config
+
+        cfg = dict(config or load_config().values)
+    except Exception:
+        cfg = dict(config or {})
+    url = (base_url or resolve_litellm_url(cfg)).rstrip("/")
+    key = (
+        api_key
+        if api_key is not None
+        else (os.getenv("LITELLM_API_KEY") or str(cfg.get("litellm_api_key") or ""))
+    )
+    return _probe_models(
+        provider="litellm",
+        base_url=url,
+        enabled=is_litellm_enabled(cfg),
+        api_key=str(key or "").strip(),
+        timeout=timeout,
+    )

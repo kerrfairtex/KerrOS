@@ -151,12 +151,14 @@ class HealthMonitor:
         try:
             from adapters.llm.local_llm_probe import (
                 probe_llama_cpp,
+                probe_litellm,
                 probe_ollama,
                 probe_vllm,
             )
 
             for name, probe in (
                 ("llama_cpp", probe_llama_cpp),
+                ("litellm", probe_litellm),
                 ("ollama", probe_ollama),
                 ("vllm", probe_vllm),
             ):

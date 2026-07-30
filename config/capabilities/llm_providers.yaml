@@ -182,7 +182,7 @@ capabilities:
       role: "proxy"
       adapter: "adapters.llm.litellm_adapter"
       default_endpoint: "http://127.0.0.1:4000"
-      notes: "Also reachable via MultiAPIEngine when LITELLM_ENDPOINT is set."
+      notes: "ADR-054 offline gateway: deploy/llama_cpp + scripts/llama_cpp_docker.sh; also MultiAPIEngine when LITELLM_ENDPOINT is set."
 
   - name: "provider:unsloth"
     kind: "provider"

@@ -137,6 +137,17 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         # ADR-050: offline Qwen0.5B + llama.cpp profile — off by default.
         "offline_profile": "",  # e.g. "offline_qwen05"
         "llama_cpp_enabled": False,
+        # ADR-054: LiteLLM / offline gateway — off by default (Fake plan; no Docker in CI).
+        "litellm_enabled": False,
+        "litellm_api_key": "",
+        "offline_gateway": {
+            "enabled": False,
+            "llama_cpp_url": "http://127.0.0.1:8080/v1",
+            "litellm_url": "http://127.0.0.1:4000/v1",
+            "model": "qwen0.5b-q4",
+            "compose_dir": "deploy/llama_cpp",
+            "allow_live": False,
+        },
         # ADR-049: soft residuals (auth proxy / multi-node / model pull) — off by default.
         "local_llm_proxy": {
             "enabled": False,

@@ -1,0 +1,13 @@
+# Soft Caddy edge for llama.cpp (ADR-054 / ADR-049 pattern).
+# Compose profile `proxy` — loopback only. Not a production TLS seal.
+
+{
+	auto_https off
+}
+
+:443 {
+	basicauth /* {
+		kerros {$LOCAL_LLM_PROXY_TOKEN}
+	}
+	reverse_proxy llama-cpp:8080
+}

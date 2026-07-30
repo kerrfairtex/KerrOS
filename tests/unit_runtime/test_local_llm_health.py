@@ -1,4 +1,4 @@
-"""Health wiring for optional Ollama / vLLM / llama.cpp / FAISS / code index."""
+"""Health wiring for optional Ollama / vLLM / llama.cpp / LiteLLM / FAISS / code index."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ class LocalLLMHealthTest(unittest.TestCase):
     @patch("adapters.memory.faiss_vector_store.probe_faiss")
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
+    @patch("adapters.llm.local_llm_probe.probe_litellm")
     @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
@@ -22,6 +23,7 @@ class LocalLLMHealthTest(unittest.TestCase):
         mock_ollama,
         mock_vllm,
         mock_llama,
+        mock_litellm,
         mock_omni,
         mock_qdrant,
         mock_faiss,
@@ -51,6 +53,11 @@ class LocalLLMHealthTest(unittest.TestCase):
         }
         mock_llama.return_value = {
             "provider": "llama_cpp",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_litellm.return_value = {
+            "provider": "litellm",
             "enabled": False,
             "status": "disabled",
         }
@@ -78,6 +85,7 @@ class LocalLLMHealthTest(unittest.TestCase):
     @patch("adapters.memory.faiss_vector_store.probe_faiss")
     @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
     @patch("adapters.llm.omniroute_adapter.probe_omniroute")
+    @patch("adapters.llm.local_llm_probe.probe_litellm")
     @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
     @patch("adapters.llm.local_llm_probe.probe_vllm")
     @patch("adapters.llm.local_llm_probe.probe_ollama")
@@ -86,6 +94,7 @@ class LocalLLMHealthTest(unittest.TestCase):
         mock_ollama,
         mock_vllm,
         mock_llama,
+        mock_litellm,
         mock_omni,
         mock_qdrant,
         mock_faiss,
@@ -120,6 +129,12 @@ class LocalLLMHealthTest(unittest.TestCase):
             "status": "disabled",
             "available": False,
         }
+        mock_litellm.return_value = {
+            "provider": "litellm",
+            "enabled": False,
+            "status": "disabled",
+            "available": False,
+        }
         mock_ollama.return_value = {
             "provider": "ollama",
             "enabled": False,
@@ -138,8 +153,80 @@ class LocalLLMHealthTest(unittest.TestCase):
             self.assertEqual(report["components"]["ollama"]["status"], "disabled")
             self.assertEqual(report["components"]["vllm"]["status"], "disabled")
             self.assertEqual(report["components"]["llama_cpp"]["status"], "disabled")
+            self.assertEqual(report["components"]["litellm"]["status"], "disabled")
             self.assertEqual(report["components"]["faiss"]["status"], "disabled")
             self.assertEqual(report["components"]["code_index"]["status"], "disabled")
+        finally:
+            shutdown()
+
+    @patch("adapters.code_index.code_index_adapter.probe_code_index")
+    @patch("adapters.memory.faiss_vector_store.probe_faiss")
+    @patch("adapters.memory.qdrant_vector_store.probe_qdrant")
+    @patch("adapters.llm.omniroute_adapter.probe_omniroute")
+    @patch("adapters.llm.local_llm_probe.probe_litellm")
+    @patch("adapters.llm.local_llm_probe.probe_llama_cpp")
+    @patch("adapters.llm.local_llm_probe.probe_vllm")
+    @patch("adapters.llm.local_llm_probe.probe_ollama")
+    def test_litellm_fail_fails_overall_when_enabled(
+        self,
+        mock_ollama,
+        mock_vllm,
+        mock_llama,
+        mock_litellm,
+        mock_omni,
+        mock_qdrant,
+        mock_faiss,
+        mock_ci,
+    ):
+        shutdown()
+        boot()
+        mock_omni.return_value = {
+            "provider": "omniroute",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_qdrant.return_value = {
+            "component": "qdrant",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_faiss.return_value = {
+            "component": "faiss",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_ci.return_value = {
+            "component": "code_index",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_llama.return_value = {
+            "provider": "llama_cpp",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_vllm.return_value = {
+            "provider": "vllm",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_ollama.return_value = {
+            "provider": "ollama",
+            "enabled": False,
+            "status": "disabled",
+        }
+        mock_litellm.return_value = {
+            "provider": "litellm",
+            "enabled": True,
+            "base_url": "http://127.0.0.1:4000/v1",
+            "available": False,
+            "status": "unavailable",
+            "error": "refused",
+        }
+        try:
+            report = HealthMonitor().collect()
+            self.assertFalse(report["healthy"])
+            self.assertEqual(report["components"]["litellm"]["status"], "unavailable")
         finally:
             shutdown()
 

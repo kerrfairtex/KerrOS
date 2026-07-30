@@ -42,4 +42,5 @@ ingesting code into `rag/store.py`, Unsloth fine-tune, LiteLLM gateway.
 ## Revisit when
 
 ~~Phase D (Unsloth LoRA→GGUF)~~ — **ADR-053**.
-Phase E (LiteLLM gateway), or funded tree-sitter grammar bundles / LSP.
+~~Phase E (LiteLLM gateway)~~ — **ADR-054**.
+Funded tree-sitter grammar bundles / LSP.

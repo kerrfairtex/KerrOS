@@ -1,0 +1,90 @@
+# KerrOS offline llama.cpp + LiteLLM gateway (Phase E / ADR-054).
+#
+# Soft on-ramp. Host ports bind to 127.0.0.1 only. GGUF weights are
+# operator-owned (bind-mount models/). Bare `docker compose up` is a no-op —
+# start with:
+#   ./scripts/llama_cpp_docker.sh up              # llama.cpp OpenAI server
+#   ./scripts/llama_cpp_docker.sh up --litellm    # + LiteLLM gateway
+#   ./scripts/llama_cpp_docker.sh up --proxy      # soft Caddy edge
+#
+# KerrOS client:
+#   export KERROS_OFFLINE_PROFILE=offline_qwen05
+#   export LLAMA_CPP_SERVER_ENDPOINT=http://127.0.0.1:8080/v1
+#   export LITELLM_ENDPOINT=http://127.0.0.1:4000/v1
+#   export LITELLM_MODEL=qwen0.5b-q4
+#   export KERROS_LLM_PROVIDER=litellm   # or llama_cpp
+
+services:
+  llama-cpp:
+    profiles: ["llama_cpp", "litellm", "proxy"]
+    image: ${LLAMA_CPP_IMAGE:-ghcr.io/ggerganov/llama.cpp:server}
+    container_name: kerros-llama-cpp
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LLAMA_CPP_HOST_PORT:-8080}:8080"
+    volumes:
+      - ${LLAMA_CPP_MODELS_DIR:-../../models}:/models:ro
+    environment:
+      LLAMA_ARG_MODEL: /models/${LLAMA_CPP_GGUF:-qwen0.5b-q4.gguf}
+      LLAMA_ARG_HOST: 0.0.0.0
+      LLAMA_ARG_PORT: "8080"
+      LLAMA_ARG_CTX_SIZE: ${LLAMA_CPP_CTX:-4096}
+      LLAMA_ARG_N_PARALLEL: ${LLAMA_CPP_N_PARALLEL:-1}
+    networks:
+      - offline-llm
+    # Image entrypoints vary by tag; override if your tag uses a different CLI.
+    command:
+      - "-m"
+      - "/models/${LLAMA_CPP_GGUF:-qwen0.5b-q4.gguf}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "-c"
+      - "${LLAMA_CPP_CTX:-4096}"
+
+  litellm:
+    profiles: ["litellm"]
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-v1.63.11-stable}
+    container_name: kerros-litellm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LITELLM_HOST_PORT:-4000}:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-kerros-dev}
+      LITELLM_LOG: ${LITELLM_LOG:-INFO}
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml:ro
+    command:
+      - "--config"
+      - "/app/config.yaml"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "4000"
+    networks:
+      - offline-llm
+    depends_on:
+      - llama-cpp
+
+  # ADR-049 soft auth edge — loopback only; not a production TLS seal.
+  llm-proxy:
+    profiles: ["proxy"]
+    image: ${LOCAL_LLM_PROXY_IMAGE:-caddy:2.8-alpine}
+    container_name: kerros-llama-cpp-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_LLM_PROXY_HOST_PORT:-8443}:443"
+    environment:
+      LOCAL_LLM_PROXY_TOKEN: ${LOCAL_LLM_PROXY_TOKEN:-kerros-dev-token}
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - offline-llm
+    depends_on:
+      - llama-cpp
+
+networks:
+  offline-llm:
+    name: kerros-offline-llm
+    driver: bridge

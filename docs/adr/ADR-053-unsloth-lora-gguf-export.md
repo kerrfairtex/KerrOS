@@ -26,7 +26,7 @@ CI must not download Unsloth or run GPU jobs.
 6. Sample dataset stub: `data/finetune/dataset.jsonl.example`
 
 Out of scope: bundling Unsloth in core deps, silent GPU SFT in CI,
-LiteLLM gateway (Phase E), automated HF dataset download.
+~~LiteLLM gateway (Phase E)~~ — **ADR-054**; automated HF dataset download.
 
 ## Alternatives considered
 
@@ -44,5 +44,5 @@ LiteLLM gateway (Phase E), automated HF dataset download.
 
 ## Revisit when
 
-Phase E (LiteLLM + llama.cpp server), or a funded deploy that turns on
-`allow_train` / `allow_export` for a named model.
+~~Phase E (LiteLLM + llama.cpp server)~~ — **ADR-054**.
+A funded deploy that turns on `allow_train` / `allow_export` for a named model.

@@ -45,5 +45,5 @@ coding index, LiteLLM gateway compose, reranker.
 ## Revisit when
 
 ~~Phase D (Unsloth LoRA→GGUF)~~ — **ADR-053**.
-Phase E (LiteLLM + llama.cpp server), or funded
-tree-sitter grammar bundles / LSP.
+~~Phase E (LiteLLM + llama.cpp server)~~ — **ADR-054**.
+Funded tree-sitter grammar bundles / LSP, or production TLS/public gateway.
