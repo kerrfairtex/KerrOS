@@ -69,24 +69,35 @@ def maybe_create_skill(*, min_tools: int = 5) -> Optional[str]:
     for t in tools:
         if t not in uniq:
             uniq.append(t)
-    body = "\n".join(
-        [
-            f"# Learned: {hint}",
-            "",
-            f"Auto-created after {snap['tool_calls']} successful tool calls.",
-            "",
-            "## Approach",
-            f"Tools used in order: {', '.join(tools)}",
-            "",
-            "## Reuse",
-            "- Prefer this sequence when facing a similar fixed multi-step task.",
-            f"- Unique tools: {', '.join(uniq)}",
-            "",
-            f"<!-- kerros:pinned=false created={time.strftime('%Y-%m-%d')} -->",
-            "",
-        ]
+    from tools.skill_provenance import (
+        BACKGROUND_REVIEW,
+        get_current_write_origin,
+        reset_current_write_origin,
+        set_current_write_origin,
     )
-    path.write_text(body, encoding="utf-8")
+
+    token = set_current_write_origin(BACKGROUND_REVIEW)
+    try:
+        body = "\n".join(
+            [
+                f"# Learned: {hint}",
+                "",
+                f"Auto-created after {snap['tool_calls']} successful tool calls.",
+                "",
+                "## Approach",
+                f"Tools used in order: {', '.join(tools)}",
+                "",
+                "## Reuse",
+                "- Prefer this sequence when facing a similar fixed multi-step task.",
+                f"- Unique tools: {', '.join(uniq)}",
+                "",
+                f"<!-- kerros:pinned=false created={time.strftime('%Y-%m-%d')} origin={get_current_write_origin()} -->",
+                "",
+            ]
+        )
+        path.write_text(body, encoding="utf-8")
+    finally:
+        reset_current_write_origin(token)
     reset_episode()
     return str(path)
 

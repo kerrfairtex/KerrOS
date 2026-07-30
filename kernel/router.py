@@ -302,6 +302,14 @@ def detect_tool(text, bypass_gate=False):
         return ("bg_process", text.split(" ", 1)[1].strip())
     if lower in ("bg", "/bg"):
         return ("bg_process", "list")
+    if lower.startswith("skills hub ") or lower.startswith("/skills-hub "):
+        return ("skills_hub", text.split(" ", 2)[-1].strip())
+    if lower in ("skills hub", "/skills-hub"):
+        return ("skills_hub", "list")
+    if lower.startswith("gateway ") or lower.startswith("/gateway "):
+        return ("gateway", text.split(" ", 1)[1].strip())
+    if lower in ("gateway", "/gateway"):
+        return ("gateway", "status")
 
     return (None, None)
 
@@ -373,6 +381,8 @@ def run_tool(tool, args):
         "browse_session": _browse_session,
         "list_sessions": _list_sessions,
         "bg_process": _bg_process,
+        "skills_hub": _skills_hub,
+        "gateway": _gateway,
     }
     fn = dispatch.get(tool)
     result = fn(args) if fn else "[Unknown tool]"
@@ -1231,6 +1241,28 @@ def _bg_process(raw):
     action = parts[0]
     rest = parts[1] if len(parts) > 1 else ""
     return bg_process(action, rest)
+
+
+def _skills_hub(raw):
+    from tools.skills_hub import skills_hub
+
+    text = str(raw or "list").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    if rest.startswith("::"):
+        rest = rest[2:].strip()
+    return skills_hub(action, rest)
+
+
+def _gateway(raw):
+    from gateway.webhook import gateway_cmd
+
+    text = str(raw or "status").strip()
+    parts = text.split(None, 1)
+    action = parts[0]
+    rest = parts[1] if len(parts) > 1 else ""
+    return gateway_cmd(action, rest)
 
 
 def _execute_pipeline(script):

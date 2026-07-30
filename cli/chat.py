@@ -364,6 +364,8 @@ def main():
                 ("list sessions",        "List indexed chat sessions (ADR-063)"),
                 ("browse session <id>",  "Browse turns in a past session"),
                 ("bg spawn|poll|kill",   "Background process registry"),
+                ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
+                ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),

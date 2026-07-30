@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 import unittest
 
 from core.context_compressor import compress_context, prune_tool_outputs
@@ -46,19 +45,14 @@ class SessionHooksTest(unittest.TestCase):
 
 class ProcessRegistryTest(unittest.TestCase):
     def test_spawn_poll(self):
-        reg = ProcessRegistry()
+        from tools.process_registry import ProcessRegistry
+
+        reg = ProcessRegistry(backend_name="fake")
         out = reg.spawn("printf hello")
         self.assertTrue(out["ok"], out)
-        sid = out["id"]
-        # wait briefly
-        deadline = time.time() + 3
-        info = reg.poll(sid)
-        while info.get("status") == "running" and time.time() < deadline:
-            time.sleep(0.05)
-            info = reg.poll(sid)
-        self.assertIn(info.get("status"), ("exited", "running", "error"))
-        if info.get("status") == "exited":
-            self.assertIn("hello", info.get("output_tail") or "")
+        info = reg.poll(out["id"])
+        self.assertEqual(info.get("status"), "exited")
+        self.assertIn("fake", info.get("output_tail") or "")
 
 
 if __name__ == "__main__":
