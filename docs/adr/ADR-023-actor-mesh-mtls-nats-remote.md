@@ -45,5 +45,5 @@ supervision tree.
 
 ## Revisit when
 
-A funded deploy needs CA rotation, JetStream durability, or OTP-style
-remote process trees / hardware WORM / jurisdiction privacy ADR.
+A funded deploy needs CA rotation, JetStream durability, OTP-style
+remote process trees, or a hardware WORM / residency policy (privacy egress: ADR-024).

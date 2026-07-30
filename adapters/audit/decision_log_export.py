@@ -61,12 +61,14 @@ def export_decision_log_jsonl(
     verify_before_export: bool = True,
     audit_token: Optional[str] = None,
     skip_rbac: bool = False,
+    privacy_cfg: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """
     Export decisions with id > since_id to JSONL.
 
     Each line is one JSON object. When an HMAC secret is configured, each
     object gains ``line_hmac`` over the canonical JSON (without that field).
+    ADR-024: optional egress privacy transform when ``audit_privacy`` enabled.
     """
     if not skip_rbac:
         from adapters.audit.rbac import require_audit_action
@@ -91,12 +93,25 @@ def export_decision_log_jsonl(
     secret = resolve_hmac_secret(hmac_secret)
     exported = 0
     tip = ""
+    if privacy_cfg is None:
+        try:
+            from kernel.config import load_config
+
+            privacy_cfg = load_config().values
+        except Exception:
+            privacy_cfg = {}
+
     with path.open("w", encoding="utf-8") as fh:
         for rec in decision_log.iter_from(since_id):
-            payload = record_dict(rec)
+            from adapters.audit.privacy import maybe_redact_record
+
+            payload = maybe_redact_record(
+                rec, channel="export", cfg=privacy_cfg
+            )
             if secret:
                 # HMAC over stable JSON without the mac field itself.
-                body = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+                body_obj = {k: v for k, v in payload.items() if k != "line_hmac"}
+                body = json.dumps(body_obj, sort_keys=True, separators=(",", ":"))
                 payload["line_hmac"] = line_hmac(body, secret)
                 fh.write(json.dumps(payload, sort_keys=True) + "\n")
             else:

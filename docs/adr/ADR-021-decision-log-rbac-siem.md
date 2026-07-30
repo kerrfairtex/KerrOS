@@ -40,5 +40,6 @@ with no retry queue.
 ## Revisit when
 
 ~~Object Lock soft path + ISO audit map~~ — **ADR-022.**
+~~Jurisdiction privacy egress + GDPR/DPDP map~~ — **ADR-024.**
 An LGU contract funds IdP integration, durable SIEM pipelines, or a
 hardware WORM appliance / full SoA.

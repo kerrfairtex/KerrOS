@@ -179,6 +179,14 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "retain_days": 365,
             "legal_hold": False,
         },
+        # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
+        "audit_privacy": {
+            "enabled": False,
+            "mode": "hash",  # hash | redact
+            "fields": ["input_summary", "reason", "actor"],
+            "apply_on": ["export", "siem", "cli_read"],
+            "salt": "",  # prefer KERROS_AUDIT_PRIVACY_SALT
+        },
         # C-16 actor mesh — off by default (socket always; nng if pynng installed).
         "actor_mesh": {
             "enabled": False,

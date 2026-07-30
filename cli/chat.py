@@ -333,6 +333,7 @@ def main():
                 ("/decisions seal <id>", "Seal id prefix to WORM segment (ADR-019)"),
                 ("/decisions retain",  "Apply retention policy once (ADR-019)"),
                 ("/decisions whoami",  "Show audit RBAC role (ADR-021)"),
+                ("/decisions privacy", "Show audit privacy egress status (ADR-024)"),
                 ("/sources",           "List RAG knowledge sources"),
                 ("/analyze <topic>",   "Deep system analysis"),
                 ("/search <query>",    "Search knowledge base"),
@@ -736,6 +737,15 @@ def main():
                             f"  {BL}role:{R} {role or 'none'}  "
                             f"(set KERROS_AUDIT_TOKEN)"
                         )
+                elif sub == "privacy":
+                    from adapters.audit.privacy import privacy_status
+
+                    st = privacy_status(resolve("config").values)
+                    print(
+                        f"  {BL}privacy:{R} enabled={st['enabled']}  "
+                        f"mode={st['mode']}  fields={','.join(st['fields'])}  "
+                        f"apply_on={','.join(st['apply_on'])}"
+                    )
                 elif sub == "verify":
                     require_audit_action("verify")
                     result = log.verify_chain()
@@ -810,18 +820,27 @@ def main():
                         print(f"  {RE}Retention failed:{R} {out.get('error') or out}")
                 else:
                     require_audit_action("read")
+                    from adapters.audit.privacy import maybe_redact_record
+
                     rows = log.read_recent(15)
                     if not rows:
                         print(f"  {GY}No decision log entries yet.{R}")
+                    cfg_values = resolve("config").values
                     for row in rows:
-                        digest = (getattr(row, "entry_hash", "") or "")[:12]
+                        view = maybe_redact_record(
+                            row, channel="cli_read", cfg=cfg_values
+                        )
+                        digest = (view.get("entry_hash") or "")[:12]
                         suffix = f"  {GY}{digest}…{R}" if digest else ""
+                        summary = str(view.get("input_summary") or "")[:60]
                         print(
-                            f"  {GO}#{row.id}{R} {GY}{row.decision_type}{R} "
-                            f"{row.outcome} — {row.input_summary[:60]}{suffix}"
+                            f"  {GO}#{view.get('id')}{R} "
+                            f"{GY}{view.get('decision_type')}{R} "
+                            f"{view.get('outcome')} — {summary}{suffix}"
                         )
                     print(
-                        f"  {GY}Tip: /decisions verify | export | seal | retain | whoami{R}"
+                        f"  {GY}Tip: /decisions verify | export | seal | retain | "
+                        f"whoami | privacy{R}"
                     )
             except AuditRbacError as e:
                 print(f"  {RE}Denied:{R} {e}")

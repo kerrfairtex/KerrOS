@@ -39,5 +39,6 @@ mirror is still OS-mutable by root; map is illustrative, not certification.
 
 ## Revisit when
 
+~~Jurisdiction privacy egress + GDPR/DPDP map~~ — **ADR-024.**
 A funded LGU contract supplies a WORM appliance, IdP-backed evidence access,
-or a jurisdiction-specific privacy-act ADR.
+or residency / lawful-erasure policy.
