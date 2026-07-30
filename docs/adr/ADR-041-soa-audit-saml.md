@@ -40,5 +40,6 @@ remain opt-in.
 
 ## Revisit when
 
-An LGU contract funds auditor evidence packs or production SAML
-federation with signed assertions.
+~~Auditor evidence packs / production SAML federation~~ — **ADR-044.**
+An LGU contract funds auditor-issued evidence certificates or full
+XMLDSig / encrypted-assertion production federation.

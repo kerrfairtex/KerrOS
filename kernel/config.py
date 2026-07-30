@@ -240,6 +240,29 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "idp_sso_url": "https://idp.test/saml/sso",
             "allow_live": False,
         },
+        # ADR-044: auditor evidence packs (off by default).
+        "soa_evidence": {
+            "enabled": False,
+            "org_name": "KerrOS",
+            "output_dir": "data/soa/evidence",
+            "allow_write": False,
+            "allow_zip": False,
+            "allow_live": False,
+            "signer_backend": "fake",  # fake | openssl
+            "key_path": "",
+            "signer_id": "auditor@kerros.test",
+        },
+        # ADR-044: production SAML federation (off by default).
+        "saml_federation": {
+            "enabled": False,
+            "entity_id": "https://kerros.local/saml/sp",
+            "acs_url": "http://127.0.0.1:8080/saml/acs",
+            "allow_live": False,
+            "require_signed_assertions": True,
+            "allow_encrypted_assertions": False,
+            "default_idp": "",
+            "idps": [],
+        },
         # ADR-024: jurisdiction privacy — egress redaction/hash (off by default).
         "audit_privacy": {
             "enabled": False,

@@ -20,8 +20,9 @@ See also the narrower logging map:
 
 ## Explicitly not covered
 
-- Certified auditor evidence packs / residual-risk SoA catalogs  
-- Production SAML federation with XML crypto  
+- Auditor-issued / certified evidence certificates  
+- Full XMLDSig / XML encryption with production keys  
 
-Foundation stubs: [ADR-041](../adr/ADR-041-soa-audit-saml.md).
+Foundation stubs: [ADR-041](../adr/ADR-041-soa-audit-saml.md),
+[ADR-044](../adr/ADR-044-soa-evidence-saml-federation.md).
 Revisit when a funded regulated deploy specifies certification scope.

@@ -88,7 +88,7 @@ Optional dep: `requirements-optional.txt`.
 ## Deferred (multi-node / scale triggers)
 
 - ~~Full actor orchestrator / authenticated WAN mesh~~ — foundation through [ADR-043](adr/ADR-043-go-operator-vendor-mirrors.md) (Go operator + vendor partnerships + remote mirrors)
-- ~~LGU audit immutability extensions~~ — ADR-017..027 + [ADR-034](adr/ADR-034-hardware-worm-cryptoshred-idp.md) + [ADR-036](adr/ADR-036-soa-oidc-rp.md) + [ADR-041](adr/ADR-041-soa-audit-saml.md) (auditor SoA + SAML SP); production evidence packs / live SAML federation still deferred when funded
+- ~~LGU audit immutability extensions~~ — ADR-017..027 + [ADR-034](adr/ADR-034-hardware-worm-cryptoshred-idp.md) + [ADR-036](adr/ADR-036-soa-oidc-rp.md) + [ADR-041](adr/ADR-041-soa-audit-saml.md) + [ADR-044](adr/ADR-044-soa-evidence-saml-federation.md) (evidence packs + SAML federation); auditor-issued certificates / full XMLDSig still deferred when funded
 - ~~Docker server deployment — C-17~~ — foundation: [`deploy/event_mesh/`](../deploy/event_mesh/) ([ADR-011](adr/ADR-011-docker-event-mesh.md))
 - ~~pgvector → Qdrant migration — C-18~~ — optional Qdrant sidecar + SQLite backfill ([ADR-015](adr/ADR-015-qdrant-optional-vector-store.md), [`deploy/qdrant/`](../deploy/qdrant/))
 - ~~Self-hosted LLM ops — C-19~~ — Ollama compose + probes ([ADR-016](adr/ADR-016-local-llm-ops.md), [`deploy/ollama/`](../deploy/ollama/)); see Phase 3

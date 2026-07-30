@@ -57,4 +57,4 @@ LGU-grade extensions (immutable external audit export, WORM storage, role-based 
 - ~~Residency stamp + erasure request ledger~~ — [ADR-025](../adr/ADR-025-residency-erasure-ledger.md)
 - ~~Sealed-cold erasure review + cross-border transfer ledger~~ — [ADR-026](../adr/ADR-026-sealed-cold-erasure-transfers.md)
 - ~~Automated transfer pipeline~~ — [ADR-027](../adr/ADR-027-automated-transfer-pipeline.md)
-- ~~Hardware WORM / crypto-shred / IdP portal facades~~ — **ADR-034.** ~~SoA draft / OIDC RP~~ — **ADR-036.** ~~Auditor-signed SoA / SAML SP~~ — **ADR-041.** Production evidence packs / live SAML federation still deferred until funded LGU deploy
+- ~~Hardware WORM / crypto-shred / IdP portal facades~~ — **ADR-034.** ~~SoA draft / OIDC RP~~ — **ADR-036.** ~~Auditor-signed SoA / SAML SP~~ — **ADR-041.** ~~Auditor evidence packs / SAML federation~~ — **ADR-044.** Auditor-issued certificates / full XMLDSig still deferred until funded LGU deploy
