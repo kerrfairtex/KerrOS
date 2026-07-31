@@ -8,7 +8,8 @@ from core.context import build, build_chat
 from core.thinking import needs_thinking
 from core.complete import generate_complete
 from memory.manager import (add_message, clear_session, init_session,
-    get_history, get_recent, extract_and_learn, get_profile, update_profile)
+    get_history, get_recent, extract_and_learn, get_profile, update_profile,
+    format_resume_picker, resume_session)
 from kernel.access import (
     detect_tool,
     run_tool,
@@ -98,6 +99,12 @@ def main():
         from agents.subagents import bind_engine
 
         bind_engine(engine)
+    except Exception:
+        pass
+    try:
+        from gateway.channels.bridge import bind_channel_engine
+
+        bind_channel_engine(engine)
     except Exception:
         pass
     spinner = Spinner()
@@ -329,10 +336,12 @@ def main():
                 ("agent cron …",         "Persisted agent cron jobs (data/agent_cron)"),
                 ("list sessions",        "List indexed chat sessions (ADR-063)"),
                 ("browse session <id>",  "Browse turns in a past session"),
+                ("/resume [id|latest]",  "Resume indexed session into REPL (ADR-068)"),
                 ("bg spawn|poll|kill",   "Background process registry"),
                 ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
                 ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
-                ("gateway channel …",    "Telegram/Discord adapters (ADR-066)"),
+                ("gateway channel …",    "channels + llm/stream/slash/tools/trace (ADR-066…087)"),
+                ("python3 -m cli.tui",   "Full-screen Soft TUI + persisted trace (ADR-078/083/087)"),
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
@@ -393,6 +402,22 @@ def main():
                 print(f"  {GY}[Summary skipped: {e}]{R}")
             clear_session()
             print(f"  {GR}[ ✓ ] Session cleared{R}")
+
+        elif user == "/resume" or user.startswith("/resume "):
+            arg = user[len("/resume") :].strip()
+            if not arg:
+                print(f"  {format_resume_picker()}{R}")
+            else:
+                out = resume_session(arg)
+                if out.get("ok"):
+                    title = (out.get("title") or "")[:60]
+                    print(
+                        f"  {GR}[ ✓ ] Resumed{R} {BL}{out.get('session_id')}{R}  "
+                        f"{GY}loaded {out.get('loaded')} turn(s)"
+                        f"{(' · ' + title) if title else ''}{R}"
+                    )
+                else:
+                    print(f"  {RE}[resume] {out.get('error') or 'failed'}{R}")
 
         elif user=="/memory":
             divider()
@@ -1405,7 +1430,6 @@ def main():
                 print(f"  [code] Found {len(saved_files)} code block(s).")
                 choice = input("  Save to file? [y/n] ").strip().lower()
                 if choice == "y":
-                    import time
                     default_folder = "project_" + time.strftime("%Y%m%d_%H%M%S")
                     folder_input = input(f"  Folder name [{default_folder}]: ").strip()
                     folder = folder_input if folder_input else default_folder
@@ -1462,7 +1486,6 @@ def main():
                         else:
                             print(f"  [run:skip] {result.get('reason')}")
                 else:
-                    import os
                     for f in saved_files:
                         os.remove(f)
 

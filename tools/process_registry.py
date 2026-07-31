@@ -4,7 +4,7 @@ tools/process_registry.py
 In-memory registry for managed background processes (ADR-063/064).
 
 Tracks subprocesses spawned for long jobs without blocking the REPL.
-Backends: local | fake | docker (see process_backends.py).
+Backends: local | fake | docker | remote (see process_backends.py).
 """
 
 from __future__ import annotations

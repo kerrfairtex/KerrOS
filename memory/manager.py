@@ -106,6 +106,80 @@ def clear_session():
     _short = []
     print("[Memory cleared]")
 
+
+def format_resume_picker(limit: int = 12) -> str:
+    """Human-readable recent-session picker for /resume with no id."""
+    try:
+        from memory.session_store import list_sessions
+    except Exception as exc:
+        return f"[resume] session store unavailable: {exc}"
+    rows = list_sessions(limit=limit)
+    if not rows:
+        return "[resume] no indexed sessions — chat first, then /resume <id>"
+    lines = [
+        "[resume] recent sessions — /resume <id> or /resume latest",
+        "",
+    ]
+    for i, r in enumerate(rows, 1):
+        title = (r.get("title") or "").replace("\n", " ")[:50]
+        lines.append(
+            f"  {i}. {r.get('session_id')}  turns={r.get('turn_count', 0)}  "
+            f"{r.get('updated_at', '')}  {title}"
+        )
+    return "\n".join(lines)
+
+
+def resume_session(session_id: str = "", *, max_turns: int = 40) -> dict:
+    """
+    Load an indexed session into short-term REPL memory (ADR-068).
+
+    Does not re-index turns (avoids duplicates). Switches the active
+    session_id so new turns append to the resumed session.
+    """
+    global _short
+    try:
+        from memory.session_store import browse_session, list_sessions, start_session
+    except Exception as exc:
+        return {"ok": False, "error": f"session store unavailable: {exc}"}
+
+    sid = (session_id or "").strip()
+    if not sid or sid.lower() in ("latest", "last", "-"):
+        sessions = list_sessions(limit=1)
+        if not sessions:
+            return {"ok": False, "error": "no sessions indexed"}
+        sid = sessions[0]["session_id"]
+
+    data = browse_session(sid, limit=max(1, min(int(max_turns), 200)))
+    if not data.get("ok"):
+        return {"ok": False, "error": data.get("error") or "session not found"}
+
+    start_session(sid)
+    loaded = []
+    for t in data.get("turns") or []:
+        role = t.get("role")
+        if role not in ("user", "assistant", "system"):
+            continue
+        content = (t.get("content") or "").strip()
+        if not content:
+            continue
+        loaded.append(
+            {
+                "role": role,
+                "content": content[:8000],
+                "time": t.get("ts") or "resumed",
+            }
+        )
+    _short = loaded
+    meta = data.get("session") or {}
+    return {
+        "ok": True,
+        "session_id": sid,
+        "title": meta.get("title"),
+        "loaded": len(loaded),
+        "turn_count": meta.get("turn_count"),
+        "updated_at": meta.get("updated_at"),
+    }
+
 def get_profile(): return _load(PROFILE, {})
 
 def update_profile(key, value):

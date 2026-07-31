@@ -32,10 +32,12 @@ python3 cli/chat.py
 ```bash
 # Tests
 ./scripts/run_tests.sh
-# or: python3 -m unittest discover -s tests -p 'test_*.py' -t .
+# or: python3 -m pytest tests/
 ```
 
 No Node build is required for the app (root `package.json` is optional MCP tooling only).
+
+Soft foundation status: [`docs/PROJECT_COMPLETE.md`](docs/PROJECT_COMPLETE.md).
 
 ---
 
