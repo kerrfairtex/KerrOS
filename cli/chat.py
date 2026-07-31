@@ -1430,7 +1430,6 @@ def main():
                 print(f"  [code] Found {len(saved_files)} code block(s).")
                 choice = input("  Save to file? [y/n] ").strip().lower()
                 if choice == "y":
-                    import time
                     default_folder = "project_" + time.strftime("%Y%m%d_%H%M%S")
                     folder_input = input(f"  Folder name [{default_folder}]: ").strip()
                     folder = folder_input if folder_input else default_folder
@@ -1487,7 +1486,6 @@ def main():
                         else:
                             print(f"  [run:skip] {result.get('reason')}")
                 else:
-                    import os
                     for f in saved_files:
                         os.remove(f)
 
