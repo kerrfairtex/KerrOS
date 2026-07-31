@@ -25,4 +25,5 @@ angel/sword brand chrome.
 
 ## Revisit when
 
-A full-screen TUI application (separate process) is funded.
+A full-screen TUI application (separate process) is funded. Light multiline
+continuation shipped in ADR-073.
