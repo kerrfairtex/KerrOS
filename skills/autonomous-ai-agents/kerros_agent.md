@@ -174,7 +174,7 @@ terminal(command="tmux new-session -d -s resumed 'KerrOS --resume 20260225_14305
 - **Use tmux for interactive sessions** — raw PTY mode has `\r` vs `\n` issues with prompt_toolkit
 - **For scheduled tasks**, use the `cronjob` tool instead of spawning — handles delivery and retry
 - **"delegate_task is capped at N" reports** — see `references/delegate-task-concurrency-diagnosis.md`. Three real cap paths in KerrOS; if none fired, the model is self-limiting and rationalising it as "the runtime caps."
-- **"Can $external_app use my Nous Portal subscription / OAuth?"** — see `references/portal-auth-for-third-party-apps.md`. Walk the user through three layers (plugin-vs-app, what Portal actually exposes, local-broker-proxy option).
+- **"Can $external_app use my cloud LLM subscription / OAuth?"** — Prefer KerrOS-native API keys and the offline profile. Do not share third-party portal OAuth with unrelated apps.
 
 ## Surfaces (quick orientation)
 
