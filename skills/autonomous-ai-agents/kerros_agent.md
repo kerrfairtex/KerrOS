@@ -91,7 +91,7 @@ Profiles use `~/.kerros/profiles/<name>/` with the same layout. When a profile i
 | Debugging: voice, tools missing, gateway, aux models | `references/troubleshooting.md` |
 | Contributing code: adding tools, slash commands, tests | `references/contributor-guide.md` |
 | delegate_task "capped at N" reports | `references/delegate-task-concurrency-diagnosis.md` |
-| "Can app X use my Nous Portal subscription/OAuth?" | `references/portal-auth-for-third-party-apps.md` |
+| "Can app X use my cloud LLM subscription/OAuth?" | Prefer KerrOS-native provider keys / local offline profile; do not share third-party portal OAuth with unrelated apps |
 
 Two theming rules that hold even without loading the reference: **you apply skins yourself** (`KerrOS config set display.skin <name>` — every surface repaints live within ~a second; don't tell the user to run `/skin`), and **to tweak one color, edit the ACTIVE skin** (`KerrOS skin set <key> <hex>`) — never fork `default`, which drops the palette and resets the background.
 

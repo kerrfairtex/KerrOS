@@ -163,6 +163,7 @@ Events: `llm.circuit.*` on the kernel EventBus.
 - ~~Offline coding index (rg + symbols)~~ — [ADR-052](adr/ADR-052-offline-coding-index.md)
 - ~~Unsloth LoRA → GGUF export~~ — [ADR-053](adr/ADR-053-unsloth-lora-gguf-export.md)
 - ~~Phase E LiteLLM + llama.cpp server compose~~ — [ADR-054](adr/ADR-054-offline-litellm-llamacpp.md) (Fake/plan + compose shipped; **live gateway unverified until** `./scripts/llama_cpp_docker.sh up --litellm` + `probe` on a host with GGUF)
+- ~~Agent capability Soft port (subagents → channels/TUI)~~ — [ADR-061](adr/ADR-061-subagent-delegation.md)…[ADR-104](adr/ADR-104-channel-health.md); see [PROJECT_COMPLETE](PROJECT_COMPLETE.md)
 - Live offline gateway verification (llama.cpp + LiteLLM containers) — deferred until operator brings containers up
 - Production TLS/public LiteLLM, reranker, pgvector — funded upgrades
 
