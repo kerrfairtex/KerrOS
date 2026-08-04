@@ -39,6 +39,16 @@ try:
 except ImportError as e:  # pragma: no cover
     raise ImportError("pyyaml required: pip install pyyaml") from e
 
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    def load_dotenv(*_a, **_k):
+        return False
+
+_BASE = Path(os.path.expanduser("~/offline_ai"))
+load_dotenv(_BASE / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+
 DEFAULT_CONFIG_PATH = Path(
     os.getenv("KERROS_OPENROUTER_CONFIG", "")
     or (Path(__file__).resolve().parent.parent.parent / "config" / "openrouter_tiers.yaml")
@@ -205,12 +215,21 @@ class OpenRouterAdapter:
         return f"[openrouter] all candidates in tier '{tier}' failed — see .health for detail"
 
     def status(self) -> dict[str, Any]:
+        tiers = self._cfg.get("tiers") or {}
         return {
             "provider": "openrouter",
             "available": self.available(),
+            "key_set": bool(self.api_key),
+            "config": str(DEFAULT_CONFIG_PATH),
+            "tiers": sorted(tiers.keys()) if isinstance(tiers, dict) else [],
             "dead_models": sorted(self.dead_models),
             "health": dict(self.health),
             "rate_limit": {"rpm": FREE_RPM, "rpd": self._limiter.rpd},
+            "setup_hint": (
+                None
+                if self.api_key
+                else "Set OPENROUTER_API_KEY in ~/offline_ai/.env (see .env.example)"
+            ),
         }
 
     def last_api_used(self) -> str | None:

@@ -7,18 +7,31 @@ llm_cloud:
                  models: { default: "claude-opus-4-7", coding: "claude-opus-4-7", fast: "claude-sonnet-4-6" } }
   openai:      { env: OPENAI_API_KEY,      base_url: "https://api.openai.com/v1", model: "gpt-5.2",
                  models: { default: "gpt-5.2", coding: "gpt-5.2", fast: "gpt-4o-mini" } }
-  groq:        { env: GROQ_API_KEY,        base_url: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" }
+  groq:        { env: GROQ_API_KEY,        base_url: "https://api.groq.com/openai/v1",
+                 model: "llama-3.1-8b-instant",
+                 models: { default: "llama-3.1-8b-instant", fast: "llama-3.1-8b-instant",
+                           capable: "llama-3.3-70b-versatile" } }
   gemini:      { env: GEMINI_API_KEY,      base_url: "https://generativelanguage.googleapis.com/v1beta" }
   deepseek:    { env: DEEPSEEK_API_KEY,    base_url: "https://api.deepseek.com/v1", model: "deepseek-reasoner",
                  models: { default: "deepseek-reasoner", coding: "deepseek-reasoner", chat: "deepseek-chat" } }
   cohere:      { env: COHERE_API_KEY,      base_url: "https://api.cohere.ai/v1" }
+  mistral:     { env: MISTRAL_API_KEY,     base_url: "https://api.mistral.ai/v1", model: "mistral-small-latest",
+                 models: { default: "mistral-small-latest", coding: "codestral-latest", fast: "mistral-small-latest" } }
   nvidia_nim:  { env: NVIDIA_API_KEY,      base_url: "https://integrate.api.nvidia.com/v1", model: "meta/llama-3.1-8b-instruct" }
-  openrouter:  { env: OPENROUTER_API_KEY,  base_url: "https://openrouter.ai/api/v1", model: "auto" }
+  # OpenRouter aggregates Nvidia/Google/Cohere/Poolside/OpenAI panels — see
+  # config/openrouter_providers.yaml + config/openrouter_tiers.yaml
+  openrouter:  { env: OPENROUTER_API_KEY,  base_url: "https://openrouter.ai/api/v1",
+                 model: "inclusionai/ling-3.0-flash:free",
+                 models: { default: "inclusionai/ling-3.0-flash:free", auto: "openrouter/auto",
+                           coding: "cohere/north-mini-code:free" } }
   huggingface: { env: HUGGINGFACE_API_KEY, base_url: "https://api-inference.huggingface.co" }
   # cerebras/sambanova model catalogs rotate often — verify before relying on a
   # hardcoded id: curl $base_url/models -H "Authorization: ******"
   cerebras:    { env: CEREBRAS_API_KEY,    base_url: "https://api.cerebras.ai/v1", model: "REPLACE_ME" }
   sambanova:   { env: SAMBANOVA_API_KEY,   base_url: "https://api.sambanova.ai/v1", model: "REPLACE_ME" }
+  # Poolside — usually via OpenRouter free Laguna models; optional direct key
+  poolside:    { env: POOLSIDE_API_KEY,    base_url: "https://api.poolside.ai/v1",
+                 notes: "Prefer OpenRouter poolside/*:free slugs unless you have a direct key" }
   # Fetch.ai Agentverse / ASI:One — ASI_ONE_API_KEY is preferred; ASI_ONE_KEY legacy alias
   asi_one:     { env: ASI_ONE_API_KEY,     env_aliases: [ASI_ONE_KEY], base_url: "https://api.asi1.ai/v1" }
   agentverse:  { env: AGENTVERSE_API_KEY,  env_aliases: [ASI_ONE_API_KEY, ASI_ONE_KEY],
@@ -54,18 +67,20 @@ llm_local:
 
 # Priority order for engine.py fallback chain (edit freely)
 fallback_chain:
+  - openrouter
   - groq
   - nvidia_nim
   - cerebras
   - sambanova
+  - mistral
   - kimi
   - deepseek
   - hunyuan
-  - openrouter
   - gemini
   - cohere
   - anthropic
   - openai
+  - huggingface
   - litellm
   - ollama
   - lm_studio
@@ -81,19 +96,19 @@ fallback_chain:
 routing_tiers:
   sol:
     description: "Fast / lightweight tier — lowest latency, cost-efficient"
-    providers:   [groq, cerebras, sambanova, litellm]
+    providers:   [groq, cerebras, sambanova, openrouter, mistral, litellm]
   terra:
     description: "Balanced tier — capability + speed tradeoff"
-    providers:   [deepseek, kimi, codx, openrouter, litellm]
+    providers:   [openrouter, deepseek, kimi, mistral, codx, litellm]
   luna:
     description: "Heavy / capable tier — maximum quality for complex tasks"
-    providers:   [anthropic, openai, hunyuan, nvidia_nim, gemini]
+    providers:   [anthropic, openai, hunyuan, nvidia_nim, gemini, openrouter]
   coding:
     description: "Adaptive coding / execution preference order"
-    providers:   [deepseek, codx, anthropic, openai, kimi, dyad, verge_ai, litellm, groq, huggingface]
+    providers:   [openrouter, deepseek, codx, anthropic, openai, kimi, mistral, dyad, verge_ai, litellm, groq, huggingface]
   research:
     description: "Long-context research / academic synthesis"
-    providers:   [anthropic, gemini, hunyuan, openai, deepseek, openrouter, litellm]
+    providers:   [openrouter, anthropic, gemini, hunyuan, openai, deepseek, litellm]
 
 vector_db:
   milvus:   { env: MILVUS_ENDPOINT,    default: "http://localhost:19530" }
@@ -119,6 +134,8 @@ storage:
   minio: { env: MINIO_ENDPOINT, default: "http://localhost:9000" }
 
 search_and_research:
+  firecrawl:         { env: FIRECRAWL_API_KEY, base_url: "https://api.firecrawl.dev",
+                       notes: "Web crawl / scrape — not an LLM provider" }
   tavily:            { env: TAVILY_API_KEY,   base_url: "https://api.tavily.com" }
   tavily_mcp:        { env: TAVILY_MCP }
   searxng:           { env: SEARXNG_ENDPOINT, default: "http://localhost:8080" }

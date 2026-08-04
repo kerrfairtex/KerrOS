@@ -123,6 +123,9 @@ class CompositeResilienceTest(unittest.TestCase):
         cloud.complete.return_value = "ok from cloud"
         adapter._get_ollama = MagicMock(return_value=ollama)
         adapter._get_cloud = MagicMock(return_value=cloud)
+        adapter._get_openrouter = MagicMock(
+            return_value=MagicMock(status=lambda: {"available": False})
+        )
         adapter._get_litellm = MagicMock(return_value=MagicMock(status=lambda: {"available": False}))
         adapter._get_vllm = MagicMock(return_value=MagicMock(status=lambda: {"available": False}))
         adapter._local_first = True
@@ -149,13 +152,18 @@ class CompositeResilienceTest(unittest.TestCase):
             resilience=ProviderCircuitRegistry(config=ResilienceConfig(enabled=True))
         )
         adapter._get_cloud = MagicMock(return_value=MagicMock(status=lambda: {}))
+        adapter._get_openrouter = MagicMock(
+            return_value=MagicMock(status=lambda: {"available": False})
+        )
         adapter._get_ollama = MagicMock(return_value=MagicMock(status=lambda: {}))
         adapter._get_vllm = MagicMock(return_value=MagicMock(status=lambda: {}))
         adapter._get_litellm = MagicMock(return_value=MagicMock(status=lambda: {}))
+        adapter._get_llama_cpp = MagicMock(return_value=MagicMock(status=lambda: {}))
         adapter._get_omniroute = MagicMock(return_value=MagicMock(status=lambda: {}))
         status = adapter.status()
         self.assertIn("resilience", status)
         self.assertTrue(status["resilience"]["enabled"])
+        self.assertIn("openrouter", status)
 
 
 if __name__ == "__main__":

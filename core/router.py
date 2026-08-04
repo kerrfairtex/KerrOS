@@ -46,6 +46,9 @@ _TASK_TO_TIER = {
     "chat": "chat",
 }
 
+# After the task tier, try free catch-all before leaving OpenRouter.
+_OPENROUTER_FALLBACK_TIERS = ("auto",)
+
 
 class Router:
     def __init__(self, *, system: str | None = None):
@@ -75,20 +78,26 @@ class Router:
         task = detect_task(user_message)
         tier = _TASK_TO_TIER.get(task, "chat")
 
-        # 1. Free OpenRouter tier, task-routed
+        # 1. Free OpenRouter tiers — task bucket, then free catch-all
         if self.openrouter.available():
-            reply = self.openrouter.complete(
-                user_message,
-                tier=tier,
-                system=system,
-                history=history,
-                max_tokens=max_tokens,
-                allow_paid=False,
-            )
-            if not reply.startswith("[openrouter]"):
-                self.last_provider = f"openrouter:{self.openrouter.last_api_used()}"
-                return reply
-            log.debug("openrouter free tier exhausted for task=%s: %s", task, reply)
+            for try_tier in (tier, *_OPENROUTER_FALLBACK_TIERS):
+                reply = self.openrouter.complete(
+                    user_message,
+                    tier=try_tier,
+                    system=system,
+                    history=history,
+                    max_tokens=max_tokens,
+                    allow_paid=False,
+                )
+                if not reply.startswith("[openrouter]"):
+                    self.last_provider = f"openrouter:{self.openrouter.last_api_used()}"
+                    return reply
+                log.debug(
+                    "openrouter tier=%s exhausted for task=%s: %s",
+                    try_tier,
+                    task,
+                    reply,
+                )
 
         # 2. Existing keyed providers (whatever you've already configured)
         reply = self.multi_api.generate(user_message, system=system, history=history, max_tokens=max_tokens)
@@ -104,14 +113,20 @@ class Router:
         except Exception as e:
             log.debug("local fallback failed: %s", e)
 
-        # 4. Paid OpenRouter — opt-in only, absolute last resort
+        # 4. Paid OpenRouter + panel routers — opt-in only
         if allow_paid and self.openrouter.available():
-            reply = self.openrouter.complete(
-                user_message, tier="paid", system=system, history=history,
-                max_tokens=max_tokens, allow_paid=True,
-            )
-            self.last_provider = f"openrouter-paid:{self.openrouter.last_api_used()}"
-            return reply
+            for try_tier in ("paid", "routers"):
+                reply = self.openrouter.complete(
+                    user_message,
+                    tier=try_tier,
+                    system=system,
+                    history=history,
+                    max_tokens=max_tokens,
+                    allow_paid=True,
+                )
+                if not reply.startswith("[openrouter]"):
+                    self.last_provider = f"openrouter-paid:{self.openrouter.last_api_used()}"
+                    return reply
 
         self.last_provider = None
         return "[router] all free tiers exhausted, local unavailable, allow_paid=False — nothing left to try"

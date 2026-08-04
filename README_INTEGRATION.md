@@ -13,20 +13,36 @@ core/router.py                        single entry point: OpenRouter free → yo
 `router.py` imports and wraps them rather than replacing them, so nothing
 that currently works can break from this patch.
 
-## 3 steps to wire it in
+## Providers (OpenRouter aggregator vs direct APIs)
 
-**1. Install + set the key**
+See `config/openrouter_providers.yaml` for the full map. Short version:
+
+| Your provider | How KerrOS uses it |
+|---|---|
+| OpenRouter | Free-first aggregator (`openrouter_tiers.yaml`) |
+| Groq (`llama-3.1-8b-instant`) | Direct `GROQ_API_KEY` (MultiAPI) |
+| Nvidia NIM | Direct `NVIDIA_API_KEY` + OpenRouter `nvidia/*` |
+| Gemini | Direct `GEMINI_API_KEY` + OpenRouter `google/*` |
+| Mistral / Cohere / DeepSeek / OpenAI / HF | Direct keys; some also via OpenRouter |
+| Cerebras / SambaNova | Direct keys (Sol tier) |
+| Poolside | Usually OpenRouter `poolside/*:free` |
+| Snowflake | Direct PAT (`SNOWFLAKE_PAT_*`) — not OpenRouter |
+| Firecrawl | Crawl API — not an LLM |
+| LangChain / Cursor | Framework / IDE — not provider endpoints |
+
+**1. Install + set keys**
 ```bash
 pip install pyyaml
 echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/offline_ai/.env
+# optional direct fallbacks:
+# GROQ_API_KEY=...  NVIDIA_API_KEY=...  GEMINI_API_KEY=...  MISTRAL_API_KEY=...
 ```
 
-**2. Drop the four new files into your repo** at the paths shown above.
+**2. Files already in-tree** at the paths above (no manual copy needed on current KerrOS).
 
-**3. Point `AdaptiveEngine._online_generate` at the router**
+**3. AdaptiveEngine → Router (wired)**
 
-In `core/adaptive_engine.py`, replace the `kernel.access.get_llm_port()` call
-with `core.router.Router`:
+`core/adaptive_engine.py` online mode uses `core.router.Router`:
 
 ```python
 def _online_generate(self, user_message, system, history, stream):
@@ -41,10 +57,18 @@ def _online_generate(self, user_message, system, history, stream):
     return result
 ```
 
-That's it — `/online`, `/apistatus`, and everything else in `chat.py` keeps
-working; `/apistatus` will now also want to print `router.status()` if you
-want OpenRouter's per-model health in that view (optional, one extra print
-line where `/apistatus` currently reads `engine._multi.health`).
+Priority (zero-cost-first):
+1. OpenRouter free tiers (`config/openrouter_tiers.yaml`)
+2. MultiAPI keyed providers (Groq, DeepSeek, …)
+3. Local llama.cpp
+4. Paid OpenRouter — only if `allow_paid=True`
+
+Check in the REPL:
+```
+/online
+/apistatus
+/llm
+```
 
 ## Honesty check on the model list you gave me
 

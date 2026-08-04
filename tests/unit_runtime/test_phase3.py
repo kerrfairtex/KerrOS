@@ -318,16 +318,22 @@ class CompositeLLMTest(unittest.TestCase):
         self.assertEqual(adapter.last_api_used(), "ollama")
 
     @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_cloud")
+    @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_openrouter")
     @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_omniroute")
-    def test_provider_hint_omniroute_falls_back_to_cloud(self, mock_get_omniroute, mock_get_cloud):
+    def test_provider_hint_omniroute_falls_back_to_cloud(
+        self, mock_get_omniroute, mock_get_openrouter, mock_get_cloud
+    ):
         from adapters.llm.composite_adapter import CompositeLLMAdapter
 
         omniroute = MagicMock()
         omniroute.complete.side_effect = RuntimeError("omniroute down")
         omniroute.status.return_value = {"enabled": True}
+        openrouter = MagicMock()
+        openrouter.status.return_value = {"available": False}
         cloud = MagicMock()
         cloud.complete.return_value = "cloud fallback"
         mock_get_omniroute.return_value = omniroute
+        mock_get_openrouter.return_value = openrouter
         mock_get_cloud.return_value = cloud
 
         adapter = CompositeLLMAdapter()
@@ -336,33 +342,33 @@ class CompositeLLMTest(unittest.TestCase):
         self.assertEqual(adapter.last_api_used(), "cloud")
 
 
-class AdaptiveEngineLLMPortTest(unittest.TestCase):
-    @patch("kernel.access.get_llm_port")
-    def test_init_online_uses_llm_port_complete(self, mock_get_llm_port):
+class AdaptiveEngineRouterTest(unittest.TestCase):
+    @patch("core.router.Router")
+    def test_init_online_uses_router_generate(self, mock_router_cls):
         from core.adaptive_engine import AdaptiveEngine
 
-        port = MagicMock()
-        port.complete.return_value = "hello"
-        mock_get_llm_port.return_value = port
+        router = MagicMock()
+        router.generate.return_value = "hello"
+        mock_router_cls.return_value = router
 
         engine = AdaptiveEngine()
         ok, mode = engine.init_online()
 
         self.assertTrue(ok)
         self.assertEqual(mode, "online")
-        port.complete.assert_called_once_with("hi", max_tokens=5)
+        router.generate.assert_called_once_with("hi", max_tokens=5)
 
     @patch("builtins.print")
     def test_online_generate_filters_history(self, mock_print):
         from core.adaptive_engine import AdaptiveEngine
 
-        port = MagicMock()
-        port.complete.return_value = "done"
-        port.last_api_used.return_value = "cloud"
+        router = MagicMock()
+        router.generate.return_value = "done"
+        router.last_provider = "openrouter:inclusionai/ling-3.0-flash:free"
 
         engine = AdaptiveEngine()
         engine.mode = "online"
-        engine._llm_port = port
+        engine._router = router
 
         history = [
             {"role": "user", "content": "keep this"},
@@ -374,7 +380,7 @@ class AdaptiveEngineLLMPortTest(unittest.TestCase):
         result = engine._online_generate("solve this", "sys", history, stream=False)
 
         self.assertEqual(result, "done")
-        port.complete.assert_called_once_with(
+        router.generate.assert_called_once_with(
             "solve this",
             system="sys",
             history=[
@@ -382,8 +388,8 @@ class AdaptiveEngineLLMPortTest(unittest.TestCase):
                 {"role": "assistant", "content": "ok reply"},
             ],
             max_tokens=4096,
+            allow_paid=False,
         )
-        port.last_api_used.assert_called_once_with()
         mock_print.assert_called_once()
 
 

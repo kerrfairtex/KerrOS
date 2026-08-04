@@ -110,9 +110,57 @@ capabilities:
     setup_required: true
     setup_state: "needs_setup"
     metadata:
+      role: "cloud_chain_first"
+      adapter: "adapters.llm.openrouter_adapter"
+      config: "config/openrouter_tiers.yaml"
+      providers_map: "config/openrouter_providers.yaml"
+      notes: >
+        Aggregator for Nvidia/Google/Cohere/Poolside/OpenAI panels + routers.
+        Free-first via tiers.yaml; direct keys still used by MultiAPI fallback.
+
+  - name: "provider:mistral"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:MISTRAL_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
       role: "cloud_chain"
       adapter: "adapters.llm.multi_api_adapter"
-      chain: "multi_api"
+      notes: "Direct Mistral API; also reachable via OpenRouter mistralai/ slugs when listed."
+
+  - name: "provider:cerebras"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:CEREBRAS_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      catalog: "api_config.yaml"
+      notes: "Sol-tier fast provider; model id rotates — verify /models."
+
+  - name: "provider:sambanova"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:SAMBANOVA_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      catalog: "api_config.yaml"
+      notes: "Sol-tier fast provider; model id rotates — verify /models."
+
+  - name: "provider:openai"
+    kind: "provider"
+    permissions: ["standard"]
+    dependencies: ["env:OPENAI_API_KEY"]
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      role: "cloud_chain"
+      catalog: "api_config.yaml"
+      notes: "Direct OpenAI; gpt-oss-20b:free also via OpenRouter."
 
   - name: "provider:huggingface"
     kind: "provider"

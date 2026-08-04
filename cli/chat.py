@@ -226,17 +226,39 @@ def main():
 
         elif user=="/apistatus":
             divider()
-            if engine._multi:
-                h = engine._multi.health
-                if h:
-                    for name, status in h.items():
+            # Zero-cost router status (OpenRouter tiers + MultiAPI)
+            try:
+                router = getattr(engine, "_router", None)
+                if router is not None and hasattr(router, "status"):
+                    rst = router.status()
+                    print(f"  {BL}last_provider:{R} {rst.get('last_provider') or '-'}")
+                    ors = rst.get("openrouter") or {}
+                    print(
+                        f"  {GO}openrouter{R}: available={ors.get('available')} "
+                        f"dead={len(ors.get('dead_models') or [])}"
+                    )
+                    if ors.get("setup_hint"):
+                        print(f"    {GY}{ors.get('setup_hint')}{R}")
+                    for mid, hs in (ors.get("health") or {}).items():
+                        print(f"    {BL}{mid:<36}{R} {hs}")
+                    for name, status in (rst.get("multi_api_health") or {}).items():
                         print(f"  {BL}{name:<20}{R} {status}")
+                    dead = rst.get("multi_api_dead") or []
+                    if dead:
+                        print(f"  {RE}Dead (auth failed): {', '.join(dead)}{R}")
+                elif engine._multi:
+                    h = engine._multi.health
+                    if h:
+                        for name, status in h.items():
+                            print(f"  {BL}{name:<20}{R} {status}")
+                    else:
+                        print(f"  {GY}No API calls made yet this session.{R}")
+                    if engine._multi.dead_apis:
+                        print(f"  {RE}Dead (auth failed): {', '.join(engine._multi.dead_apis)}{R}")
                 else:
-                    print(f"  {GY}No API calls made yet this session.{R}")
-                if engine._multi.dead_apis:
-                    print(f"  {RE}Dead (auth failed): {', '.join(engine._multi.dead_apis)}{R}")
-            else:
-                print(f"  {GY}Online mode not initialized yet — showing catalog instead.{R}")
+                    print(f"  {GY}Online mode not initialized yet — showing catalog instead.{R}")
+            except Exception as exc:
+                print(f"  {GY}router status unavailable: {exc}{R}")
             try:
                 from adapters.integrations.registry import catalog_status, format_status_lines, resolve_for_task
                 st = catalog_status()
@@ -707,11 +729,19 @@ def main():
                     print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
                     print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
                     print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
-                    for key in ("ollama", "vllm", "litellm", "omniroute", "cloud"):
+                    for key in ("openrouter", "ollama", "vllm", "litellm", "llama_cpp", "omniroute", "cloud"):
                         info = status.get(key, {})
                         if isinstance(info, dict):
                             avail = info.get("available", info.get("enabled", info.get("groq", "?")))
-                            print(f"  {GO}{key}{R}: available={avail}")
+                            print(f"  {GO}{key}{R}: available={avail}", end="")
+                            if key == "openrouter":
+                                hint = info.get("setup_hint")
+                                tiers = info.get("tiers") or []
+                                if tiers:
+                                    print(f"  tiers={','.join(tiers[:6])}{'…' if len(tiers)>6 else ''}", end="")
+                                if hint:
+                                    print(f"\n    {GY}{hint}{R}", end="")
+                            print()
                     resilience = status.get("resilience") or {}
                     if resilience:
                         print(

@@ -10,19 +10,33 @@ def check_internet(host="8.8.8.8", port=53, timeout=3):
     except: return False
 
 class AdaptiveEngine:
+    """
+    Online path uses core.router.Router (README_INTEGRATION.md):
+      OpenRouter free (task tiers) → MultiAPI keyed providers → local → paid (opt-in)
+    """
+
     def __init__(self):
         self.c = cfg()
         self.mode = "offline"
         self._router = None
         self._offline = None
 
+    @property
+    def _multi(self):
+        """Compat for /apistatus — MultiAPIEngine behind the zero-cost router."""
+        r = self._router
+        return getattr(r, "multi_api", None) if r else None
+
     def init_online(self):
         try:
             from core.router import Router
+
             self._router = Router()
             test = self._router.generate("hi", max_tokens=5)
-            if not test or test.startswith("[router]"):
+            if not test or str(test).startswith("[router]"):
                 return False, test or "router returned nothing"
+            if "All APIs failed" in str(test):
+                return False, "All APIs failed"
             self.mode = "online"
             return True, "online"
         except Exception as e:
@@ -49,14 +63,12 @@ class AdaptiveEngine:
             raise
 
     def _online_generate(self, user_message, system, history, stream):
-        # NOTE: Router.generate() is non-streaming today (OpenRouterAdapter
-        # doesn't do SSE yet). `stream` is accepted for signature compat but
-        # ignored here — the reply prints all at once instead of token-by-token.
-        if not self._router:
-            from core.router import Router
-            self._router = Router()
+        # Router.generate is non-streaming today; `stream` kept for signature compat.
+        from core.router import Router
 
-        # Same corrupted-history filter as before
+        if not self._router:
+            self._router = Router(system=system)
+
         bad = ["[Online error","<|im_start|>","[Tool output]",
                "User: ","Assistant: ","Analyze the tool output"]
         clean_hist = []
@@ -73,9 +85,11 @@ class AdaptiveEngine:
             system=system,
             history=clean_hist,
             max_tokens=4096,
+            allow_paid=False,
         )
-        if self._router.last_provider:
-            print(f"  \033[90m[{self._router.last_provider}]\033[0m", end=" ", flush=True)
+        provider = self._router.last_provider
+        if provider:
+            print(f"  \033[90m[{provider}]\033[0m", end=" ", flush=True)
         return result
 
     def _offline_generate(self, user_message, system, history, stream):
