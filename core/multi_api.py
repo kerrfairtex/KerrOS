@@ -75,6 +75,46 @@ def call_groq(messages, model="llama-3.3-70b-versatile", max_tokens=1024):
         return r.choices[0].message.content, None
     except Exception as e: return None, str(e)
 
+def call_anthropic(messages, model="claude-sonnet-4-6", max_tokens=1024):
+    """Anthropic Messages API caller (reasoning chain + ALL_APIS fallback)."""
+    if not ANTHROPIC_KEY:
+        return None, "No key"
+    try:
+        sys_msg = next((m["content"] for m in messages if m.get("role") == "system"), None)
+        turns = [m for m in messages if m.get("role") in ("user", "assistant")]
+        headers = {
+            "x-api-key": ANTHROPIC_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        body = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "messages": turns,
+        }
+        if sys_msg:
+            body["system"] = sys_msg
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=body,
+            timeout=60,
+        )
+        data = r.json()
+        if "content" not in data:
+            return None, str(data)
+        parts = data.get("content") or []
+        text = "".join(
+            p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "text"
+        )
+        if not text and parts and isinstance(parts[0], dict):
+            text = parts[0].get("text", "")
+        if not text:
+            return None, str(data)
+        return text, None
+    except Exception as e:
+        return None, str(e)
+
 def call_nvidia(messages, model="meta/llama-3.1-8b-instruct", max_tokens=1024):
     if not NVIDIA_KEY: return None, "No key"
     try:
