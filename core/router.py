@@ -81,8 +81,6 @@ class Router:
         # 1. Free OpenRouter tiers — task bucket, then free catch-all
         if self.openrouter.available():
             for try_tier in (tier, *_OPENROUTER_FALLBACK_TIERS):
-                if try_tier == tier or try_tier in _OPENROUTER_FALLBACK_TIERS:
-                    pass
                 reply = self.openrouter.complete(
                     user_message,
                     tier=try_tier,
