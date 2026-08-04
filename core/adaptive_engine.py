@@ -10,18 +10,32 @@ def check_internet(host="8.8.8.8", port=53, timeout=3):
     except: return False
 
 class AdaptiveEngine:
+    """
+    Online path uses core.router.Router (README_INTEGRATION.md):
+      OpenRouter free (task tiers) → MultiAPI keyed providers → local → paid (opt-in)
+    """
+
     def __init__(self):
         self.c = cfg()
         self.mode = "offline"
-        self._llm_port = None
+        self._router = None
         self._offline = None
+
+    @property
+    def _multi(self):
+        """Compat for /apistatus — MultiAPIEngine behind the zero-cost router."""
+        r = self._router
+        return getattr(r, "multi_api", None) if r else None
 
     def init_online(self):
         try:
-            from kernel.access import get_llm_port
-            self._llm_port = get_llm_port()
-            test = self._llm_port.complete("hi", max_tokens=5)
-            if not test or "All APIs failed" in test:
+            from core.router import Router
+
+            self._router = Router()
+            test = self._router.generate("hi", max_tokens=5)
+            if not test or str(test).startswith("[router]"):
+                return False, test or "router returned nothing"
+            if "All APIs failed" in str(test):
                 return False, "All APIs failed"
             self.mode = "online"
             return True, "online"
@@ -49,14 +63,12 @@ class AdaptiveEngine:
             raise
 
     def _online_generate(self, user_message, system, history, stream):
-        # NOTE: LLMPort.complete() is non-streaming today. `stream` is accepted
-        # for signature compat but ignored here — the reply prints all at once.
-        from kernel.access import get_llm_port
+        # Router.generate is non-streaming today; `stream` kept for signature compat.
+        from core.router import Router
 
-        if not self._llm_port:
-            self._llm_port = get_llm_port()
+        if not self._router:
+            self._router = Router(system=system)
 
-        # Filter corrupted history
         bad = ["[Online error","<|im_start|>","[Tool output]",
                "User: ","Assistant: ","Analyze the tool output"]
         clean_hist = []
@@ -68,15 +80,16 @@ class AdaptiveEngine:
             if any(b in content for b in bad): continue
             clean_hist.append({"role": role, "content": content})
 
-        result = self._llm_port.complete(
+        result = self._router.generate(
             user_message,
             system=system,
             history=clean_hist,
-            max_tokens=4096,  # online models handle long answers natively
+            max_tokens=4096,
+            allow_paid=False,
         )
-        last_api = self._llm_port.last_api_used()
-        if last_api:
-            print(f"  \033[90m[{last_api}]\033[0m", end=" ", flush=True)
+        provider = self._router.last_provider
+        if provider:
+            print(f"  \033[90m[{provider}]\033[0m", end=" ", flush=True)
         return result
 
     def _offline_generate(self, user_message, system, history, stream):

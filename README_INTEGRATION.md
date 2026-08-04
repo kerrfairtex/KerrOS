@@ -13,7 +13,7 @@ core/router.py                        single entry point: OpenRouter free → yo
 `router.py` imports and wraps them rather than replacing them, so nothing
 that currently works can break from this patch.
 
-## 3 steps to wire it in
+## Setup (operator)
 
 **1. Install + set the key**
 ```bash
@@ -21,19 +21,35 @@ pip install pyyaml
 echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/offline_ai/.env
 ```
 
-**2. Drop the four new files into your repo** at the paths shown above.
+**2. Files already in-tree** at the paths above (no manual copy needed on current KerrOS).
 
-**3. Online path (already wired)**
+**3. AdaptiveEngine → Router (wired)**
 
-`AdaptiveEngine` online mode uses `kernel.access.get_llm_port()` →
-`CompositeLLMAdapter`, which tries **OpenRouter free tiers first**, then the
-keyed `MultiAPI` chain. `core/router.py` remains available for direct
-OpenRouter→MultiAPI→local→paid orchestration.
+`core/adaptive_engine.py` online mode uses `core.router.Router`:
 
-Check setup with:
-```bash
-python3 -c "from adapters.llm.openrouter_adapter import OpenRouterAdapter; print(OpenRouterAdapter().status())"
-# or in the REPL:
+```python
+def _online_generate(self, user_message, system, history, stream):
+    from core.router import Router
+    if not getattr(self, "_router", None):
+        self._router = Router(system=system)
+
+    result = self._router.generate(user_message, system=system, history=history)
+    provider = self._router.last_provider
+    if provider:
+        print(f"  \033[90m[{provider}]\033[0m", end=" ", flush=True)
+    return result
+```
+
+Priority (zero-cost-first):
+1. OpenRouter free tiers (`config/openrouter_tiers.yaml`)
+2. MultiAPI keyed providers (Groq, DeepSeek, …)
+3. Local llama.cpp
+4. Paid OpenRouter — only if `allow_paid=True`
+
+Check in the REPL:
+```
+/online
+/apistatus
 /llm
 ```
 
