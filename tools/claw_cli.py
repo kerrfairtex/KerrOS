@@ -114,6 +114,31 @@ def detect_claw_tool(text: str) -> tuple[str | None, dict[str, Any] | None]:
     pattern = raw.split(" ", 1)[1].strip()
     return ("code_search", {"pattern": pattern}) if pattern else (None, None)
 
+  if raw.startswith("/code-rag"):
+    # /code-rag [build|full|status] [root]
+    # /code-rag ask <query>
+    # /code-rag <query>  → retrieve
+    body = raw[len("/code-rag") :].strip()
+    if not body or body.split()[0] in ("build", "status"):
+      args: dict[str, Any] = {}
+      parts = body.split()
+      if parts and parts[0] == "build":
+        if len(parts) > 1 and parts[1] != "full":
+          args["root"] = parts[1]
+        if "full" in parts:
+          args["full"] = True
+      return ("code_rag_build", args)
+    if body.split()[0] == "full":
+      args = {"full": True}
+      if len(body.split()) > 1:
+        args["root"] = body.split()[1]
+      return ("code_rag_build", args)
+    if body.startswith("ask "):
+      return ("code_rag_ask", {"query": body[4:].strip(), "llm": False})
+    if body.startswith("ask-llm "):
+      return ("code_rag_ask", {"query": body[8:].strip(), "llm": True})
+    return ("code_rag_retrieve", {"query": body})
+
   if raw in ("/finetune-plan", "/finetune_plan"):
     return ("finetune_plan", {})
 
@@ -149,6 +174,9 @@ def claw_tool_help_lines() -> list[tuple[str, str]]:
     ("/code-index [root]", "Rebuild code symbol index"),
     ("/symbols <query>", "Search indexed symbols"),
     ("/code-search <pattern>", "Search file contents (rg)"),
+    ("/code-rag build|full", "Build Soft code-RAG (ADR-107, incremental)"),
+    ("/code-rag <query>", "Hybrid retrieve with citations"),
+    ("/code-rag ask <q>", "Cited context (ask-llm for LiteLLM)"),
     ("/finetune-plan", "Plan Unsloth LoRA → GGUF export"),
     ("/finetune-export", "Soft-export GGUF (gated)"),
     ("/tool <name> <json>", "Call any claw tool with JSON args"),

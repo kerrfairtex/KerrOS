@@ -72,6 +72,19 @@ capabilities:
       adapter: "adapters.code_index.code_index_adapter"
       notes: "ADR-052 soft code index (rg + Fake/tree-sitter); claw tools code_search/code_symbols."
 
+  - name: "port:code_rag"
+    kind: "port"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: true
+    setup_state: "needs_setup"
+    metadata:
+      service: "code_rag_port"
+      adapter: "adapters.code_rag.pipeline"
+      notes: >
+        ADR-107 Soft code-RAG: gitignore scan, incremental re-index, FTS+symbol+graph+vector,
+        hybrid retrieve, citations. Separate from MemoryPort. KERROS_CODE_RAG=1.
+
   - name: "port:storage"
     kind: "port"
     permissions: ["standard"]

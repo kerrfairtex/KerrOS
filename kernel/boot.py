@@ -41,6 +41,7 @@ from kernel.contract import (
     SERVICE_DATABASE_PORT,
     SERVICE_EMBEDDING_PORT,
     SERVICE_CODE_INDEX_PORT,
+    SERVICE_CODE_RAG_PORT,
     SERVICE_SEARCH_PORT,
     SERVICE_CAPABILITY_REGISTRY,
 )
@@ -263,6 +264,7 @@ class Kernel:
         from adapters.embeddings.sentence_transformers_adapter import SentenceTransformersAdapter
         from adapters.search.duckduckgo_adapter import DuckDuckGoAdapter
         from adapters.code_index.code_index_adapter import CodeIndexAdapter
+        from adapters.code_rag.pipeline import CodeRagAdapter
 
         self.container.register(SERVICE_TOOL_PORT, ClawToolAdapter, singleton=True)
         self.container.register(SERVICE_DISPATCH_PORT, RouterAdapter, singleton=True)
@@ -289,6 +291,14 @@ class Kernel:
             SERVICE_CODE_INDEX_PORT,
             lambda: CodeIndexAdapter(
                 self.config.values if self.config else None
+            ),
+            singleton=True,
+        )
+        self.container.register(
+            SERVICE_CODE_RAG_PORT,
+            lambda: CodeRagAdapter(
+                self.config.values if self.config else None,
+                workspace=(self.config.workspace if self.config else None),
             ),
             singleton=True,
         )

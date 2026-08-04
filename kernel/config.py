@@ -116,6 +116,11 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
         # ADR-052: soft code index (ripgrep + Fake/tree-sitter) — off by default.
         "code_index_enabled": False,
         "code_index_path": "data/code_index/index.json",
+        # ADR-107: Soft production-shaped code-RAG pipeline — off by default.
+        "code_rag": {
+            "enabled": False,
+            "path": "data/code_rag",
+        },
         # ADR-053: Unsloth LoRA → GGUF export (off by default).
         "finetune_export": {
             "enabled": False,
