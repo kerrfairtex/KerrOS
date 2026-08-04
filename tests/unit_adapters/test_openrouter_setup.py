@@ -23,6 +23,27 @@ class OpenRouterSetupTest(unittest.TestCase):
         self.assertTrue(
             any(m.get("id") == "inclusionai/ling-3.0-flash:free" for m in chat)
         )
+        # Live public slugs (regression: old short names 404)
+        self.assertEqual(
+            data["tiers"]["research"][0]["id"], "poolside/laguna-s-2.1:free"
+        )
+        self.assertTrue(
+            any(
+                m.get("id") == "nvidia/nemotron-3-ultra-550b-a55b:free"
+                for m in data["tiers"]["reasoning"]
+            )
+        )
+        self.assertTrue(
+            any(m.get("id") == "google/gemma-4-26b-a4b-it:free" for m in chat)
+        )
+        self.assertEqual(
+            data["tiers"]["coding"][0]["id"], "cohere/north-mini-code:free"
+        )
+        # Panel routers stay off the free path
+        for entry in data["tiers"]["routers"]:
+            self.assertFalse(entry.get("free"), entry)
+        self.assertFalse(data["tiers"]["paid"][0]["free"])
+        self.assertEqual(data["tiers"]["paid"][0]["id"], "google/gemini-3.5-flash-lite")
 
     def test_adapter_unavailable_without_key(self):
         from adapters.llm.openrouter_adapter import OpenRouterAdapter
