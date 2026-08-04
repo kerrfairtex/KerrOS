@@ -45,6 +45,7 @@ SERVICE_DATABASE_PORT = "database_port"
 SERVICE_SEARCH_PORT = "search_port"
 SERVICE_EMBEDDING_PORT = "embedding_port"
 SERVICE_CODE_INDEX_PORT = "code_index_port"
+SERVICE_CODE_RAG_PORT = "code_rag_port"
 SERVICE_CAPABILITY_REGISTRY = "capability_registry"
 
 # Port registration keys used during boot.
@@ -57,6 +58,7 @@ PORT_DATABASE = SERVICE_DATABASE_PORT
 PORT_SEARCH = SERVICE_SEARCH_PORT
 PORT_EMBEDDING = SERVICE_EMBEDDING_PORT
 PORT_CODE_INDEX = SERVICE_CODE_INDEX_PORT
+PORT_CODE_RAG = SERVICE_CODE_RAG_PORT
 
 # Minimum phase required for common operations.
 MIN_PHASE_READY = BootPhase.READY

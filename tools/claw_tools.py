@@ -498,6 +498,67 @@ def code_search(pattern: str, top_k: int = 20) -> ToolResult:
         return ToolResult(False, "code_search", error=str(e))
 
 
+def _code_rag(force: bool = False):
+    from adapters.code_rag.pipeline import CodeRagAdapter
+
+    cfg = {"code_rag": {"enabled": True}} if force else {}
+    return CodeRagAdapter(cfg, workspace=get_workspace())
+
+
+def code_rag_build(root: str | None = None, full: bool = False) -> ToolResult:
+    """Build Soft code-RAG indexes (ADR-107) — incremental unless full."""
+    try:
+        rag = _code_rag(force=True)
+        out = rag.build(root=root, full=bool(full))
+        summary = (
+            f"code-rag processed={out.get('processed')} "
+            f"+{out.get('added')}/~{out.get('changed')}/-{out.get('removed')} "
+            f"chunks={((out.get('stats') or {}).get('chunks'))} "
+            f"elapsed={out.get('elapsed_s')}s"
+        )
+        return ToolResult(True, "code_rag_build", output=summary, data=out)
+    except Exception as e:
+        return ToolResult(False, "code_rag_build", error=str(e))
+
+
+def code_rag_retrieve(query: str, top_k: int = 8) -> ToolResult:
+    """Hybrid retrieve (BM25 + symbols + graph + Soft vector) with citations."""
+    try:
+        if not query or not str(query).strip():
+            return ToolResult(False, "code_rag_retrieve", error="query is required")
+        rag = _code_rag(force=True)
+        if rag.indexes.stats().get("chunks", 0) == 0:
+            rag.build()
+        hits = rag.retrieve(query, top_k=int(top_k))
+        if not hits:
+            return ToolResult(True, "code_rag_retrieve", output="(no hits)", data={"hits": []})
+        lines = [
+            f"{h.get('score', 0):.2f}\t{h.get('citation') or h.get('path')}\t"
+            f"{h.get('name')}\t[{','.join(h.get('sources') or [])}]"
+            for h in hits
+        ]
+        return ToolResult(True, "code_rag_retrieve", output="\n".join(lines), data={"hits": hits})
+    except Exception as e:
+        return ToolResult(False, "code_rag_retrieve", error=str(e))
+
+
+def code_rag_ask(query: str, top_k: int = 8, llm: bool = False) -> ToolResult:
+    """Build cited context for a code question; optional LLMPort/LiteLLM answer."""
+    try:
+        if not query or not str(query).strip():
+            return ToolResult(False, "code_rag_ask", error="query is required")
+        rag = _code_rag(force=True)
+        if rag.indexes.stats().get("chunks", 0) == 0:
+            rag.build()
+        out = rag.ask(query, top_k=int(top_k), use_llm=bool(llm))
+        cites = ", ".join(out.get("citations") or []) or "(none)"
+        body = out.get("answer") or out.get("context") or "(empty)"
+        text = f"intent={out.get('intent')} citations={cites}\n{body}"
+        return ToolResult(True, "code_rag_ask", output=text, data=out)
+    except Exception as e:
+        return ToolResult(False, "code_rag_ask", error=str(e))
+
+
 def _finetune_service(force: bool = False):
     from adapters.llm.unsloth_finetune import (
         UnslothFinetuneConfig,

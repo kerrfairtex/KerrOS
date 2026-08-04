@@ -112,6 +112,39 @@ capabilities:
       role: "code_index"
       notes: "ADR-052 content search via ripgrep/python fallback."
 
+  - name: "tool:code_rag_build"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "code_rag"
+      notes: "ADR-107 Soft code-RAG incremental index build."
+
+  - name: "tool:code_rag_retrieve"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "code_rag"
+      notes: "ADR-107 hybrid retrieve (BM25+symbol+graph+vector Soft)."
+
+  - name: "tool:code_rag_ask"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.claw_tools"
+      role: "code_rag"
+      notes: "ADR-107 cited context; optional LLMPort/LiteLLM."
+
   - name: "tool:finetune_plan"
     kind: "tool"
     permissions: ["standard"]

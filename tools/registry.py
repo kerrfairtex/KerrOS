@@ -16,6 +16,9 @@ from tools.claw_tools import (
     ToolResult,
     apply_patch,
     code_index_build,
+    code_rag_ask,
+    code_rag_build,
+    code_rag_retrieve,
     code_search,
     code_symbols,
     edit,
@@ -188,6 +191,51 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "code_rag_build",
+            "description": "Build Soft code-RAG indexes (ADR-107): gitignore scan + incremental re-index.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "root": {"type": "string", "description": "Optional subdirectory"},
+                    "full": {"type": "boolean", "default": False, "description": "Force full rebuild"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "code_rag_retrieve",
+            "description": "Hybrid code retrieve (BM25 + symbols + graph + Soft vector) with citations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "top_k": {"type": "integer", "default": 8},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "code_rag_ask",
+            "description": "Cited code-RAG context; optional LLMPort/LiteLLM answer (llm=true).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "top_k": {"type": "integer", "default": 8},
+                    "llm": {"type": "boolean", "default": False},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "finetune_plan",
             "description": "Plan Unsloth LoRA → GGUF Q4_K_M export (Fake by default; ADR-053).",
             "parameters": {"type": "object", "properties": {}},
@@ -299,6 +347,9 @@ _HANDLERS: dict[str, Handler] = {
     "code_index_build": code_index_build,
     "code_symbols": code_symbols,
     "code_search": code_search,
+    "code_rag_build": code_rag_build,
+    "code_rag_retrieve": code_rag_retrieve,
+    "code_rag_ask": code_rag_ask,
     "finetune_plan": finetune_plan,
     "finetune_export": finetune_export,
     # Progressive Disclosure skill tools

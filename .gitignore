@@ -33,6 +33,7 @@ runtime/logs/
 data/vector_store/
 data/faiss/
 data/code_index/
+data/code_rag/
 data/finetune/lora_out/
 data/finetune/*.jsonl
 !data/finetune/*.example
