@@ -66,7 +66,7 @@ def detect_task(text):
 
 # ── API Callers ───────────────────────────────────────────
 
-def call_groq(messages, model="llama-3.3-70b-versatile", max_tokens=1024):
+def call_groq(messages, model="llama-3.1-8b-instant", max_tokens=1024):
     if not GROQ_KEY: return None, "No key"
     try:
         from groq import Groq
@@ -195,7 +195,7 @@ def call_huggingface(messages, model="mistralai/Mistral-7B-Instruct-v0.3", max_t
         return None, str(data)
     except Exception as e: return None, str(e)
 
-def call_openrouter(messages, model="meta-llama/llama-3.3-70b-instruct:free", max_tokens=1024):
+def call_openrouter(messages, model="inclusionai/ling-3.0-flash:free", max_tokens=1024):
     if not OPENROUTER_KEY: return None, "No key"
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"

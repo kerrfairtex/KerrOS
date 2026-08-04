@@ -13,12 +13,29 @@ core/router.py                        single entry point: OpenRouter free → yo
 `router.py` imports and wraps them rather than replacing them, so nothing
 that currently works can break from this patch.
 
-## Setup (operator)
+## Providers (OpenRouter aggregator vs direct APIs)
 
-**1. Install + set the key**
+See `config/openrouter_providers.yaml` for the full map. Short version:
+
+| Your provider | How KerrOS uses it |
+|---|---|
+| OpenRouter | Free-first aggregator (`openrouter_tiers.yaml`) |
+| Groq (`llama-3.1-8b-instant`) | Direct `GROQ_API_KEY` (MultiAPI) |
+| Nvidia NIM | Direct `NVIDIA_API_KEY` + OpenRouter `nvidia/*` |
+| Gemini | Direct `GEMINI_API_KEY` + OpenRouter `google/*` |
+| Mistral / Cohere / DeepSeek / OpenAI / HF | Direct keys; some also via OpenRouter |
+| Cerebras / SambaNova | Direct keys (Sol tier) |
+| Poolside | Usually OpenRouter `poolside/*:free` |
+| Snowflake | Direct PAT (`SNOWFLAKE_PAT_*`) — not OpenRouter |
+| Firecrawl | Crawl API — not an LLM |
+| LangChain / Cursor | Framework / IDE — not provider endpoints |
+
+**1. Install + set keys**
 ```bash
 pip install pyyaml
 echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/offline_ai/.env
+# optional direct fallbacks:
+# GROQ_API_KEY=...  NVIDIA_API_KEY=...  GEMINI_API_KEY=...  MISTRAL_API_KEY=...
 ```
 
 **2. Files already in-tree** at the paths above (no manual copy needed on current KerrOS).

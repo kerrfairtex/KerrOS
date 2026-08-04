@@ -1,0 +1,126 @@
+# config/openrouter_providers.yaml
+# ================================
+# How KerrOS reaches models/providers when OPENROUTER_API_KEY is set.
+#
+# Two layers (do not merge them):
+#   1. OpenRouter aggregator — one key, many upstream providers via model slugs
+#      in config/openrouter_tiers.yaml (free-first) and paid opt-in.
+#   2. Direct provider APIs — separate keys in ~/offline_ai/.env / api_config.yaml
+#      used by MultiAPIEngine after OpenRouter free tiers are exhausted.
+#
+# Cursor / LangChain are NOT LLM HTTP providers here:
+#   - Cursor = IDE / agent host (this environment)
+#   - LangChain = Python framework (optional SDK), not an API endpoint
+
+version: 1
+
+openrouter:
+  env: OPENROUTER_API_KEY
+  base_url: https://openrouter.ai/api/v1
+  tiers_config: config/openrouter_tiers.yaml
+  notes: >
+    Single key routes to Nvidia / Google / Cohere / Poolside / OpenAI free
+    panels and OpenRouter routers (Fusion, Body Builder, Pareto, Auto).
+
+# Upstream panels visible on OpenRouter (slug prefix → role)
+openrouter_upstreams:
+  nvidia:
+    slug_prefix: nvidia/
+    also_direct: NVIDIA_API_KEY
+    notes: "NIM direct API also configured as nvidia_nim in api_config.yaml"
+  google:
+    slug_prefix: google/
+    also_direct: GEMINI_API_KEY
+    notes: "Gemini direct; Gemma free via OpenRouter"
+  cohere:
+    slug_prefix: cohere/
+    also_direct: COHERE_API_KEY
+  poolside:
+    slug_prefix: poolside/
+    also_direct: null
+    notes: "Primarily via OpenRouter (Laguna / S2.1 dashboard models)"
+  openai:
+    slug_prefix: openai/
+    also_direct: OPENAI_API_KEY
+    notes: "gpt-oss-20b:free via OpenRouter; GPT paid via direct key"
+  inclusionai:
+    slug_prefix: inclusionai/
+    also_direct: null
+  openrouter_panel:
+    slug_prefix: openrouter/
+    models: [fusion, pareto-code, bodybuilder, auto, auto-beta]
+    free: false
+    notes: "Dynamic routers — KerrOS only calls with allow_paid=True"
+
+# Direct APIs KerrOS MultiAPI / catalog can call with their own keys
+direct_llm_apis:
+  groq:
+    env: GROQ_API_KEY
+    base_url: https://api.groq.com/openai/v1
+    default_model: llama-3.1-8b-instant
+    openrouter_via: null
+    notes: "Direct Groq — not currently a free OpenRouter :free panel"
+  nvidia_nim:
+    env: NVIDIA_API_KEY
+    base_url: https://integrate.api.nvidia.com/v1
+    default_model: meta/llama-3.1-8b-instruct
+    openrouter_via: nvidia/
+  gemini:
+    env: GEMINI_API_KEY
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    openrouter_via: google/
+  mistral:
+    env: MISTRAL_API_KEY
+    base_url: https://api.mistral.ai/v1
+    default_model: mistral-small-latest
+    openrouter_via: mistralai/
+  cohere:
+    env: COHERE_API_KEY
+    base_url: https://api.cohere.ai/v1
+    openrouter_via: cohere/
+  sambanova:
+    env: SAMBANOVA_API_KEY
+    base_url: https://api.sambanova.ai/v1
+    openrouter_via: null
+  cerebras:
+    env: CEREBRAS_API_KEY
+    base_url: https://api.cerebras.ai/v1
+    openrouter_via: null
+  huggingface:
+    env: HUGGINGFACE_API_KEY
+    base_url: https://api-inference.huggingface.co
+    openrouter_via: null
+  openai:
+    env: OPENAI_API_KEY
+    base_url: https://api.openai.com/v1
+    openrouter_via: openai/
+  deepseek:
+    env: DEEPSEEK_API_KEY
+    base_url: https://api.deepseek.com/v1
+    openrouter_via: deepseek/
+  openrouter:
+    env: OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+    openrouter_via: "*"
+  snowflake_cortex:
+    env: SNOWFLAKE_PAT_KEY
+    endpoint_env: SNOWFLAKE_PAT_ENDPOINT
+    openrouter_via: null
+    notes: "Account PAT — not an OpenRouter upstream"
+  poolside:
+    env: POOLSIDE_API_KEY
+    openrouter_via: poolside/
+    notes: "Optional direct; Laguna free models usually via OpenRouter"
+
+# Non-LLM APIs / frameworks from the operator list
+adjacent:
+  firecrawl:
+    env: FIRECRAWL_API_KEY
+    base_url: https://api.firecrawl.dev
+    kind: web_crawl
+  langchain:
+    kind: framework
+    notes: "SDK only — uses whatever LLM keys you configure"
+  cursor:
+    kind: ide_host
+    notes: "Cursor Cloud / IDE — not an OpenRouter upstream"

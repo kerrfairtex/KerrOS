@@ -12,6 +12,46 @@ import yaml
 
 
 class OpenRouterSetupTest(unittest.TestCase):
+    def test_providers_map_lists_direct_and_openrouter(self):
+        root = Path(__file__).resolve().parents[2]
+        path = root / "config" / "openrouter_providers.yaml"
+        self.assertTrue(path.is_file())
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        direct = data["direct_llm_apis"]
+        for name in (
+            "groq",
+            "nvidia_nim",
+            "gemini",
+            "mistral",
+            "cohere",
+            "sambanova",
+            "cerebras",
+            "huggingface",
+            "openai",
+            "deepseek",
+            "openrouter",
+            "snowflake_cortex",
+            "poolside",
+        ):
+            self.assertIn(name, direct)
+        self.assertEqual(direct["groq"]["default_model"], "llama-3.1-8b-instant")
+        self.assertEqual(data["adjacent"]["firecrawl"]["kind"], "web_crawl")
+        self.assertEqual(data["adjacent"]["langchain"]["kind"], "framework")
+        self.assertEqual(data["adjacent"]["cursor"]["kind"], "ide_host")
+
+    def test_api_config_groq_and_openrouter_defaults(self):
+        root = Path(__file__).resolve().parents[2]
+        cfg = yaml.safe_load((root / "api_config.yaml").read_text(encoding="utf-8"))
+        cloud = cfg["llm_cloud"]
+        self.assertEqual(cloud["groq"]["model"], "llama-3.1-8b-instant")
+        self.assertIn("mistral", cloud)
+        self.assertIn("poolside", cloud)
+        self.assertEqual(
+            cloud["openrouter"]["model"], "inclusionai/ling-3.0-flash:free"
+        )
+        self.assertEqual(cfg["fallback_chain"][0], "openrouter")
+        self.assertIn("firecrawl", cfg["search_and_research"])
+
     def test_tiers_yaml_parses_and_has_chat_primary(self):
         root = Path(__file__).resolve().parents[2]
         path = root / "config" / "openrouter_tiers.yaml"
