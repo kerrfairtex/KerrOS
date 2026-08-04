@@ -256,6 +256,7 @@ _CLOUD_SOFT_FAIL_MARKERS = (
     "[all apis failed",
     "all apis failed",
     "use /offline mode",
+    "[openrouter]",
 )
 
 

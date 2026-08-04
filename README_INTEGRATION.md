@@ -23,28 +23,19 @@ echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/offline_ai/.env
 
 **2. Drop the four new files into your repo** at the paths shown above.
 
-**3. Point `AdaptiveEngine._online_generate` at the router**
+**3. Online path (already wired)**
 
-In `core/adaptive_engine.py`, replace the `kernel.access.get_llm_port()` call
-with `core.router.Router`:
+`AdaptiveEngine` online mode uses `kernel.access.get_llm_port()` →
+`CompositeLLMAdapter`, which tries **OpenRouter free tiers first**, then the
+keyed `MultiAPI` chain. `core/router.py` remains available for direct
+OpenRouter→MultiAPI→local→paid orchestration.
 
-```python
-def _online_generate(self, user_message, system, history, stream):
-    from core.router import Router
-    if not getattr(self, "_router", None):
-        self._router = Router(system=system)
-
-    result = self._router.generate(user_message, system=system, history=history)
-    provider = self._router.last_provider
-    if provider:
-        print(f"  \033[90m[{provider}]\033[0m", end=" ", flush=True)
-    return result
+Check setup with:
+```bash
+python3 -c "from adapters.llm.openrouter_adapter import OpenRouterAdapter; print(OpenRouterAdapter().status())"
+# or in the REPL:
+/llm
 ```
-
-That's it — `/online`, `/apistatus`, and everything else in `chat.py` keeps
-working; `/apistatus` will now also want to print `router.status()` if you
-want OpenRouter's per-model health in that view (optional, one extra print
-line where `/apistatus` currently reads `engine._multi.health`).
 
 ## Honesty check on the model list you gave me
 

@@ -707,11 +707,19 @@ def main():
                     print(f"  {BL}Provider:{R} {status.get('default_provider', 'cloud')}")
                     print(f"  {BL}Local first:{R} {status.get('local_first', False)}")
                     print(f"  {BL}Last API:{R} {status.get('last_api') or '-'}")
-                    for key in ("ollama", "vllm", "litellm", "omniroute", "cloud"):
+                    for key in ("openrouter", "ollama", "vllm", "litellm", "llama_cpp", "omniroute", "cloud"):
                         info = status.get(key, {})
                         if isinstance(info, dict):
                             avail = info.get("available", info.get("enabled", info.get("groq", "?")))
-                            print(f"  {GO}{key}{R}: available={avail}")
+                            print(f"  {GO}{key}{R}: available={avail}", end="")
+                            if key == "openrouter":
+                                hint = info.get("setup_hint")
+                                tiers = info.get("tiers") or []
+                                if tiers:
+                                    print(f"  tiers={','.join(tiers[:6])}{'…' if len(tiers)>6 else ''}", end="")
+                                if hint:
+                                    print(f"\n    {GY}{hint}{R}", end="")
+                            print()
                     resilience = status.get("resilience") or {}
                     if resilience:
                         print(

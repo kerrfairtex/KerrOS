@@ -110,9 +110,12 @@ capabilities:
     setup_required: true
     setup_state: "needs_setup"
     metadata:
-      role: "cloud_chain"
-      adapter: "adapters.llm.multi_api_adapter"
-      chain: "multi_api"
+      role: "cloud_chain_first"
+      adapter: "adapters.llm.openrouter_adapter"
+      config: "config/openrouter_tiers.yaml"
+      notes: >
+        Tiered free-first OpenRouter (CompositeLLMAdapter hop before MultiAPI).
+        Set OPENROUTER_API_KEY in ~/offline_ai/.env. Paid models require allow_paid.
 
   - name: "provider:huggingface"
     kind: "provider"

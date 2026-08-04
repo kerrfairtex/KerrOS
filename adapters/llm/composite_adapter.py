@@ -23,6 +23,7 @@ from adapters.llm.resilience import (
 
 _LOCAL_PROVIDERS = ("ollama", "vllm", "local", "litellm", "llama_cpp", "llamacpp", "offline")
 _UNIFIED_PROVIDERS = ("omniroute", "gateway", "unified")
+_CLOUD_LIKE = ("cloud", "openrouter", "multi_api")
 
 
 class CompositeLLMAdapter:
@@ -31,6 +32,7 @@ class CompositeLLMAdapter:
     def __init__(self, resilience: ProviderCircuitRegistry | None = None) -> None:
         cfg = load_config().values
         self._cloud = None
+        self._openrouter = None
         self._omniroute = None
         self._ollama = None
         self._vllm = None
@@ -67,6 +69,19 @@ class CompositeLLMAdapter:
             from adapters.llm.multi_api_adapter import MultiAPIAdapter
             self._cloud = MultiAPIAdapter()
         return self._cloud
+
+    def _get_openrouter(self):
+        if getattr(self, "_openrouter", None) is None:
+            from adapters.llm.openrouter_adapter import OpenRouterAdapter
+            self._openrouter = OpenRouterAdapter()
+        return self._openrouter
+
+    def _cloud_chain(self) -> list[tuple[str, Any]]:
+        """Zero-cost-first: tiered OpenRouter free → MultiAPI keyed chain."""
+        return [
+            ("openrouter", self._get_openrouter()),
+            ("cloud", self._get_cloud()),
+        ]
 
     def _get_ollama(self):
         if self._ollama is None:
@@ -129,17 +144,33 @@ class CompositeLLMAdapter:
                 )
                 continue
             try:
-                if name in _LOCAL_PROVIDERS and not adapter.status().get("available"):
+                st = {}
+                try:
+                    st = adapter.status() or {}
+                except Exception:
+                    st = {}
+                if name in _LOCAL_PROVIDERS and not st.get("available"):
                     self._resilience.record_failure(
                         name, error="provider unavailable", permanent=False
                     )
                     continue
+                # Skip OpenRouter when no key — fall through to MultiAPI / local.
+                if name == "openrouter" and not st.get("available"):
+                    errors.append("openrouter: OPENROUTER_API_KEY not set")
+                    continue
+                call_kwargs = {
+                    k: v for k, v in kwargs.items() if k != "provider_hint"
+                }
+                if name == "openrouter":
+                    # Map task-ish hints; default chat. Never spend unless opted in.
+                    call_kwargs.setdefault("tier", kwargs.get("tier") or "chat")
+                    call_kwargs.setdefault("allow_paid", bool(kwargs.get("allow_paid")))
                 result = adapter.complete(
                     prompt,
                     system=system,
                     history=history,
                     max_tokens=max_tokens,
-                    **{k: v for k, v in kwargs.items() if k != "provider_hint"},
+                    **call_kwargs,
                 )
                 if looks_like_provider_failure(result):
                     self._resilience.record_failure(
@@ -163,20 +194,22 @@ class CompositeLLMAdapter:
 
     def _build_chain(self, provider: str) -> list[tuple[str, Any]]:
         def _unified_chain() -> list[tuple[str, Any]]:
-            return [("omniroute", self._get_omniroute()), ("cloud", self._get_cloud())]
+            return [("omniroute", self._get_omniroute()), *self._cloud_chain()]
 
         if provider in _UNIFIED_PROVIDERS:
             return _unified_chain()
+        if provider == "openrouter":
+            return self._cloud_chain()
         if provider == "ollama":
-            return [("ollama", self._get_ollama()), ("cloud", self._get_cloud())]
+            return [("ollama", self._get_ollama()), *self._cloud_chain()]
         if provider == "vllm":
-            return [("vllm", self._get_vllm()), ("cloud", self._get_cloud())]
+            return [("vllm", self._get_vllm()), *self._cloud_chain()]
         if provider == "litellm":
-            return [("litellm", self._get_litellm()), ("cloud", self._get_cloud())]
+            return [("litellm", self._get_litellm()), *self._cloud_chain()]
         if provider in ("llama_cpp", "llamacpp", "offline"):
             return [
                 ("llama_cpp", self._get_llama_cpp()),
-                ("cloud", self._get_cloud()),
+                *self._cloud_chain(),
             ]
         if self._unified_first:
             return _unified_chain()
@@ -186,9 +219,9 @@ class CompositeLLMAdapter:
                 ("ollama", self._get_ollama()),
                 ("litellm", self._get_litellm()),
                 ("vllm", self._get_vllm()),
-                ("cloud", self._get_cloud()),
+                *self._cloud_chain(),
             ]
-        return [("cloud", self._get_cloud())]
+        return self._cloud_chain()
 
     def status(self) -> dict[str, Any]:
         cloud_status: dict[str, Any] = {}
@@ -196,12 +229,18 @@ class CompositeLLMAdapter:
             cloud_status = self._get_cloud().status()
         except Exception as exc:
             cloud_status = {"error": str(exc)}
+        openrouter_status: dict[str, Any] = {}
+        try:
+            openrouter_status = self._get_openrouter().status()
+        except Exception as exc:
+            openrouter_status = {"error": str(exc)}
         return {
             "default_provider": self._default_provider,
             "local_first": self._local_first,
             "unified_first": self._unified_first,
             "last_api": self._last_api,
             "omniroute": self._get_omniroute().status(),
+            "openrouter": openrouter_status,
             "llama_cpp": self._get_llama_cpp().status(),
             "ollama": self._get_ollama().status(),
             "vllm": self._get_vllm().status(),

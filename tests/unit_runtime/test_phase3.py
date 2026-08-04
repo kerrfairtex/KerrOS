@@ -318,16 +318,22 @@ class CompositeLLMTest(unittest.TestCase):
         self.assertEqual(adapter.last_api_used(), "ollama")
 
     @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_cloud")
+    @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_openrouter")
     @patch("adapters.llm.composite_adapter.CompositeLLMAdapter._get_omniroute")
-    def test_provider_hint_omniroute_falls_back_to_cloud(self, mock_get_omniroute, mock_get_cloud):
+    def test_provider_hint_omniroute_falls_back_to_cloud(
+        self, mock_get_omniroute, mock_get_openrouter, mock_get_cloud
+    ):
         from adapters.llm.composite_adapter import CompositeLLMAdapter
 
         omniroute = MagicMock()
         omniroute.complete.side_effect = RuntimeError("omniroute down")
         omniroute.status.return_value = {"enabled": True}
+        openrouter = MagicMock()
+        openrouter.status.return_value = {"available": False}
         cloud = MagicMock()
         cloud.complete.return_value = "cloud fallback"
         mock_get_omniroute.return_value = omniroute
+        mock_get_openrouter.return_value = openrouter
         mock_get_cloud.return_value = cloud
 
         adapter = CompositeLLMAdapter()
