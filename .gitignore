@@ -60,8 +60,15 @@ data/*.json
 data/rag_store.db
 data/session_fts.db
 data/session_fts.db-*
+data/session_store.db
+data/session_store.db-*
+data/sqlite_db.sqlite
+data/channel_trace.jsonl
 data/tasks/
 data/*.bak
+data/*.db
+data/*.db-*
+data/*.sqlite
 *.crt
 data/decision_log.db
 data/decision_log.db-*
@@ -79,3 +86,20 @@ deploy/omniroute/data/
 deploy/omniroute/.env
 .vercel
 .env*
+
+# Local dumps / editor backups / broken drafts (never commit)
+files.txt
+folders.txt
+*.bak
+*.bak[0-9]
+*.bak[0-9][0-9]
+*.broken
+*.yaml.broken
+*.yml.broken
+task_assistant/*.db
+task_assistant/*.db-*
+
+# Forbidden third-party portal checkouts (never vendor or submodule)
+# Path kept as a hard block so the old Soft-reference checkout cannot return.
+hermes-agent/
+**/hermes-agent/
