@@ -60,6 +60,8 @@ class Generator:
             "--temp",          str(l.temperature),
             "--repeat-penalty", str(l.repeat_penalty),
             "--repeat-last-n", str(l.repeat_last_n),
+            "-no-cnv",
+            "--no-display-prompt",
             "-p",   prompt,
         ]
 

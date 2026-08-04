@@ -1,6 +1,6 @@
 {
   "model_path": "models/qwen0.5b-q4.gguf",
-  "llama_bin": "llama-simple-chat",
+  "llama_bin": "llama-completion",
   "threads": 4,
   "context_size": 4096,
   "max_tokens": 1024,

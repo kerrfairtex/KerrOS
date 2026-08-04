@@ -1,0 +1,154 @@
+# config/openrouter_tiers.yaml
+# ==============================
+# Zero-cost-first model registry for KerrOS.
+#
+# HOW TO READ THIS FILE
+#   id       : exact OpenRouter model slug sent in the API call
+#   free     : true if the id ends in :free (0 cost, rate-limited)
+#   verified : true means I confirmed this exact slug responds via a live
+#              API call. false means unconfirmed - check against
+#              openrouter.ai/models before relying on it.
+#   role     : what this model is for (drives task detection -> tier
+#              selection in core/router.py)
+#
+# NOTE ON THIS FILE'S FORMAT: every explanatory note below is a '#'
+# comment, not a quoted YAML string. This is deliberate - quoted strings
+# with punctuation (semicolons, em-dashes, apostrophes) are what broke on
+# copy/paste into Termux via mobile-keyboard smart-quote substitution.
+# Comments have no quote-balancing requirement, so they can't break this
+# way. If you ever add a new note, keep it as a '#' line, not a quoted
+# value.
+#
+# COST RULE: the router only calls a `free: false` model if allow_paid=True
+# is explicitly passed in. Default is always free-only.
+#
+# RATE LIMITS (OpenRouter, mid-2026, confirmed via search, applies to
+# every :free id below):
+#   20 requests/minute (hard cap, does not change with credits)
+#   50 requests/day    (unfunded account)
+#   1000 requests/day  (after a one-time $10+ credit purchase, permanent)
+
+endpoint: https://openrouter.ai/api/v1/chat/completions
+# auth is read from the OPENROUTER_API_KEY env var by the adapter directly -
+# this file does not need to spell out the header format.
+
+tiers:
+
+  # ── Context / retrieval layer — powers core/context_builder.py ──────
+  embed:
+    - id: nvidia/nemotron-3-embed-1b:free
+      free: true
+      verified: false
+      role: embedding
+
+  rerank:
+    - id: nvidia/llama-nemotron-rerank-vl-1b-v2:free
+      free: true
+      verified: false
+      role: rerank
+    - id: nvidia/llama-nemotron-embed-vl-1b-v2:free
+      free: true
+      verified: false
+      role: rerank_fallback
+
+  # ── Coding tier ──────────────────────────────────────────────────────
+  coding:
+    - id: cohere/north-mini-code:free
+      free: true
+      verified: false
+      role: primary
+    # Pareto Code Router: seen in your account, not in OpenRouter public
+    # docs. Confirm pricing/behavior on its model page before trusting it.
+    - id: openrouter/pareto-code-router
+      free: true
+      verified: false
+      role: fallback
+    - id: openai/gpt-oss-20b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Reasoning / analysis tier ────────────────────────────────────────
+  reasoning:
+    - id: poolside/s2.1-pro:free
+      free: true
+      verified: false
+      role: primary
+    - id: nvidia/nemotron-3-ultra:free
+      free: true
+      verified: false
+      role: fallback
+    - id: nvidia/nemotron-3-super:free
+      free: true
+      verified: false
+      role: fallback
+    - id: google/gemma-4-31b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Fast / chat tier ──────────────────────────────────────────────────
+  chat:
+    - id: inclusionai/ling-3.0-flash:free
+      free: true
+      verified: true
+      # confirmed live 2026-08-01: returned a valid completion via curl
+      role: primary
+    - id: poolside/laguna-xs-2.1:free
+      free: true
+      verified: false
+      role: fallback
+    - id: nvidia/nemotron-3-nano-30b-a3b:free
+      free: true
+      verified: false
+      role: fallback
+    - id: google/gemma-4-26b-a4b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Research / long-context tier ────────────────────────────────────
+  research:
+    - id: poolside/laguna-s2.1:free
+      free: true
+      verified: false
+      role: primary
+    - id: nvidia/nemotron-3-ultra:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Vision / multimodal ──────────────────────────────────────────────
+  vision:
+    - id: nvidia/nemotron-nano-12b-v2-vl
+      free: true
+      verified: false
+      role: primary
+
+  # ── Content safety / moderation ──────────────────────────────────────
+  safety:
+    - id: nvidia/nemotron-3.5-content-safety
+      free: true
+      verified: false
+      role: primary
+
+  # ── Catch-all — last resort before LiteLLM/local ─────────────────────
+  auto:
+    # openrouter/auto is a documented OpenRouter feature. It picks a model
+    # for you, so it is a fallback of last resort, not a first choice -
+    # you lose control over which specific model actually answers.
+    - id: openrouter/auto
+      free: true
+      verified: false
+      role: catch_all
+
+  # ── Explicitly paid — never called unless allow_paid=True ────────────
+  paid:
+    # Only worth calling once every free tier above is rate-limited or
+    # dead, and the task quality genuinely justifies real spend.
+    - id: google/gemini-3.5-flash-lite
+      free: false
+      verified: false
+      role: opt_in_only
+
+

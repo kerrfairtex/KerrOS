@@ -1,0 +1,9 @@
+{
+  "timezone": "Asia/Manila",
+  "reply_style": "concise, bullet points over long paragraphs",
+  "signature": "",
+  "never_auto_send": true,
+  "daily_digest_time": "08:00",
+  "priority_contacts": [],
+  "notes": "Edit this file directly. The planner reads it before every draft — nothing here executes anything, it only shapes how drafts are written."
+}

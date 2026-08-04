@@ -53,7 +53,7 @@ class LLMEngine:
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"[engine] {provider_name} failed: {e}", file=__import__("sys").stderr)
+#              print(f"[engine] {provider_name} failed: {e}", file=__import__("sys").stderr)
             return None
 
     def _call_anthropic(self, messages):
@@ -82,7 +82,7 @@ class LLMEngine:
             resp.raise_for_status()
             return resp.json()["content"][0]["text"]
         except Exception as e:
-            print(f"[engine] anthropic failed: {e}", file=__import__("sys").stderr)
+#              print(f"[engine] anthropic failed: {e}", file=__import__("sys").stderr)
             return None
 
     def _call_cloud_provider(self, provider_name, messages):

@@ -1,0 +1,142 @@
+# config/openrouter_tiers.yaml
+# ==============================
+# Zero-cost-first model registry for KerrOS.
+#
+# HOW TO READ THIS FILE
+#   - `id`        : the exact OpenRouter model slug to send in the API call.
+#   - `free`       : true if the id ends in :free (0 cost, rate-limited, can
+#                    rotate out without notice per OpenRouter's own docs).
+#   - `verified`   : false means I could not confirm this exact slug string
+#                    independently — check it against openrouter.ai/models
+#                    before relying on it in production. Wrong slug = 400
+#                    error, not silent failure, so this is safe to leave in
+#                    and let the adapter's dead-model tracking catch it.
+#   - `role`       : what this model is for in the router (drives task
+#                    detection -> tier selection in core/router.py).
+#
+# COST RULE: the router only ever calls a `free: false` model if
+# allow_paid=True is explicitly passed in. Default is always free-only.
+#
+# RATE LIMITS (OpenRouter, mid-2026, applies to every :free id below):
+#   20 requests/minute (hard cap, does not change with credits)
+#   50 requests/day    (unfunded account)
+#   1000 requests/day  (after a one-time $10+ credit purchase, permanent)
+# The adapter enforces the 20/min cap locally so you get a clean local
+# backoff instead of burning a request on a 429.
+
+endpoint: https://openrouter.ai/api/v1/chat/completions
+auth_header: "Authorization: Bearer ${OPENROUTER_API_KEY}"
+
+tiers:
+
+  # ── Context / retrieval layer — powers core/context_builder.py ──────
+  embed:
+    - id: nvidia/nemotron-3-embed-1b:free
+      free: true
+      verified: false
+      role: embedding
+
+  rerank:
+    - id: nvidia/llama-nemotron-rerank-vl-1b-v2:free
+      free: true
+      verified: false
+      role: rerank
+    - id: nvidia/llama-nemotron-embed-vl-1b-v2:free
+      free: true
+      verified: false
+      role: rerank_fallback   # embed model doubling as similarity fallback
+
+  # ── Coding tier — tried in order for detect_task()=="coding"/"math" ──
+  coding:
+    - id: cohere/north-mini-code:free
+      free: true
+      verified: false
+      role: primary
+    - id: openrouter/pareto-code-router
+      free: true
+      verified: false
+      role: fallback
+      note: "Beta meta-router seen in your account list; behavior/cost not publicly documented — confirm pricing tab before relying on it."
+    - id: openai/gpt-oss-20b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Reasoning / analysis tier — deep-analysis, multi-step, "should I" ─
+  reasoning:
+    - id: poolside/s2.1-pro:free
+      free: true
+      verified: false
+      role: primary
+    - id: nvidia/nemotron-3-ultra:free
+      free: true
+      verified: false
+      role: fallback
+    - id: nvidia/nemotron-3-super:free
+      free: true
+      verified: false
+      role: fallback
+    - id: google/gemma-4-31b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Fast / chat tier — short turns, low latency ──────────────────────
+  chat:
+    - id: inclusionai/ling-3.0-flash:free
+      free: true
+      verified: false
+      role: primary
+    - id: poolside/laguna-xs-2.1:free
+      free: true
+      verified: false
+      role: fallback
+    - id: nvidia/nemotron-3-nano-30b-a3b:free
+      free: true
+      verified: false
+      role: fallback
+    - id: google/gemma-4-26b-a4b:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Research / long-context tier ─────────────────────────────────────
+  research:
+    - id: poolside/laguna-s2.1:free
+      free: true
+      verified: false
+      role: primary
+    - id: nvidia/nemotron-3-ultra:free
+      free: true
+      verified: false
+      role: fallback
+
+  # ── Vision / multimodal ───────────────────────────────────────────────
+  vision:
+    - id: nvidia/nemotron-nano-12b-v2-vl
+      free: true
+      verified: false
+      role: primary
+
+  # ── Content safety / moderation (pre-filter before local tools run) ──
+  safety:
+    - id: nvidia/nemotron-3.5-content-safety
+      free: true
+      verified: false
+      role: primary
+
+  # ── Catch-all — last resort before falling back to LiteLLM/local ─────
+  auto:
+    - id: openrouter/auto
+      free: true
+      verified: false
+      role: catch_all
+      note: "Documented OpenRouter feature (auto-router). Picks a model for you — useful as final free-tier resort, not first choice, since you lose control over which model ru>
+
+  # ── Explicitly paid — NEVER called unless allow_paid=True ────────────
+  paid:
+    - id: google/gemini-3.5-flash-lite
+      free: false
+      verified: false
+      role: opt_in_only
+      note: "Only worth using when every free tier above is rate-limited/dead AND task quality justifies real spend."

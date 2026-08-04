@@ -1,0 +1,94 @@
+{
+  "demo.assert": {
+    "description": "YAML demo with assert_eq",
+    "name": "demo.assert",
+    "steps": [
+      {
+        "action": "set",
+        "depends_on": [],
+        "description": "",
+        "id": "answer"
+      },
+      {
+        "action": "assert_eq",
+        "depends_on": [
+          "answer"
+        ],
+        "description": "",
+        "id": "check"
+      }
+    ],
+    "updated_at": 1785411244.6425881
+  },
+  "demo.hello": {
+    "description": "YAML demo \u2014 set \u2192 template \u2192 publish",
+    "name": "demo.hello",
+    "steps": [
+      {
+        "action": "set",
+        "depends_on": [],
+        "description": "Constant greeting",
+        "id": "greet"
+      },
+      {
+        "action": "template",
+        "depends_on": [
+          "greet"
+        ],
+        "description": "",
+        "id": "shout"
+      },
+      {
+        "action": "publish",
+        "depends_on": [
+          "shout"
+        ],
+        "description": "",
+        "id": "notify"
+      }
+    ],
+    "updated_at": 1785411244.6506798
+  },
+  "demo.llm_echo": {
+    "description": "YAML llm action \u2014 prompt templating (run when LLM is configured)",
+    "name": "demo.llm_echo",
+    "steps": [
+      {
+        "action": "set",
+        "depends_on": [],
+        "description": "",
+        "id": "topic"
+      },
+      {
+        "action": "llm",
+        "depends_on": [
+          "topic"
+        ],
+        "description": "",
+        "id": "answer"
+      }
+    ],
+    "updated_at": 1785411244.6571918
+  },
+  "demo.tool_calc": {
+    "description": "YAML tool action \u2014 calc via scope-gated dispatch",
+    "name": "demo.tool_calc",
+    "steps": [
+      {
+        "action": "set",
+        "depends_on": [],
+        "description": "",
+        "id": "expr"
+      },
+      {
+        "action": "tool",
+        "depends_on": [
+          "expr"
+        ],
+        "description": "",
+        "id": "result"
+      }
+    ],
+    "updated_at": 1785411244.662962
+  }
+}

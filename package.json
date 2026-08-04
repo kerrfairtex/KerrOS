@@ -2,6 +2,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "^2.0.15",
     "@supabase/mcp-server-supabase": "^0.9.0",
+    "@supabase/server": "^1.4.1",
     "ai": "^7.0.31"
   }
 }

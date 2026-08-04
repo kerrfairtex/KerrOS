@@ -1,0 +1,13 @@
+services:
+  kerros:
+    build: .
+    container_name: kerros
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./knowledge:/app/knowledge
+      - ./memory:/app/memory
+      - ./data:/app/data
+    stdin_open: true   # needed if chat.py is interactive CLI
+    tty: true

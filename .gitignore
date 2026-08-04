@@ -77,3 +77,5 @@ data/workflows/*.db-*
 data/event_mesh/
 deploy/omniroute/data/
 deploy/omniroute/.env
+.vercel
+.env*

@@ -13,16 +13,16 @@ class AdaptiveEngine:
     def __init__(self):
         self.c = cfg()
         self.mode = "offline"
-        self._llm_port = None
+        self._router = None
         self._offline = None
 
     def init_online(self):
         try:
-            from kernel.access import get_llm_port
-            self._llm_port = get_llm_port()
-            test = self._llm_port.complete("hi", max_tokens=5)
-            if not test or "All APIs failed" in test:
-                return False, "All APIs failed"
+            from core.router import Router
+            self._router = Router()
+            test = self._router.generate("hi", max_tokens=5)
+            if not test or test.startswith("[router]"):
+                return False, test or "router returned nothing"
             self.mode = "online"
             return True, "online"
         except Exception as e:
@@ -49,12 +49,14 @@ class AdaptiveEngine:
             raise
 
     def _online_generate(self, user_message, system, history, stream):
-        from kernel.access import get_llm_port
+        # NOTE: Router.generate() is non-streaming today (OpenRouterAdapter
+        # doesn't do SSE yet). `stream` is accepted for signature compat but
+        # ignored here — the reply prints all at once instead of token-by-token.
+        if not self._router:
+            from core.router import Router
+            self._router = Router()
 
-        if not self._llm_port:
-            self._llm_port = get_llm_port()
-
-        # Filter corrupted history
+        # Same corrupted-history filter as before
         bad = ["[Online error","<|im_start|>","[Tool output]",
                "User: ","Assistant: ","Analyze the tool output"]
         clean_hist = []
@@ -66,16 +68,14 @@ class AdaptiveEngine:
             if any(b in content for b in bad): continue
             clean_hist.append({"role": role, "content": content})
 
-        result = self._llm_port.complete(
+        result = self._router.generate(
             user_message,
             system=system,
             history=clean_hist,
-            max_tokens=4096  # online models handle long answers natively, no RAM ceiling like offline
+            max_tokens=4096,
         )
-        # Show which API was used
-        last_api = self._llm_port.last_api_used()
-        if last_api:
-            print(f"  \033[90m[{last_api}]\033[0m", end=" ", flush=True)
+        if self._router.last_provider:
+            print(f"  \033[90m[{self._router.last_provider}]\033[0m", end=" ", flush=True)
         return result
 
     def _offline_generate(self, user_message, system, history, stream):
