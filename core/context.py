@@ -57,6 +57,25 @@ def build_chat(user_input, tool_result=None, domain=None):
     except Exception:
         pass
 
+    # ADR-106: inject attached agent-memory stores (Scout prefs, team, org)
+    agent_mem_str = ""
+    try:
+        from memory.unified_store import is_enabled, snapshot_for_prompt, current_session_id
+        from memory.profile_store import get_profile_store
+
+        if is_enabled():
+            snap = snapshot_for_prompt(current_session_id())
+            if snap:
+                agent_mem_str = f"\n{snap}\n"
+            try:
+                ps = get_profile_store().snapshot_text()
+                if ps:
+                    agent_mem_str += f"\n{ps}\n"
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     # Inject relevant RAG knowledge (skills, docs) based on user query
     rag_str = ""
     try:
@@ -118,6 +137,6 @@ def build_chat(user_input, tool_result=None, domain=None):
     else:
         system_base = SYSTEM_PROMPT
 
-    system = system_base + profile_str + semantic_str + rag_str
+    system = system_base + profile_str + semantic_str + agent_mem_str + rag_str
     user = f"{domain_str}{tool_str}{user_input}"
     return system, user

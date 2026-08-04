@@ -163,6 +163,13 @@ def load_config(*, base: Path | None = None) -> KernelConfig:
             "servers": [],
         },
         "profile_memory": {"enabled": True},
+        # ADR-106: unified multi-agent / Scout memory — ON by default.
+        "kerros_memory": {
+            "enabled": True,
+            "dreaming": {"enabled": False},
+            "default_stores": ["org", "team", "scout"],
+            "inject_prompt": True,
+        },
         "context_compress": {"llm": False},
         "gateway": {
             "enabled": False,

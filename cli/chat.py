@@ -345,7 +345,9 @@ def main():
                 ("/recall [keyword]",  "Search past sessions"),
                 ("/clear",             "Summarize + clear session"),
                 ("/history",           "Show conversation history"),
-                ("/memory",            "Show user profile"),
+                ("/memory",            "Profile + Scout/agent memory (ADR-106)"),
+                ("kerros memory …",    "Unified stores: status|read|write|dream|export"),
+                ("memory graph …",     "Entity graph (add|link|query|neighbors)"),
                 ("/tools",             "List all tools"),
                 ("/read <path>",       "Read a workspace file (claw)"),
                 ("/write <p> :: <txt>", "Write a workspace file (claw)"),
@@ -419,12 +421,38 @@ def main():
                 else:
                     print(f"  {RE}[resume] {out.get('error') or 'failed'}{R}")
 
-        elif user=="/memory":
+        elif user=="/memory" or user.startswith("/memory "):
             divider()
             p=get_profile()
             if p:
                 print(f"  {GO}Profile:{R}")
                 for k,v in p.items(): print(f"  {BL}{k:<20}{R} {v}")
+            try:
+                from memory.manage import status as mem_status
+                from memory.unified_store import snapshot_for_prompt, current_session_id
+
+                st = mem_status()
+                print(f"\n  {GO}KerrOS agent memory:{R} {'ON' if st.get('enabled') else 'OFF'}")
+                for s in st.get("stores") or []:
+                    print(
+                        f"  {BL}{s.get('name'):<10}{R} "
+                        f"{GY}{s.get('default_access')} · {s.get('file_count', 0)} files"
+                        f"{' · RO' if s.get('readonly') else ''}{R}"
+                    )
+                snap = snapshot_for_prompt(current_session_id(), budget=1200)
+                if snap:
+                    print(f"\n  {GO}Attached snapshot:{R}")
+                    for line in snap.splitlines()[:40]:
+                        print(f"  {line}")
+            except Exception as e:
+                print(f"  {GY}[agent memory: {e}]{R}")
+            arg = user[len("/memory"):].strip()
+            if arg:
+                try:
+                    from memory.kerros_memory import kerros_memory
+                    print(kerros_memory(arg))
+                except Exception as e:
+                    print(f"  {RE}[kerros memory] {e}{R}")
             try:
                 from memory.semantic import get_all
                 sem=get_all()

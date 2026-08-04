@@ -166,3 +166,25 @@ capabilities:
       module: "tools.claw_tools"
       role: "skills"
       notes: "Create, update, or delete a skill."
+
+  - name: "tool:kerros_memory"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "memory.kerros_memory"
+      role: "agent_memory"
+      notes: "ADR-106 unified multi-agent / Scout memory (ON by default)."
+
+  - name: "tool:memory_graph"
+    kind: "tool"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "tools.memory_graph"
+      role: "agent_memory"
+      notes: "ADR-106 entity graph; pairs with bash for tool memory."

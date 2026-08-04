@@ -61,6 +61,7 @@ data/rag_store.db
 data/session_fts.db
 data/session_fts.db-*
 data/tasks/
+data/agent_memory/
 data/*.bak
 *.crt
 data/decision_log.db

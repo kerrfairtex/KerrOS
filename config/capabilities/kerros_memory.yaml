@@ -1,0 +1,18 @@
+version: 1
+capabilities:
+  - name: "memory:kerros"
+    kind: "service"
+    permissions: ["standard"]
+    dependencies: []
+    setup_required: false
+    setup_state: "ready"
+    metadata:
+      module: "memory.unified_store"
+      role: "unified_multi_agent_memory"
+      enabled_by_default: true
+      stores: ["org", "team", "scout"]
+      notes: >
+        ADR-106 KerrOS agent memory ON by default. File-backed stores with
+        attach scopes, content_sha256 optimistic concurrency, versioning,
+        dreaming Soft batch, and portable export/import. Separate from RAG
+        MemoryPort (docs/MEMORY_SEPARATION.md).
