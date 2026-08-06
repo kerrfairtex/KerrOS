@@ -31,6 +31,13 @@ python3 -m unittest discover -s tests -p 'test_*.py' -t .
 Install core deps first if needed: `pip install -r requirements.txt`.
 CI runs the same command via `.github/workflows/tests.yml`.
 
+### Brand / naming sanitation
+Re-implement capabilities natively in KerrOS. Do **not** name competing
+third-party agent portals (or their org/product/repo strings) in KerrOS code,
+docs, env vars, filenames, comments, or git submodules. Keep the angel + sword
+brand. Never commit local dumps (`files.txt`, `folders.txt`), `*.bak*`, runtime
+`*.db`, or third-party checkouts.
+
 ### Lint
 No linter is configured in the repo. For a quick syntax/import sanity check use
 `python3 -m py_compile <files>`.
