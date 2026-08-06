@@ -33,6 +33,11 @@ class ClawCliTest(unittest.TestCase):
         self.assertEqual(name, "exec")
         self.assertEqual(args["command"], "echo hi")
 
+    def test_detect_code_rag_status_retrieves(self):
+        name, args = detect_claw_tool("/code-rag status")
+        self.assertEqual(name, "code_rag_retrieve")
+        self.assertEqual(args["query"], "status")
+
     def test_detect_tool_json(self):
         name, args = detect_claw_tool('/tool write {"path":"a.txt","content":"x"}')
         self.assertEqual(name, "write")

@@ -196,7 +196,14 @@ def scan_repository(
                     continue
             except OSError:
                 continue
-            sha = file_sha(path)
+            old = prev_map.get(rel)
+            old_mtime = old.get("mtime") if isinstance(old, dict) else None
+            old_size = old.get("size") if isinstance(old, dict) else None
+            old_sha = old.get("sha256") if isinstance(old, dict) else None
+            if old_sha and old_mtime == st.st_mtime and old_size == st.st_size:
+                sha = str(old_sha)
+            else:
+                sha = file_sha(path)
             found[rel] = {
                 "path": rel,
                 "mtime": st.st_mtime,

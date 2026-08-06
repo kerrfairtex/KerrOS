@@ -5,9 +5,11 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from adapters.code_rag.extract import extract_file
 from adapters.code_rag.pipeline import CodeRagAdapter
+from adapters.code_rag.scanner import scan_repository
 from adapters.code_rag.retrieve import detect_intent
 
 
@@ -97,7 +99,6 @@ class CodeRagPipelineTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "m.py").write_text("def alpha():\n    return 2\n", encoding="utf-8")
-            from unittest.mock import patch
             from tools import claw_tools
 
             with patch("tools.claw_tools.get_workspace", return_value=root):
@@ -109,6 +110,27 @@ class CodeRagPipelineTest(unittest.TestCase):
                 ask = claw_tools.code_rag_ask("explain alpha")
                 self.assertTrue(ask.ok)
                 self.assertIn("citations=", ask.output)
+
+    def test_build_rejects_root_escape(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rag = CodeRagAdapter(
+                {"code_rag": {"enabled": True, "path": str(root / ".code_rag")}},
+                workspace=root,
+            )
+            out = rag.build(root="../outside")
+            self.assertFalse(out["ok"])
+            self.assertEqual(out["error"], "root escapes workspace")
+
+    def test_scan_reuses_sha_for_unchanged_files(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "same.py").write_text("def same():\n    return 1\n", encoding="utf-8")
+            first = scan_repository(root)
+            with patch("adapters.code_rag.scanner.file_sha", side_effect=RuntimeError("unexpected hash")):
+                second = scan_repository(root, previous=first)
+            self.assertEqual(second["changed"], [])
+            self.assertEqual(second["unchanged"], ["same.py"])
 
 
 if __name__ == "__main__":

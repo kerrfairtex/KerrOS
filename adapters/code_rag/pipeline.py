@@ -103,7 +103,14 @@ class CodeRagAdapter:
     def build(self, root: str | None = None, *, full: bool = False) -> dict[str, Any]:
         """Scan → extract → index. Incremental unless full=True."""
         t0 = time.time()
-        ws = Path(root).resolve() if root else self.workspace
+        ws = self.workspace
+        if root:
+            candidate = (self.workspace / root).resolve()
+            try:
+                candidate.relative_to(self.workspace)
+            except ValueError:
+                return {"ok": False, "error": "root escapes workspace"}
+            ws = candidate
         prev = {} if full else self.indexes.load_manifest()
         scan = scan_repository(ws, previous=prev, extensions=CODE_EXTS | {".md", ".rst", ".toml", ".yaml", ".yml"})
         # remove deleted

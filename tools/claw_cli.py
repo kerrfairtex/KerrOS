@@ -115,11 +115,11 @@ def detect_claw_tool(text: str) -> tuple[str | None, dict[str, Any] | None]:
     return ("code_search", {"pattern": pattern}) if pattern else (None, None)
 
   if raw.startswith("/code-rag"):
-    # /code-rag [build|full|status] [root]
+    # /code-rag [build|full] [root]
     # /code-rag ask <query>
     # /code-rag <query>  → retrieve
     body = raw[len("/code-rag") :].strip()
-    if not body or body.split()[0] in ("build", "status"):
+    if not body or body.split()[0] == "build":
       args: dict[str, Any] = {}
       parts = body.split()
       if parts and parts[0] == "build":

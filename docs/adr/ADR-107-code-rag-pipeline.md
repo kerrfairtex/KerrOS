@@ -26,7 +26,7 @@ MemoryPort / OmniRoute ([MEMORY_SEPARATION](../MEMORY_SEPARATION.md)).
    - **Retriever** — hybrid (FTS + symbols + graph neighbors) + Soft rerank
    - **Context builder** — token budget, dedupe, file:line citations
    - **LLM** — optional enrich via existing LiteLLM / LLMPort (Soft)
-3. Register **`code_rag_port`**; claw `/code-rag`, `/code-ask`.
+3. Register **`code_rag_port`**; claw `/code-rag` (`build`, `full`, `ask`, `ask-llm`).
 4. **Do not** ingest into `rag/store.py` / MemoryPort. ADR-052 remains the
    lightweight symbol/rg surface; ADR-107 is the fuller pipeline Soft.
 
