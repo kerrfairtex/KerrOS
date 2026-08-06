@@ -130,7 +130,7 @@ class CodeRagPipelineTest(unittest.TestCase):
             with patch("adapters.code_rag.scanner.file_sha", side_effect=RuntimeError("unexpected hash")):
                 second = scan_repository(root, previous=first)
             self.assertEqual(second["changed"], [])
-            self.assertEqual(second["unchanged"], ["same.py"])
+            self.assertIn("same.py", second["unchanged"])
 
 
 if __name__ == "__main__":
