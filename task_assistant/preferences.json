@@ -1,9 +1,10 @@
 {
   "timezone": "Asia/Manila",
+  "locale": "Barili, Cebu, Philippines",
   "reply_style": "concise, bullet points over long paragraphs",
-  "signature": "",
+  "signature": "Mahesh",
   "never_auto_send": true,
   "daily_digest_time": "08:00",
-  "priority_contacts": [],
-  "notes": "Edit this file directly. The planner reads it before every draft — nothing here executes anything, it only shapes how drafts are written."
+  "priority_contacts": ["Robert@", "Rodulfo@", "Orlando@", "Deter@"],
+  "notes": "Mirrored into KerrOS scout store (ADR-106). Never auto-send drafts — always ask first."
 }

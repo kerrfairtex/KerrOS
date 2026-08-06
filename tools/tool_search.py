@@ -20,6 +20,7 @@ ALWAYS_EAGER = frozenset({
     "calc", "sysinfo", "file_read", "bash",
     "skills_list", "skill_view", "skill_manage",
     "search_past_sessions", "profile_memory",
+    "kerros_memory", "memory_graph",
     "tool_search", "tool_describe", "tool_exec_by_name",
     "delegate_task", "execute_pipeline",
 })

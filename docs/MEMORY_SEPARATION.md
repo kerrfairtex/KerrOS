@@ -7,6 +7,7 @@
 |--------|-------|-----|
 | **KerrOS RAG** | `{KERROS_BASE}/data/rag_store.db` (SQLite FTS5) | Cyber knowledge retrieval for agents (`agent:knowledge`, MemoryPort) |
 | **KerrOS chat memory** | `data/memory.json`, `data/profile.json`, `data/semantic.json`, `data/episodic.json` | Session / profile / learned facts |
+| **KerrOS agent memory (ADR-106)** | `data/agent_memory/stores/{org,team,scout}/` | Multi-agent Scout/team/org stores (ON by default); not RAG |
 | **KerrOS vectors (optional)** | Qdrant collection `kerros_memory` | Hybrid recall beside KerrOS FTS — never OmniRoute collections |
 | **OmniRoute** | Docker volume `kerros-omniroute-data` → container `/app/data` (`DATA_DIR`) | Gateway routing, provider catalog, OmniRoute's own memory |
 

@@ -9,12 +9,20 @@ def init_session():
     """Call on startup to reset in-memory session. Does not wipe memory.json."""
     global _short
     _short = []
+    sid = None
     try:
         from memory.session_store import start_session
         from core.session_hooks import emit_session_hook
 
         sid = start_session()
         emit_session_hook("session_start", {"session_id": sid})
+    except Exception:
+        pass
+    # ADR-106: KerrOS memory ON by default — seed Scout/org/team + attach.
+    try:
+        from memory.unified_store import bootstrap_session
+
+        bootstrap_session(sid or "", agent="kerros")
     except Exception:
         pass
 

@@ -278,6 +278,16 @@ def detect_tool(text, bypass_gate=False):
     if lower.startswith("profile memory ") or lower.startswith("/profile-memory "):
         body = text.split(" ", 2)[-1] if lower.startswith("/profile-memory ") else text[len("profile memory "):]
         return ("profile_memory", body)
+    if lower.startswith("kerros memory ") or lower.startswith("/kerros-memory "):
+        body = text.split(" ", 2)[-1] if lower.startswith("/kerros-memory ") else text[len("kerros memory "):]
+        return ("kerros_memory", body)
+    if lower in ("kerros memory", "/kerros-memory", "/memory-store"):
+        return ("kerros_memory", "status")
+    if lower.startswith("memory graph ") or lower.startswith("/memory-graph "):
+        body = text.split(" ", 2)[-1] if lower.startswith("/memory-graph ") else text[len("memory graph "):]
+        return ("memory_graph", body)
+    if lower in ("memory graph", "/memory-graph"):
+        return ("memory_graph", "query")
     if lower.startswith("tool search ") or lower.startswith("/tool-search "):
         q = text.split(" ", 2)[-1] if lower.startswith("/tool-search ") else text[len("tool search "):]
         return ("tool_search", q)
@@ -383,6 +393,8 @@ def run_tool(tool, args):
         "skills_curate": _skills_curate,
         "delegate_task": _delegate_task,
         "profile_memory": _profile_memory,
+        "kerros_memory": _kerros_memory,
+        "memory_graph": _memory_graph,
         "tool_search": _tool_search,
         "tool_describe": _tool_describe,
         "agent_cron": _agent_cron,
@@ -1390,6 +1402,20 @@ def _profile_memory(raw):
     content = parts[2] if len(parts) > 2 else ""
     old = parts[3] if len(parts) > 3 else ""
     return profile_memory(action, target, content, old)
+
+
+def _kerros_memory(raw):
+    """Unified multi-agent / Scout memory (ADR-106)."""
+    from memory.kerros_memory import kerros_memory
+
+    return kerros_memory(str(raw or "status"))
+
+
+def _memory_graph(raw):
+    """Memory graph tool — entities + relations (ADR-106); pairs with bash."""
+    from tools.memory_graph import memory_graph
+
+    return memory_graph(str(raw or "query"))
 
 
 def _tool_search(raw):
