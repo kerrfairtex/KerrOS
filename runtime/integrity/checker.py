@@ -9,7 +9,7 @@ def verify_system():
 
     missing = []
     for f in required:
-        if not os.path.exists(os.path.expanduser("~/offline_ai/" + f)):
+        if not os.path.exists(os.path.expanduser("" + f)):
             missing.append(f)
 
     return missing

@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 DB_PATH = BASE / "data" / "session_store.db"
 MEM_JSON = BASE / "data" / "memory.json"
 
@@ -253,7 +253,7 @@ def summarize_hits(hits: list[dict[str, Any]], *, engine: Any = None) -> str:
     if engine is None:
         return extractive
     try:
-        from core.complete import generate_complete
+        from kernel.compat import generate_complete
 
         prompt = (
             "Summarize these past-session excerpts in <=6 bullet points. "

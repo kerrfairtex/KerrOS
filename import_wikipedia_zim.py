@@ -2,22 +2,39 @@ import re, sys, sqlite3
 import requests
 from bs4 import BeautifulSoup
 from rag.store import _chunk, _keywords, DB_PATH
+from pathlib import Path
+import os
+from datetime import datetime
+from urllib.request import urlopen
+from urllib.error import URLError
 
-KIWIX_BASE = "http://localhost:8080"
+# Try to connect to kiwix server, but handle gracefully if not available
+KIWIX_BASE = None
+KIWIX_AVAILABLE = True
+try:
+    KIWIX_BASE = "http://localhost:8080"
+    # Test connection
+    with urlopen(KIWIX_BASE, timeout=2):
+        pass
+except Exception as e:
+    KIWIX_AVAILABLE = False
+    print(f"Warning: Kiwix server not available at {KIWIX_BASE}: {e}")
+    print("Wikipedia import will be skipped - knowledge database will remain incomplete")
+
 BOOK = "wikipedia_en_top_nopic_2026-06"
 TARGET_COUNT = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
 BATCH_SIZE = 100
 SOURCE_PREFIX = "Wikipedia"
-
-
+def log_import(message):
+    log_file = Path.home() / "offline_ai" / "wiki_import_log.txt"
+    with open(log_file, "a") as log:
+        log.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [WIKIPEDIA] {message}\n")
 def get_random_article():
     r = requests.get(f"{KIWIX_BASE}/random?content={BOOK}", allow_redirects=False, timeout=10)
     loc = r.headers.get("Location", "")
     if f"/content/{BOOK}/" in loc:
         return loc.split(f"/content/{BOOK}/")[-1]
     return None
-
-
 def fetch_article_text(title):
     url = f"{KIWIX_BASE}/content/{BOOK}/{title}"
     r = requests.get(url, timeout=15)
@@ -37,9 +54,12 @@ def fetch_article_text(title):
     paragraphs = content.find_all("p")
     text = "\n".join(p.get_text(" ", strip=True) for p in paragraphs if p.get_text(strip=True))
     return title.replace("_", " "), text
-
-
 def main():
+    if not KIWIX_AVAILABLE:
+        log_import("Skipped - Kiwix server not available")
+        return
+
+    log_import(f"Starting import of up to {TARGET_COUNT} articles")
     conn = sqlite3.connect(DB_PATH)
 
     existing_sources = set(
@@ -89,6 +109,7 @@ def main():
                 conn.commit()
                 batch = []
             print(f"[Wikipedia] fetched={fetched}/{TARGET_COUNT} added={added} skipped={skipped}")
+            log_import(f"Progress: fetched={fetched}, added={added}, skipped={skipped}")
 
     if batch:
         conn.executemany(
@@ -99,7 +120,6 @@ def main():
 
     conn.close()
     print(f"\nDone. Fetched {fetched} articles, added {added} chunks, skipped {skipped}.")
-
-
+    log_import(f"Completed. Fetched {fetched}, added {added}, skipped {skipped}")
 if __name__ == "__main__":
     main()

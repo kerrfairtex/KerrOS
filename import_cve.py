@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from rag.store import _load, _save, _chunk, _keywords, _category_from_source
 
-ROOT = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/cve/cvelistV5/cves"
+ROOT = os.environ.get('CVE_PATH') or Path.home() / 'offline_ai' / 'data/raw/cve'
 
 # Optional: limit to recent years to start (set to None for full 1999-2026 run)
 YEAR_LIMIT = None  # e.g. set to 2015 to only ingest CVE-2015 onward

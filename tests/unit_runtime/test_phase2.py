@@ -5,10 +5,16 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from runtime.service_bus import ServiceBus
 from runtime.services import ServiceManager, ServiceSpec
 from runtime.health import HealthMonitor
 from kernel.boot import boot, shutdown
+
+
+# Mark IPC worker tests as integration (require special runtime)
+pytestmark = pytest.mark.integration
 
 
 class ServiceBusTest(unittest.TestCase):

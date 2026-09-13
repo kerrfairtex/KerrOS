@@ -7,7 +7,7 @@ Allows KerrOS to remember what happened in past sessions.
 """
 import json, os, datetime
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 EPISODIC_PATH = f"{BASE}/data/episodic.json"
 
 def _episodic_path() -> str:

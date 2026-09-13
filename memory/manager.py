@@ -1,6 +1,6 @@
 import json, os, datetime
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 MEM = f"{BASE}/data/memory.json"
 PROFILE = f"{BASE}/data/profile.json"
 _short = []

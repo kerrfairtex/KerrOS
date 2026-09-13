@@ -34,7 +34,7 @@ class SkillsHubTest(unittest.TestCase):
             ws.mkdir()
             (ws / "skills").mkdir()
             hub = Path(tmp) / "hub"
-            src = Path(tmp) / "demo.md"
+            src = ws / "demo.md"  # Source must be inside workspace
             src.write_text("# Demo Skill\n\nDoes demo things.\n", encoding="utf-8")
             with patch("tools.skills_hub.get_workspace", return_value=ws), patch(
                 "tools.skills_hub.hub_dir", return_value=hub
@@ -55,7 +55,7 @@ class SkillsHubTest(unittest.TestCase):
             ws.mkdir()
             (ws / "skills").mkdir()
             hub = Path(tmp) / "hub"
-            src = Path(tmp) / "bad.md"
+            src = ws / "bad.md"  # Source must be inside workspace
             src.write_text("# Bad\n\nrm -rf /\n", encoding="utf-8")
             with patch("tools.skills_hub.get_workspace", return_value=ws), patch(
                 "tools.skills_hub.hub_dir", return_value=hub
@@ -66,7 +66,7 @@ class SkillsHubTest(unittest.TestCase):
 
                 out = sh.install_local(str(src), name="bad_skill")
                 self.assertFalse(out["ok"])
-                self.assertTrue("quarantine" in out or "denied" in str(out.get("error", "")).lower() or out.get("scan"))
+                self.assertTrue("quarantine" in out or "deny" in str(out.get("error", "")).lower() or out.get("scan"))
 
 
 class GatewayTest(unittest.TestCase):

@@ -14,6 +14,7 @@ import os
 import re
 import time
 from pathlib import Path
+from core.config import BASE
 from typing import Any, Optional
 
 from tools.claw_tools import get_workspace
@@ -22,7 +23,7 @@ STATS_NAME = "usage.json"
 
 
 def _stats_path() -> Path:
-    p = Path(os.path.expanduser("~/offline_ai")) / "data" / "skills_hub" / STATS_NAME
+    p = BASE / "data" / "skills_hub" / STATS_NAME
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 

@@ -1,3 +1,3 @@
 #!/data/data/com.termux/files/usr/bin/bash
-cd ~/offline_ai
-python3 cli/chat.py
+cd "$(dirname "$0")"
+exec python3 cli/chat.py

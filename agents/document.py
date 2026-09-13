@@ -10,14 +10,14 @@ section is short enough to complete cleanly, and sections are stitched
 together at the end into one final document.
 """
 import os, sys, time, re
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+sys.path.insert(0, str(BASE))
 
 from prompts.system import SYSTEM_PROMPT
 
 R="\033[0m"; GO="\033[33m"; GR="\033[92m"; BL="\033[94m"
 CY="\033[96m"; GY="\033[90m"; YL="\033[93m"; RE="\033[91m"
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 OUTPUT_DIR = f"{BASE}/generated_docs"
 
 # Default section templates for common document types

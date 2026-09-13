@@ -78,7 +78,7 @@ def parse_structured_plan(text: str) -> list[dict[str, Any]]:
                 if br._generate_fn:
                     out = br._generate_fn(prompt)
                 else:
-                    from core.complete import generate_complete
+                    from kernel.compat import generate_complete
 
                     out = generate_complete(br._engine, prompt, stream=False)
                 m = re.search(r"\{.*\}", str(out or ""), re.S)

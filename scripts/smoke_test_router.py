@@ -10,7 +10,7 @@ Usage:
     python3 scripts/smoke_test_router.py
 """
 import sys, os
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+sys.path.insert(0, str(BASE))
 
 def check(label, fn):
     try:
@@ -26,7 +26,7 @@ ok = True
 ok &= check("import core.router.Router", lambda: __import__("core.router", fromlist=["Router"]))
 ok &= check("import adapters.llm.openrouter_adapter", lambda: __import__("adapters.llm.openrouter_adapter", fromlist=["OpenRouterAdapter"]))
 ok &= check("import core.context_builder", lambda: __import__("core.context_builder", fromlist=["ContextBuilder"]))
-ok &= check("config/openrouter_tiers.yaml parses", lambda: __import__("yaml").safe_load(open(os.path.expanduser("~/offline_ai/config/openrouter_tiers.yaml"))))
+ok &= check("config/openrouter_tiers.yaml parses", lambda: __import__("yaml").safe_load(open(str(BASE / "config/openrouter_tiers.yaml"))))
 
 def _key_check():
     from adapters.llm.openrouter_adapter import OpenRouterAdapter

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
 class CliUiTest(unittest.TestCase):
@@ -16,8 +16,12 @@ class CliUiTest(unittest.TestCase):
         from cli.ui import TAGLINE
         self.assertIn("SECURE BY DESIGN", TAGLINE)
 
-    def test_welcome_banner_prints(self):
+    @patch("cli.ui.shutil.get_terminal_size")
+    def test_welcome_banner_prints(self, mock_terminal_size):
         from cli.ui import print_welcome_banner
+
+        # Mock terminal size to avoid OSError in headless pytest
+        mock_terminal_size.return_value = MagicMock(columns=120)
 
         with patch("builtins.print") as p:
             print_welcome_banner(
@@ -30,7 +34,8 @@ class CliUiTest(unittest.TestCase):
         self.assertTrue(p.called)
         joined = " ".join(str(c.args[0]) for c in p.call_args_list if c.args)
         self.assertIn("KerrOS", joined)
-        self.assertIn("/help", joined)
+        # The banner prints "Ask anything, or lead with /" not "/help" directly
+        self.assertIn("lead with /", joined)
 
 
 if __name__ == "__main__":

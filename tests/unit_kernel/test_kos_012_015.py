@@ -7,10 +7,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 from kernel.access import detect_tool, get_dispatch_port, memory_query, memory_upsert, run_tool
 from kernel.boot import boot, shutdown
 from rag import store as rag_store
 from runtime.ipc import JsonLineClient, spawn_worker
+
+
+# Mark all IPC tests as integration (require special runtime)
+pytestmark = pytest.mark.integration
 
 
 class IpcTest(unittest.TestCase):

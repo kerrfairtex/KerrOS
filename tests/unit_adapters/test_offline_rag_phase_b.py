@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from adapters.embeddings.resolve import (
     DEFAULT_OFFLINE_EMBED,
     resolve_embedding_dim,
@@ -20,6 +22,15 @@ from adapters.memory.faiss_vector_store import (
     probe_faiss,
 )
 from adapters.memory.hybrid_memory_adapter import HybridMemoryAdapter
+
+
+# Check if FAISS/numpy are available
+try:
+    import faiss
+    import numpy
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
 
 
 class EmbeddingResolveTest(unittest.TestCase):
@@ -55,6 +66,7 @@ class FaissStoreTest(unittest.TestCase):
             self.assertFalse(store.enabled)
             self.assertEqual(store.query("x"), [])
 
+    @pytest.mark.skipif(not FAISS_AVAILABLE, reason="faiss-cpu and numpy not installed")
     def test_numpy_upsert_and_query(self):
         with tempfile.TemporaryDirectory() as td:
             cfg = {

@@ -7,9 +7,10 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+from core.config import BASE
+sys.path.insert(0, str(BASE))
 
-from core.complete import generate_complete
+from kernel.compat import generate_complete
 from tools.code_saver import save_code_blocks
 from agents.code.isolated_executor import get_isolated_executor
 from prompts.system import SYSTEM_PROMPT

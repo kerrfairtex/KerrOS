@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 _lock = threading.RLock()
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 VAULT = BASE / "data" / "channel_secrets.json"
 
 

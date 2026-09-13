@@ -2,7 +2,7 @@ import time, os, json
 from memory.summarizer import summarize_session
 from memory.semantic import extract_and_store, store
 
-LAST_RUN_FILE = os.path.expanduser("~/offline_ai/data/last_learning_run.json")
+LAST_RUN_FILE = str(BASE / "data/last_learning_run.json")
 
 def _should_run_today():
     if not os.path.exists(LAST_RUN_FILE):

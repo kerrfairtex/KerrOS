@@ -2,7 +2,7 @@ import ijson
 import sqlite3
 import os
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 JSON_PATH = f"{BASE}/data/rag_store.json"
 DB_PATH = f"{BASE}/data/rag_store.db"
 

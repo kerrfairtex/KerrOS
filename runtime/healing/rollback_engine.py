@@ -4,7 +4,7 @@ import json
 
 class RollbackEngine:
     def __init__(self, path="runtime/state/snapshot.json"):
-        self.path = os.path.expanduser("~/offline_ai/" + path)
+        self.path = os.path.expanduser("" + path)
 
     def load(self):
         if not os.path.exists(self.path):

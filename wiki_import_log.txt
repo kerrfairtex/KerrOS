@@ -1,0 +1,22 @@
+2026-09-10 23:20:18 [WIKIPEDIA] Skipped - Kiwix server not available
+2026-09-10 23:22:22 [CAPEC] Imported 3 attack patterns
+2026-09-10 23:23:10 [CAPEC] Imported 3 attack patterns
+2026-09-10 23:23:10 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-10 23:28:08 [CAPEC] Imported 3 attack patterns
+2026-09-10 23:28:09 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-10 23:28:10 [WIKIPEDIA] Skipped - Kiwix server not available
+2026-09-11 00:14:48 [CAPEC] Imported 3 attack patterns
+2026-09-11 00:14:48 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 00:20:49 [CAPEC] Imported 3 attack patterns
+2026-09-11 00:22:02 [CAPEC] Imported 3 attack patterns
+2026-09-11 00:22:03 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 00:23:14 [CAPEC] Imported 3 attack patterns
+2026-09-11 00:23:15 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 02:42:17 [CAPEC] Imported 3 attack patterns
+2026-09-11 02:42:17 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 11:20:49 [CAPEC] Imported 3 attack patterns
+2026-09-11 11:20:49 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 11:50:55 [CAPEC] Imported 3 attack patterns
+2026-09-11 11:50:56 [CISA] Imported 2 KEV entries, 2 chunks added
+2026-09-11 12:02:27 [CAPEC] Imported 3 attack patterns
+2026-09-11 12:02:29 [CISA] Imported 2 KEV entries, 2 chunks added

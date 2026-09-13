@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from rag.store import _load, _save, _chunk, _keywords
 
-CWE = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/cwe/cwec_v4.20.xml"
+CWE = os.environ.get('CWE_PATH') or Path.home() / 'offline_ai' / 'data/raw/cwe.xml'
 
 if not CWE.exists():
     raise SystemExit(f"Missing: {CWE}")

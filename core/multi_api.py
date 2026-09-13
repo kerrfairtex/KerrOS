@@ -20,6 +20,7 @@ Provider tiers (Sol/Terra/Luna routing aliases):
 """
 
 import os, requests
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -28,7 +29,7 @@ except ImportError:  # pragma: no cover - optional dependency
         return False
     load_dotenv = _noop_load_dotenv
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 load_dotenv(f"{BASE}/.env")
 
 GROQ_KEY       = os.getenv("GROQ_API_KEY", "")

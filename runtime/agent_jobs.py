@@ -20,7 +20,7 @@ from typing import Any, Optional
 
 from runtime.cron import CronError, _matches as cron_matches, parse_cron
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 JOBS_DIR = BASE / "data" / "agent_cron"
 JOBS_FILE = JOBS_DIR / "jobs.json"
 _lock = threading.RLock()

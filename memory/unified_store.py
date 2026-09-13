@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 ROOT = BASE / "data" / "agent_memory"
 STORES = ROOT / "stores"
 VERSIONS = ROOT / "versions"

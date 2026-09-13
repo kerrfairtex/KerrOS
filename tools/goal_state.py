@@ -29,9 +29,11 @@ import os
 import re
 import time
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-STATE_DIR = os.path.expanduser("~/offline_ai/state")
+BASE = Path(__file__).resolve().parent.parent
+STATE_DIR = str(BASE / "state")
 STATE_FILE = os.path.join(STATE_DIR, "goal_state.json")
 
 

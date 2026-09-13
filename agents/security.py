@@ -4,8 +4,9 @@ Security Agent — runs recon on a target, cross-references findings
 against local CVE/CWE/CISA KEV knowledge, produces a risk summary.
 """
 import re, os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
-from core.complete import generate_complete
+from core.config import BASE
+sys.path.insert(0, str(BASE))
+from kernel.compat import generate_complete
 from kernel.access import run_tool, memory_query, memory_search_exact_id
 from prompts.system import SYSTEM_PROMPT
 

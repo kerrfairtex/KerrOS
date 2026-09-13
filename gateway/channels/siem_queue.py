@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 _lock = threading.RLock()
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 QUEUE_PATH = BASE / "data" / "siem_queue.jsonl"
 
 

@@ -1,21 +1,31 @@
-import subprocess
+"""
+execution/sandbox/process_sandbox.py
+=====================================
+Thin compatibility wrapper around ``execution.executor.SandboxExecutor``.
+
+Prefer ``SandboxExecutor`` directly for new code.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from execution.executor import SandboxExecutor
+
 
 class ProcessSandbox:
-    def run(self, command):
+    def __init__(self, timeout: int = 30, mem_mb: int = 512) -> None:
+        self._executor = SandboxExecutor(timeout=timeout, mem_mb=mem_mb)
+
+    def run(self, command: list[str] | str) -> dict[str, Any]:
+        if isinstance(command, str):
+            command = [command]
         try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=15,
-                text=True
-            )
-
-            return {
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "code": result.returncode
-            }
-
-        except Exception as e:
-            return {"error": str(e)}
+            output = self._executor.run(command)
+            return {"stdout": output, "stderr": "", "code": 0}
+        except ValueError as exc:
+            return {"error": str(exc), "stdout": "", "stderr": "", "code": 2}
+        except RuntimeError as exc:
+            return {"error": str(exc), "stdout": "", "stderr": "", "code": 1}
+        except Exception as exc:
+            return {"error": str(exc), "stdout": "", "stderr": "", "code": 1}

@@ -2,6 +2,7 @@
 import subprocess
 import time
 import os
+from core.config import BASE
 
 class PersistentDaemon:
     def __init__(self):
@@ -10,7 +11,7 @@ class PersistentDaemon:
     def start(self):
         self.process = subprocess.Popen(
             ["python3", "run_daemon.py"],
-            cwd=os.path.expanduser("~/offline_ai")
+            cwd=str(BASE)
         )
 
     def run(self):

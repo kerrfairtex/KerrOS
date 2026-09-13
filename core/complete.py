@@ -9,6 +9,9 @@ where it stopped, looping until the response is actually finished or
 a safety cap is hit.
 """
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 MAX_CONTINUATIONS = 1  # small model reliability drops sharply after 1 continuation; cap here rather than risk repeated restarts
 
@@ -16,7 +19,9 @@ MAX_CONTINUATIONS = 1  # small model reliability drops sharply after 1 continuat
 END_PUNCT = (".", "!", "?", '"', "'", ")", "]", "}", "```", ":", ";")
 
 def looks_truncated(text):
-    """Heuristic: does this look like it was cut off mid-sentence/mid-word?"""
+    """
+    Heuristic: does this look like it was cut off mid-sentence/mid-word?
+    """
     t = text.rstrip()
     if not t:
         return False
@@ -46,6 +51,7 @@ def generate_complete(engine, user_message, system=None, history=None,
     current_history = list(history or [])
 
     for i in range(max_continuations + 1):
+        # Let ValueError bubble up naturally to chat.py
         chunk = engine.generate(
             user_message=current_user_message,
             system=system,
@@ -53,6 +59,8 @@ def generate_complete(engine, user_message, system=None, history=None,
             stream=stream,
         )
         chunk = chunk or ""
+
+        logger.debug(f"generate_complete chunk {i}: {repr(chunk[:120])}")
 
         # Repetition guard: slide a window through the new chunk and check
         # if any sizeable slice of it already exists in what we have so far
@@ -69,6 +77,7 @@ def generate_complete(engine, user_message, system=None, history=None,
                     found_repeat = True
                     break
             if found_repeat:
+                logger.debug(f"generate_complete repeat detected at iteration {i}")
                 break
 
         full_response += chunk
@@ -77,6 +86,7 @@ def generate_complete(engine, user_message, system=None, history=None,
             break
 
         if i == max_continuations:
+            logger.debug(f"generate_complete hit max continuations")
             break  # hit safety cap, stop even if still truncated
 
         current_history = current_history + [
@@ -90,4 +100,6 @@ def generate_complete(engine, user_message, system=None, history=None,
             f"Do NOT restart the explanation. Just continue directly from that point."
         )
 
-    return full_response.strip()
+    result = full_response.strip()
+    logger.debug(f"generate_complete final length: {len(result)}")
+    return result

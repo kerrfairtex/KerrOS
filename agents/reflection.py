@@ -19,8 +19,9 @@ import sys
 import time
 from typing import Any
 
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
-from core.complete import generate_complete
+from core.config import BASE
+sys.path.insert(0, str(BASE))
+from kernel.compat import generate_complete
 
 from prompts.system import SYSTEM_PROMPT
 
@@ -33,7 +34,6 @@ GY = "\033[90m"
 YL = "\033[93m"
 RE = "\033[91m"
 
-BASE = os.path.expanduser("~/offline_ai")
 REFLECTIONS_PATH = f"{BASE}/data/reflections.json"
 
 REFLECT_PROMPT = """You are reviewing recent AI assistant session history to improve future performance.

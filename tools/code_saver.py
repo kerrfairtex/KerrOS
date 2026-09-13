@@ -1,8 +1,9 @@
 import os
 import re
 import subprocess
+from core.config import BASE
 
-SAVE_DIR = os.path.expanduser("~/offline_ai/generated_code")
+SAVE_DIR = str(BASE / "generated_code")
 
 TREE_CHARS = set("├└│─")
 ASCII_TREE_MARKERS = ("|--", "|-", "`--", "+--")

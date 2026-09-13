@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 DB_PATH = BASE / "data" / "session_fts.db"
 MEM_JSON = BASE / "data" / "memory.json"
 

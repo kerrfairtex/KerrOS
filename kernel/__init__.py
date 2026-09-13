@@ -1,92 +1,31 @@
 """
-kernel package — P0 KerrOS kernel foundation.
+kernel/__init__.py
+==================
+Public facade for the bootstrap/config layer.
 
-Public surface:
-    from kernel import boot, get_kernel, resolve, KernelConfig
-    from kernel.contract import BootPhase, SERVICE_*
+Preferred import style:
+    from kernel import get_kernel, resolve
+    from kernel import load_config
+    from kernel import memory_query, memory_search_by_category
 """
 
-from kernel.boot import boot, get_kernel, resolve, shutdown
-from kernel.config import KernelConfig, load_config, reload_config
-from kernel.container import Container
-from kernel.contract import (
-    BootPhase,
-    KernelBootError,
-    KernelError,
-    KernelNotReadyError,
-    SERVICE_CONFIG,
-    SERVICE_DECISION_LOG,
-    SERVICE_DISPATCH_PORT,
-    SERVICE_EVENT_BUS,
-    SERVICE_EVENT_MESH,
-    SERVICE_SERVICE_BUS,
-    SERVICE_ACTOR_MESH,
-    SERVICE_HEALTH_MONITOR,
-    SERVICE_LLM_PORT,
-    SERVICE_MEMORY_PORT,
-    SERVICE_ROUTER,
-    SERVICE_SCHEDULER,
-    SERVICE_SERVICE_MANAGER,
-    SERVICE_TOOL_PORT,
-    SERVICE_WORKFLOW_ENGINE,
-    SERVICE_CAPABILITY_REGISTRY,
-)
-from kernel.decision_log import DecisionLog, get_decision_log, record_decision
-from kernel.access import (
-    detect_tool,
-    run_tool,
-    detect_domain,
+from kernel.boot import get_kernel, resolve, shutdown, boot  # noqa: F401
+from kernel.config import load_config  # noqa: F401
+from kernel.access import (  # noqa: F401
     memory_query,
-    get_event_bus,
-    get_llm_port,
-    get_dispatch_port,
-    get_memory_port,
-    get_scheduler,
-    get_workflow_engine,
-    get_capability_registry,
+    memory_search_by_category,
+    memory_search_multi_category,
+    memory_search_exact_id,
 )
 
 __all__ = [
-    "BootPhase",
-    "Container",
-    "DecisionLog",
-    "KernelBootError",
-    "KernelConfig",
-    "KernelError",
-    "KernelNotReadyError",
-    "SERVICE_CONFIG",
-    "SERVICE_DECISION_LOG",
-    "SERVICE_DISPATCH_PORT",
-    "SERVICE_EVENT_BUS",
-    "SERVICE_EVENT_MESH",
-    "SERVICE_SERVICE_BUS",
-    "SERVICE_ACTOR_MESH",
-    "SERVICE_HEALTH_MONITOR",
-    "SERVICE_LLM_PORT",
-    "SERVICE_MEMORY_PORT",
-    "SERVICE_ROUTER",
-    "SERVICE_SCHEDULER",
-    "SERVICE_SERVICE_MANAGER",
-    "SERVICE_TOOL_PORT",
-    "SERVICE_WORKFLOW_ENGINE",
-    "SERVICE_CAPABILITY_REGISTRY",
-    "boot",
-    "get_decision_log",
     "get_kernel",
-    "load_config",
-    "record_decision",
-    "reload_config",
     "resolve",
     "shutdown",
-    "detect_tool",
-    "run_tool",
-    "detect_domain",
+    "boot",
+    "load_config",
     "memory_query",
-    "get_event_bus",
-    "get_llm_port",
-    "get_dispatch_port",
-    "get_memory_port",
-    "get_scheduler",
-    "get_workflow_engine",
-    "get_capability_registry",
+    "memory_search_by_category",
+    "memory_search_multi_category",
+    "memory_search_exact_id",
 ]

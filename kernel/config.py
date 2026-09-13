@@ -22,16 +22,12 @@ def _detect_base() -> Path:
     if env_base:
         return Path(env_base).expanduser().resolve()
 
-    termux = Path("/data/data/com.termux/files/home/offline_ai")
-    if termux.exists():
-        return termux.resolve()
-
     # Repo / workspace root fallback (cloud dev, local clone).
     repo = Path(__file__).resolve().parent.parent
     if (repo / "config.json").exists():
         return repo.resolve()
 
-    return Path(os.path.expanduser("~/offline_ai")).resolve()
+    return BASE.resolve()
 
 
 @dataclass

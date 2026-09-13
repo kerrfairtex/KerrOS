@@ -1,0 +1,22 @@
+{
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2024-1234",
+      "vendorProject": "Test Vendor",
+      "product": "Test Product",
+      "vulnerabilityName": "Test Vulnerability",
+      "shortDescription": "A test vulnerability for knowledge import demonstration",
+      "requiredAction": "Apply the latest security patches",
+      "knownRansomwareCampaignUse": "Test ransomware"
+    },
+    {
+      "cveID": "CVE-2024-5678",
+      "vendorProject": "Sample Company",
+      "product": "Sample Application",
+      "vulnerabilityName": "Sample Vulnerability",
+      "shortDescription": "Another sample vulnerability to test import functionality",
+      "requiredAction": "Update to version 2.0",
+      "knownRansomwareCampaignUse": "Unknown"
+    }
+  ]
+}

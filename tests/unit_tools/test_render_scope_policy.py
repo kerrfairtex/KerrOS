@@ -11,17 +11,19 @@ from scripts.render_scope_policy import (
     _normalize_for_compare,
 )
 
+ROOT = Path(__file__).resolve().parent.parent.parent
+
 
 class RenderScopePolicyTest(unittest.TestCase):
     def test_load_repo_policy(self):
-        policy = load_policy(Path("config/scope_policy.yaml"))
+        policy = load_policy(ROOT / "config/scope_policy.yaml")
         self.assertIn("nmap", policy["offensive_tools"])
         self.assertIn("vercel_deploy", policy["deploy_tools"])
         self.assertEqual(policy["defaults"].get("deploy_arm_minutes"), 5)
         self.assertIn("deploy_denied", policy["messages"])
 
     def test_render_contains_tables(self):
-        policy = load_policy(Path("config/scope_policy.yaml"))
+        policy = load_policy(ROOT / "config/scope_policy.yaml")
         md = render_markdown(policy)
         self.assertIn("# KerrOS Scope Policy", md)
         self.assertIn("| offensive |", md)

@@ -28,7 +28,7 @@ from typing import Dict, List
 import re
 
 try:
-    from core.complete import looks_truncated
+    from kernel.compat import looks_truncated
 except Exception:
     def looks_truncated(text):
         return False

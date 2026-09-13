@@ -12,7 +12,7 @@ import subprocess
 from typing import Mapping, Sequence
 
 # Characters/operators that require a shell — rejected for user-facing exec.
-_SHELL_META_RE = re.compile(r"[|&;<>$`\\]|&&|\|\||\$\(|\$\{")
+_SHELL_META_RE = re.compile(r"[|&;<>$`\\\\\n\r]|&&|\|\||\$\(|\$\{")
 
 # Hostnames, domains, IPs — conservative allowlist for network tool args.
 _TARGET_RE = re.compile(r"^[a-zA-Z0-9._:-]{1,253}$")

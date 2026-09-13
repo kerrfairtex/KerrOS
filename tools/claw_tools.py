@@ -134,6 +134,32 @@ def _check_exec_allowed(command: str) -> None:
             f"command '{base}' not in safe_commands — add it to config.json or use a permitted command"
         )
 
+    # Restricted argument validation for high-risk binaries
+    restricted_args_check(base, cmd)
+
+
+def restricted_args_check(base: str, cmd: str) -> None:
+    """Extra arg validation for binaries that can execute arbitrary code."""
+    if base == "python3":
+        # Block -c (inline code), -m with network/pkg ops, and shell metachars in args
+        dangerous = ["-c ", "-c'", "-c\"", " -m pip", " -m http", " -m socket"]
+        for d in dangerous:
+            if d in cmd:
+                raise ClawToolError(
+                    f"python3 '{d.strip()}' is not allowed — use a file path instead"
+                )
+    elif base == "git":
+        # Block git with -C (arbitrary path) outside workspace, and git push
+        if " -C " in cmd or " -C'" in cmd or ' -C"' in cmd:
+            raise ClawToolError("git -C is not allowed — use cwd parameter instead")
+        if " push " in cmd:
+            raise ClawToolError("git push is not allowed — use a deploy tool")
+    elif base == "ssh":
+        # Block ssh with -L/-R port forwarding and -J jump host
+        for flag in [" -L", " -R", " -J ", " -D "]:
+            if flag in cmd:
+                raise ClawToolError(f"ssh '{flag.strip()}' is not allowed")
+
 
 def read(
     path: str,

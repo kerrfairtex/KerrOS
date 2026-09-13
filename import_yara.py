@@ -1,7 +1,7 @@
 from pathlib import Path
 from rag.store import _load, _save, _chunk, _keywords
 
-ROOT = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/yara"
+ROOT = os.environ.get('YARA_PATH') or Path.home() / 'offline_ai' / 'data/raw/yara'
 BATCH_SAVE_EVERY = 200
 
 def main():

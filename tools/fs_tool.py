@@ -1,6 +1,6 @@
 """
 tools/fs_tool.py
-=================
+================
 Deterministic file/folder operations for KerrOS agents.
 
 Why this exists: letting the LLM freehand bash for file creation is
@@ -12,16 +12,55 @@ Every path is resolved relative to PROJECT_ROOT and cannot escape it
 (basic guardrail against '../../' traversal from a bad model output).
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 from pathlib import Path
+from typing import Generator
 
-PROJECT_ROOT = Path(os.environ.get("KERROS_PROJECT_ROOT", "~/offline_ai/generated_code")).expanduser()
+PROJECT_ROOT = Path(os.environ.get("KERROS_PROJECT_ROOT", str(Path(__file__).resolve().parent.parent / "generated_code"))).expanduser()
 PROJECT_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 class FsToolError(Exception):
     pass
+
+
+class WriteNotAuthorized(FsToolError):
+    """Raised when a write operation is attempted outside an authorized context."""
+
+
+# ---------------------------------------------------------------------------
+# Optional write authorization gate.
+#
+# By default writes are allowed to preserve existing behavior. Callers that
+# want stricter enforcement can use `write_context()` as a context manager
+# or set `KERROS_FS_WRITE=1` in the environment.
+# ---------------------------------------------------------------------------
+_write_allowed: bool = os.environ.get("KERROS_FS_WRITE", "").strip() in ("1", "true", "yes", "on")
+_write_context_depth: int = 0
+
+
+def is_write_allowed() -> bool:
+    return _write_allowed or _write_context_depth > 0
+
+
+def write_context() -> Generator[None, None, None]:
+    """Context manager that temporarily enables write operations."""
+    global _write_context_depth
+    _write_context_depth += 1
+    try:
+        yield
+    finally:
+        _write_context_depth = max(0, _write_context_depth - 1)
+
+
+def _require_write() -> None:
+    if not is_write_allowed():
+        raise WriteNotAuthorized(
+            "filesystem writes are not authorized in this context"
+        )
 
 
 def _resolve(rel_path: str) -> Path:
@@ -34,6 +73,7 @@ def _resolve(rel_path: str) -> Path:
 
 def create_file(rel_path: str, content: str = "") -> str:
     """Create a file, making all parent directories first. Never fails on missing dirs."""
+    _require_write()
     target = _resolve(rel_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
@@ -49,6 +89,7 @@ def read_file(rel_path: str) -> str:
 
 def write_file(rel_path: str, content: str, append: bool = False) -> str:
     """Write/overwrite a file. Creates parent dirs if missing."""
+    _require_write()
     target = _resolve(rel_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if append else "w"
@@ -59,6 +100,7 @@ def write_file(rel_path: str, content: str, append: bool = False) -> str:
 
 def remove(rel_path: str) -> str:
     """Delete a file or a directory (recursively)."""
+    _require_write()
     target = _resolve(rel_path)
     if not target.exists():
         raise FsToolError(f"not found: {rel_path}")
@@ -72,6 +114,7 @@ def remove(rel_path: str) -> str:
 def move(src_rel: str, dst_rel: str) -> str:
     src = _resolve(src_rel)
     dst = _resolve(dst_rel)
+    _require_write()
     if not src.exists():
         raise FsToolError(f"not found: {src_rel}")
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -107,6 +150,7 @@ def make_skeleton(rel_root: str, structure: dict) -> list[str]:
             "README.md": "# project",
         }
     """
+    _require_write()
     created = []
 
     def _walk(node: dict, prefix: str):

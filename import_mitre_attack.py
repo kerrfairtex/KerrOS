@@ -3,7 +3,7 @@ from pathlib import Path
 
 from rag.store import ingest_text
 
-ATTACK = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/mitre_attack/enterprise-attack.json"
+ATTACK = os.environ.get('MITRE_ATTACK_PATH') or Path.home() / 'offline_ai' / 'data/raw/enterprise-attack.json'
 
 if not ATTACK.exists():
     raise SystemExit(f"Missing: {ATTACK}")

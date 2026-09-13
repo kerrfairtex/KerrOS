@@ -4,8 +4,9 @@ Research Agent — breaks a broad question into sub-queries, searches
 the knowledge base for each, synthesizes a combined answer.
 """
 import os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
-from core.complete import generate_complete
+from core.config import BASE
+sys.path.insert(0, str(BASE))
+from kernel.compat import generate_complete
 from kernel.access import memory_query
 from prompts.system import SYSTEM_PROMPT
 

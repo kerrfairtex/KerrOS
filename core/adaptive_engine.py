@@ -86,6 +86,7 @@ class AdaptiveEngine:
             history=history or [],
             stream=stream,
             system=system,
+            force_local=True,  # Skip cloud providers in offline mode
         )
 
     def switch_online(self):

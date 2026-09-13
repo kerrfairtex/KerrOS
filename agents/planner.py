@@ -4,7 +4,8 @@ Planner — classifies a task and dispatches to the right agent
 (Security, Code, Research, Knowledge, ReAct).
 """
 import os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+from core.config import BASE
+sys.path.insert(0, str(BASE))
 
 R="\033[0m"; GO="\033[33m"; YL="\033[93m"; GY="\033[90m"
 

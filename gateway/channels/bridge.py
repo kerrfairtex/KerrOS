@@ -88,7 +88,7 @@ def generate_channel_reply(
         if _generate_fn is not None:
             out = _generate_fn(prompt)
         else:
-            from core.complete import generate_complete
+            from kernel.compat import generate_complete
 
             out = generate_complete(_engine, prompt, stream=False)
         reply = str(out or "").strip()

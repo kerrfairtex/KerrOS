@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Tuple
 
 _lock = threading.RLock()
 _hits: Dict[str, List[float]] = {}
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 STORE = BASE / "data" / "channel_rate.json"
 
 

@@ -1,6 +1,11 @@
-
+"""
+Self-healing loop daemon launcher for KerrOS.
+"""
 import subprocess
+import sys
 import time
+from pathlib import Path
+
 
 class SelfHealingLoop:
     def __init__(self, healing_engine, rollback_engine):
@@ -9,9 +14,11 @@ class SelfHealingLoop:
         self.process = None
 
     def start(self):
+        from core.config import BASE
+
         self.process = subprocess.Popen(
-            ["python3", "run_daemon.py"],
-            cwd="/data/data/com.termux/files/home/offline_ai"
+            [sys.executable, str(Path(__file__).resolve().parent.parent / "run_daemon.py")],
+            cwd=str(BASE),
         )
 
     def run(self):

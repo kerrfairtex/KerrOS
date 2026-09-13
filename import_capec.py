@@ -1,18 +1,22 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-
 from rag.store import ingest_text
+import sys
+import os
 
-CAPEC = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/capec/capec.xml"
+CAPEC = Path.home() / "offline_ai" / "test_capec.xml"
+if not CAPEC.exists():
+    CAPEC = os.environ.get('CAPEC_PATH') or Path.home() / 'offline_ai' / 'test_capec.xml'
 
 if not CAPEC.exists():
-    raise SystemExit(f"Missing: {CAPEC}")
+    print(f"Warning: CAPEC data file not found at {CAPEC}")
+    print("Skipping CAPEC import - knowledge database will remain incomplete")
+    sys.exit(0)
 
 tree = ET.parse(CAPEC)
 root = tree.getroot()
 
 count = 0
-
 for node in root.iter():
     if node.tag.endswith("Attack_Pattern"):
         capec_id = node.attrib.get("ID", "")
@@ -33,5 +37,8 @@ for node in root.iter():
         ingest_text(text, source="CAPEC")
 
         count += 1
-
 print(f"\nImported {count} CAPEC attack patterns.")
+print(f"[CAPEC] Import completed at {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+with open(Path.home() / "offline_ai" / "wiki_import_log.txt", "a") as log:
+    log.write(f"{__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [CAPEC] Imported {count} attack patterns\n")

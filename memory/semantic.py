@@ -7,7 +7,7 @@ Persists across all sessions.
 """
 import json, os, datetime, re
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 SEMANTIC_PATH = f"{BASE}/data/semantic.json"
 
 def _semantic_path() -> str:

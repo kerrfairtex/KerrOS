@@ -59,3 +59,21 @@ exercise the app end-to-end in the cloud VM. The claw workspace defaults to the
 repo root; override it with `KERROS_WORKSPACE=/some/dir`. `exec` only allows
 commands listed in `config.json` `safe_commands` and blocks path traversal
 outside the workspace.
+
+### Common issue: empty/timeout in chat.py
+If `cli/chat.py` returns nothing or hangs for ~30s before generating:
+
+**Root cause:** `core/engine.py` `chat()` previously iterated the entire
+`fallback_chain` (10+ cloud providers) sequentially. With no API keys
+configured in `.env`, every provider timed out on an HTTP request before the
+engine finally fell back to local llama.cpp — often exceeding the REPL's read
+timeout.
+
+**Fix (already applied):** `LLMEngine` now calls `_has_cloud_key(name)` to check
+whether any provider in `fallback_chain` has a real key *before* attempting the
+loop. If all keys are missing/empty, it short-circuits directly to
+`_call_local()`. Result: instant local generation even with no `.env` keys.
+
+**To re-apply if needed:** ensure the `_has_cloud_key()` method exists in
+`LLMEngine` and that `chat()` checks `cloud_available` before entering the
+fallback loop (see `core/engine.py`).

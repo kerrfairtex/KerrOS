@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
+from core.config import BASE
+
 
 def export_trace(
     *,
@@ -30,7 +32,7 @@ def export_trace(
         os.path.expanduser(
             path
             or str(
-                Path(os.path.expanduser("~/offline_ai"))
+                BASE
                 / "data"
                 / f"channel_trace_export_{time.strftime('%Y%m%d_%H%M%S')}.{ext}"
             )

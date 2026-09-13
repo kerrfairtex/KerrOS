@@ -1,17 +1,17 @@
 import os, json, re, sqlite3
 
-BASE = os.path.expanduser("~/offline_ai")
+from core.config import BASE
 
 def _load_cfg():
     try:
         from kernel.config import load_config
         return load_config().values, str(load_config().base)
     except Exception:
-        cfg_path = f"{BASE}/config.json"
-        if os.path.exists(cfg_path):
+        cfg_path = BASE / "config.json"
+        if cfg_path.exists():
             with open(cfg_path) as f:
-                return json.load(f), BASE
-        return {}, BASE
+                return json.load(f), str(BASE)
+        return {}, str(BASE)
 
 _CFG, _BASE = _load_cfg()
 CFG = _CFG
@@ -20,10 +20,10 @@ FTS_RANK_SCORE_SCALE = 1000.0
 FTS_RANK_SCORE_OFFSET = 1.0
 
 KNOWLEDGE_ROOT = os.path.expanduser(
-    CFG.get("knowledge_root", "~/storage/external-1/offline_ai_knowledge")
+    CFG.get("knowledge_root", str(BASE / "data" / "knowledge"))
 )
 KNOWLEDGE_INDEX = os.path.expanduser(
-    CFG.get("knowledge_index", "~/offline_ai/data/knowledge")
+    CFG.get("knowledge_index", str(BASE / "data" / "knowledge"))
 )
 
 # P5: never point KerrOS RAG at OmniRoute storage (docs/MEMORY_SEPARATION.md).

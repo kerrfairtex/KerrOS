@@ -104,3 +104,6 @@ task_assistant/*.db-*
 # Path kept as a hard block so the old Soft-reference checkout cannot return.
 hermes-agent/
 **/hermes-agent/
+tree.txt
+top_tree.txt
+*.aria2

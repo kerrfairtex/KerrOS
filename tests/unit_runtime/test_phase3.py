@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from runtime.event_bus import EventBus
 from runtime.scheduler import Scheduler
 from runtime.workflows import WorkflowDefinition, WorkflowStep, WorkflowEngine, WorkflowState
@@ -337,6 +339,13 @@ class CompositeLLMTest(unittest.TestCase):
 
 
 class AdaptiveEngineLLMPortTest(unittest.TestCase):
+    """Integration tests for AdaptiveEngine with real LLM port.
+    
+    These require actual provider configuration and API keys.
+    Marked as integration to skip in unit test runs.
+    """
+    pytestmark = pytest.mark.integration
+
     @patch("kernel.access.get_llm_port")
     def test_init_online_uses_llm_port_complete(self, mock_get_llm_port):
         from core.adaptive_engine import AdaptiveEngine

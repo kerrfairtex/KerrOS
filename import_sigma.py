@@ -2,7 +2,7 @@ import yaml
 from pathlib import Path
 from rag.store import _load, _save, _chunk, _keywords
 
-ROOT = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/sigma"
+ROOT = os.environ.get('SIGMA_PATH') or Path.home() / 'offline_ai' / 'data/raw/sigma'
 BATCH_SAVE_EVERY = 500
 
 def extract_sigma_text(rule):

@@ -8,8 +8,9 @@ needs real-time/live data the knowledge base can't provide.
 """
 
 import re, os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
-from core.complete import generate_complete
+from core.config import BASE
+sys.path.insert(0, str(BASE))
+from kernel.compat import generate_complete
 
 from kernel.access import detect_tool, run_tool, memory_search_exact_id, memory_search_by_category, memory_search_multi_category, memory_query
 from prompts.system import SYSTEM_PROMPT

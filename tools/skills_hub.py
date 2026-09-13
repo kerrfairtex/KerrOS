@@ -22,6 +22,7 @@ import shutil
 import time
 import urllib.request
 from pathlib import Path
+from core.config import BASE
 from typing import Any, Optional
 
 from tools.claw_tools import get_workspace
@@ -37,7 +38,7 @@ def _truthy(v: Any) -> bool:
 
 
 def hub_dir() -> Path:
-    d = Path(os.path.expanduser("~/offline_ai")) / "data" / "skills_hub"
+    d = BASE / "data" / "skills_hub"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

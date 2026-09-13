@@ -2,7 +2,7 @@ from pathlib import Path
 from rag.store import ingest_text
 from pypdf import PdfReader
 
-ROOT = Path.home() / "storage/external-1/offline_ai_knowledge/cybersecurity/nist"
+ROOT = os.environ.get('NIST_PATH') or Path.home() / 'offline_ai' / 'data/raw/nist'
 
 count = 0
 

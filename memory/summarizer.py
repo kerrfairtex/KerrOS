@@ -5,10 +5,12 @@ Summarizes a conversation session into episodic memory.
 Called on /clear or session end.
 """
 import os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+from core.config import BASE
+sys.path.insert(0, str(BASE))
 
 from memory.episodic import save_session
 from memory.manager import get_history
+from core.config import BASE
 
 def summarize_session(engine, messages=None):
     """

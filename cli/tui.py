@@ -254,7 +254,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if "--llm" in argv or _truthy(os.environ.get("KERROS_TUI_LLM")):
         try:
             from core.adaptive_engine import AdaptiveEngine
-            from core.complete import generate_complete
+            from kernel.compat import generate_complete
 
             engine = AdaptiveEngine()
             try:

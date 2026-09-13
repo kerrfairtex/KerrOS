@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 GRAPH_PATH = BASE / "data" / "agent_memory" / "graph.json"
 _lock = threading.RLock()
 _SAFE = re.compile(r"^[a-zA-Z0-9_@./+-]{1,128}$")

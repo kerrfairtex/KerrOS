@@ -31,7 +31,7 @@ import time
 import traceback
 from typing import Any, Dict, Optional
 
-from core.complete import generate_complete
+from kernel.compat import generate_complete
 from core.task_completion import task_manager
 
 

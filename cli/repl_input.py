@@ -16,6 +16,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from core.config import BASE
+
 # Core slash commands surfaced for autocomplete (chat.py /help subset).
 SLASH_COMMANDS = [
     "/help",
@@ -90,7 +92,7 @@ def _multiline_enabled() -> bool:
 
 
 def _history_path() -> Path:
-    p = Path(os.path.expanduser("~/offline_ai")) / "data" / "repl_history"
+    p = BASE / "data" / "repl_history"
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 

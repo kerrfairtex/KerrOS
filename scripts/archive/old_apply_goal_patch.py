@@ -1,11 +1,22 @@
 """
-Run from ~/offline_ai/cli:
-    python3 apply_goal_patch.py
 Patches chat.py to wire in GoalState. Makes chat.py.bak2 first.
 Idempotent-ish: re-running after a successful patch will fail loudly
-(anchor text won't match) instead of double-patching.
+because the anchor text will no longer be present.
+
+PATCHES:
+  1. Insert GoalState and ToolResult near top-level imports (post-router import).
+  2. In main(): detect "/react <task>" -> goal_state.ReactAgent.
+  3. In main(): detect "/delegate ..." -> goal_state.DelegationAgent.
+
+If you need to "rewire" GoalState, run the rollback script (provided).
 """
+import os
+import re
 import shutil
+import sys
+from pathlib import Path
+
+PATCH_DESCRIPTION = "Wires chat.py with GoalState/ToolResult for react/delegate slash commands"
 
 PATH = "chat.py"
 shutil.copy(PATH, "chat.py.bak2")

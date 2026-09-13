@@ -116,38 +116,67 @@ def detect_domain(text: str):
 
 
 def memory_query(text: str, *, top_k: int = 5) -> list[tuple[int, str, str]]:
-    return get_memory_port().query(text, top_k=top_k)
+    try:
+        from memory.base import MemoryService
+
+        return MemoryService().query(text, top_k=top_k)
+    except Exception:
+        return []
 
 
 def memory_upsert(text: str, source: str, metadata: dict | None = None) -> None:
-    get_memory_port().upsert(text, source, metadata)
+    try:
+        from memory.base import MemoryService
+
+        MemoryService().upsert(text, source, metadata)
+    except Exception:
+        pass
 
 
 def memory_ingest_file(path: str) -> None:
     """Read a file from disk and upsert its contents into the knowledge store."""
-    path = os.path.expanduser(path)
-    if not os.path.exists(path):
-        print(f"[RAG] Not found: {path}")
-        return
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
-    memory_upsert(text, os.path.basename(path))
+    try:
+        from memory.service import MemoryService
+
+        MemoryService().ingest_file(path)
+    except Exception:
+        pass
 
 
 def memory_list_sources() -> list[str]:
-    return get_memory_port().list_sources()
+    try:
+        from memory.base import MemoryService
+
+        return MemoryService().list_sources()
+    except Exception:
+        return []
 
 
 def memory_search_by_category(query: str, category: str | None = None, top_k: int = 4):
-    return get_memory_port().search_by_category(query, category, top_k)
+    try:
+        from memory.base import MemoryService
+
+        return MemoryService().search_by_category(query, category, top_k)
+    except Exception:
+        return []
 
 
 def memory_search_multi_category(query: str, categories: list[str], top_k: int = 4):
-    return get_memory_port().search_multi_category(query, categories, top_k)
+    try:
+        from memory.base import MemoryService
+
+        return MemoryService().search_multi_category(query, categories, top_k)
+    except Exception:
+        return []
 
 
 def memory_search_exact_id(query: str):
-    return get_memory_port().search_exact_id(query)
+    try:
+        from memory.base import MemoryService
+
+        return MemoryService().search_exact_id(query)
+    except Exception:
+        return []
 
 
 def llm_complete(

@@ -90,7 +90,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-rag_file = os.path.expanduser("~/offline_ai/data/rag_store.json")
+rag_file = "data/rag_store.json"
 articles_dir = "articles"
 
 # Load existing RAG store

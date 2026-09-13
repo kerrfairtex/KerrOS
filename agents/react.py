@@ -6,8 +6,9 @@ Works with small 1.5B models by being more directive.
 """
 
 import re, os, sys
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
-from core.complete import generate_complete
+from core.config import BASE
+sys.path.insert(0, str(BASE))
+from kernel.compat import generate_complete
 
 from kernel.access import detect_tool, run_tool
 from prompts.system import SYSTEM_PROMPT
@@ -76,16 +77,20 @@ class ReactAgent:
         return ("osint", target) if target else ("sysinfo", "")
 
     def _execute(self, tool, args):
-        """Execute tool via router."""
+        """Execute tool via SandboxExecutor for safety."""
+        from execution.executor import SandboxExecutor
+        executor = SandboxExecutor(timeout=30)
+        
         tool_map = {
             "ping":"ping","nmap":"nmap","whois":"whois","dig":"dig",
             "osint":"osint","recon":"recon","geoip":"geoip",
             "headers":"headers","cert":"cert","dnsenum":"dnsenum",
-            "sysinfo":"sysinfo","speedtest":"speedtest","calc":"calc","bash":"bash",
+            "sysinfo":"sysinfo","speedtest":"speedtest",
         }
         mapped = tool_map.get(tool.lower())
         if mapped:
-            return run_tool(mapped, args)
+            cmd = f"{mapped} {args}"
+            return executor.run(cmd)
         return f"[Unknown tool: {tool}]"
 
     def _analyze(self, task, tool, args, observation, step):

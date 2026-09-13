@@ -13,8 +13,7 @@ from tools.shell_utils import (
     split_command,
 )
 
-BASE = os.path.expanduser("~/offline_ai")
-
+from core.config import BASE
 def cfg():
     from kernel.config import load_config
     return load_config().values
@@ -435,24 +434,18 @@ def _curl_headers(target: str, timeout: int = 8) -> str:
 def _openssl_cert_info(domain: str, timeout: int = 10, *, full: bool = False) -> str:
     host = sanitize_target(domain, label="domain")
     try:
-        proc = subprocess.run(
+        proc = run_argv(
             ["openssl", "s_client", "-connect", f"{host}:443"],
-            input="",
-            capture_output=True,
-            text=True,
             timeout=timeout,
+            input_text="",
         )
         args = ["openssl", "x509", "-noout", "-text"] if full else [
             "openssl", "x509", "-noout", "-subject", "-issuer", "-dates"
         ]
-        cert = subprocess.run(
-            args,
-            input=proc.stdout or "",
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-        return (cert.stdout or cert.stderr or "[No output]").strip()[:2000]
+        cert = run_argv(args, timeout=timeout, input_text=proc or "")
+        return (cert or "[No output]").strip()[:2000]
+    except ShellCommandError as exc:
+        return f"[Error: {exc}]"
     except subprocess.TimeoutExpired:
         return "[Timeout]"
     except Exception as exc:
@@ -1038,7 +1031,7 @@ def _scan(path):
     return "\n".join(lines)
 
 
-OFFLINE_AI_ROOT = os.path.expanduser("~/offline_ai")
+OFFLINE_AI_ROOT = str(BASE)
 PROTECTED_PATHS = [
     os.path.expanduser("~/.termux"),
     os.path.expanduser("~/storage/dcim"),
@@ -1084,14 +1077,19 @@ def _self_run(rel_path):
     if not cmd:
         return f"[Unsupported file type: .{ext}]"
     try:
-        r = subprocess.run(cmd + [p], capture_output=True, text=True, timeout=30, cwd=OFFLINE_AI_ROOT)
-        out = r.stdout.strip()[:1500]
-        err = r.stderr.strip()[:1500]
-        status = "PASS" if r.returncode == 0 else "FAIL"
+        r = run_argv(
+            cmd + [p],
+            timeout=30,
+            cwd=OFFLINE_AI_ROOT,
+        )
+        out = r.strip()[:1500]
+        status = "PASS"
         result = f"[run:{status}] {p}"
-        if out: result += f"\nstdout: {out}"
-        if err: result += f"\nstderr: {err}"
+        if out:
+            result += f"\nstdout: {out}"
         return result
+    except ShellCommandError as exc:
+        return f"[run:FAIL] {p}\nstderr: [Error: {exc}]"
     except subprocess.TimeoutExpired:
         return f"[run:FAIL] {p}\nstderr: [Timeout after 30s]"
     except Exception as e:

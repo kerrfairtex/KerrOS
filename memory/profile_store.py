@@ -21,7 +21,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 MEM_DIR = BASE / "data" / "memories"
 ENTRY_DELIMITER = "\n§\n"
 MEMORY_CHAR_LIMIT = 2200

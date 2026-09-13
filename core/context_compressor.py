@@ -72,7 +72,7 @@ def llm_summarize(messages: list[dict[str, Any]], engine: Any) -> Optional[str]:
     if engine is None:
         return None
     try:
-        from core.complete import generate_complete
+        from kernel.compat import generate_complete
 
         body = structured_extractive_summary(messages, max_chars=2000)
         prompt = (

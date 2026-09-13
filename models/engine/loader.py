@@ -17,14 +17,19 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parents[2]   # models/engine/ → models/ → offline_ai/
 ENV_FILE = BASE / ".env"
 CONFIG_FILE = BASE / "config.json"
+REQUIREMENTS_FILE = BASE / "requirements.txt"
 
-# ── Try to load .env ──────────────────────────────────────────────────────────
-try:
-    from dotenv import load_dotenv
-    load_dotenv(ENV_FILE)
-    _DOTENV_AVAILABLE = True
-except ImportError:
-    _DOTENV_AVAILABLE = False
+# ── Update requirements if needed ─────────────────────────────────────────────
+def ensure_requirements():
+    if REQUIREMENTS_FILE.exists():
+        content = REQUIREMENTS_FILE.read_text()
+        if "certifi" not in content:
+            with open(REQUIREMENTS_FILE, "a") as f:
+                f.write("\ncertifi\n")
+
+# Local inference does not require a .env file. Paths come from config.json or
+# already-exported environment variables; provider secrets remain optional.
+_DOTENV_AVAILABLE = False
 
 
 def _load_config() -> dict:
@@ -38,33 +43,73 @@ def _load_config() -> dict:
 def _resolve_binary() -> str:
     """
     Resolve llama.cpp binary path.
-    Priority: LLAMA_BIN env var → config.json llama_bin → auto-detect common paths.
+    Priority: LLAMA_BIN env var → config.json llama_bin_path → config.json llama_bin → auto-detect common paths.
     """
-    # 1. From .env
+    checked: list[str] = []
+
+    # 1. Explicit override via .env / environment
     env_bin = os.environ.get("LLAMA_BIN", "").strip()
-    if env_bin and Path(env_bin).exists():
-        return env_bin
+    if env_bin:
+        checked.append(env_bin)
+        if Path(env_bin).expanduser().exists():
+            return env_bin
 
-    # 2. From config.json (bin name only, search common dirs)
+    # 2. Config-driven lookup
     cfg = _load_config()
-    bin_name = cfg.get("llama_bin", "")
+    
+    # 2a. Explicit full path from config
+    bin_path = cfg.get("llama_bin_path", "").strip()
+    if bin_path:
+        p = Path(bin_path).expanduser()
+        checked.append(str(p))
+        if p.exists():
+            return str(p)
+        # Try relative to project base
+        p_base = BASE / bin_path
+        checked.append(str(p_base))
+        if p_base.exists():
+            return str(p_base)
 
-    # 3. Config.json bin takes priority, then auto-detect
-    candidates = [
-        f"~/llama.cpp/build/bin/{bin_name}" if bin_name else "",
-        f"~/llama.cpp/build/bin/llama-simple-chat",
-        f"~/llama.cpp/build/bin/llama-cli",
-        f"~/llama.cpp/build/bin/llama-simple",
+    # 2b. Config-driven lookup under the real home directory
+    bin_name = cfg.get("llama_bin", "").strip()
+
+    if bin_name:
+        home_path = Path.home() / "llama.cpp" / "build" / "bin" / bin_name
+        checked.append(str(home_path))
+        if home_path.exists():
+            return str(home_path)
+
+        # Some setups keep llama.cpp beside the project rather than in $HOME
+        cwd_path = Path.cwd().parent / "llama.cpp" / "build" / "bin" / bin_name
+        checked.append(str(cwd_path))
+        if cwd_path.exists():
+            return str(cwd_path)
+        
+        # Check inside the project itself
+        base_path = BASE / "llama.cpp" / "build" / "bin" / bin_name
+        checked.append(str(base_path))
+        if base_path.exists():
+            return str(base_path)
+
+    # 3. Last-resort fallback: a couple of common install locations
+    fallback_names = [bin_name] if bin_name else ["llama-completion", "llama-cli"]
+    fallback_roots = [
+        Path.home() / "llama.cpp" / "build" / "bin",
+        Path("/usr/local/bin"),
+        Path("/opt/llama.cpp/build/bin"),
     ]
+    for root in fallback_roots:
+        for name in fallback_names:
+            candidate = root / name
+            checked.append(str(candidate))
+            if candidate.exists():
+                return str(candidate)
 
-    for c in candidates:
-        if not c:
-            continue
-        resolved = Path(c).expanduser()
-        if resolved.exists():
-            return str(resolved)
-
-    return ""   # Not found — caller must handle
+    raise FileNotFoundError(
+        "Could not locate the llama.cpp binary. Checked:\n  "
+        + "\n  ".join(checked)
+        + "\nSet LLAMA_BIN in your .env to override."
+    )
 
 
 def _resolve_model(prefer_light: bool = False) -> str:
@@ -140,6 +185,7 @@ class ModelLoader:
         self.context_size: int  = _resolve_int("CONTEXT_SIZE",  "context_size",  2048)
         self.max_tokens: int    = _resolve_int("MAX_TOKENS",    "max_tokens",    256)
         self.temperature: float = _resolve_float("TEMPERATURE", "temperature",   0.7)
+        self.top_p: float       = _resolve_float("TOP_P",       "top_p",         0.9)
         self.repeat_penalty: float = _resolve_float(
             "REPEAT_PENALTY", "repeat_penalty", 1.1
         )
@@ -176,12 +222,17 @@ class ModelLoader:
                 f"[Loader] Binary path set but file missing: {self.binary}\n"
                 "  → Check LLAMA_BIN in .env"
             )
+        elif not os.access(self.binary, os.X_OK):
+            errors.append(
+                f"[Loader] Binary is not executable: {self.binary}\n"
+                "  → Run: chmod +x {self.binary}"
+            )
 
         if not self.model:
             errors.append(
                 "[Loader] Model .gguf not found.\n"
                 "  → Set MODEL_PATH in .env, e.g.:\n"
-                "    MODEL_PATH=~/offline_ai/models/model.gguf"
+                "    MODEL_PATH=./models/model.gguf"
             )
         elif not Path(self.model).exists():
             errors.append(

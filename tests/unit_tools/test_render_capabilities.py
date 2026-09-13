@@ -11,10 +11,12 @@ from scripts.render_capabilities import (
     _normalize_for_compare,
 )
 
+ROOT = Path(__file__).resolve().parent.parent.parent
+
 
 class RenderCapabilitiesTest(unittest.TestCase):
     def test_load_repo_manifests(self):
-        caps = load_capabilities(Path("config/capabilities"))
+        caps = load_capabilities(ROOT / "config/capabilities")
         names = {c["name"] for c in caps}
         self.assertIn("agent:knowledge", names)
         self.assertIn("provider:omniroute", names)
@@ -22,8 +24,8 @@ class RenderCapabilitiesTest(unittest.TestCase):
         self.assertGreaterEqual(len(caps), 50)
 
     def test_render_contains_tables(self):
-        caps = load_capabilities(Path("config/capabilities"))
-        md = render_markdown(caps, manifest_dir=Path("config/capabilities"))
+        caps = load_capabilities(ROOT / "config/capabilities")
+        md = render_markdown(caps, manifest_dir=ROOT / "config/capabilities")
         self.assertIn("# KerrOS Capability Status", md)
         self.assertIn("| agent |", md)
         self.assertIn("provider:omniroute", md)

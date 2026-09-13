@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Attack_Patterns>
+    <Attack_Pattern ID="1" Name="Test Attack Pattern 1">
+        <Description>This is a test attack pattern for CAPEC knowledge import.</Description>
+    </Attack_Pattern>
+    <Attack_Pattern ID="2" Name="Test Attack Pattern 2">
+        <Description>Another test attack pattern to verify import functionality.</Description>
+    </Attack_Pattern>
+    <Attack_Pattern ID="100" Name="Test Vulnerability">
+        <Description>Sample vulnerability description for testing import capabilities and ensuring the system can process CAPEC data correctly.</Description>
+    </Attack_Pattern>
+</Attack_Patterns>

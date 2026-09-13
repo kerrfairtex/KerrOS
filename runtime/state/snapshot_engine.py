@@ -3,7 +3,7 @@ import json, time, os
 
 class SnapshotEngine:
     def __init__(self, path="runtime/state/snapshot.json"):
-        self.path = os.path.expanduser("~/offline_ai/" + path)
+        self.path = os.path.expanduser("" + path)
 
     def save(self, state):
         state["timestamp"] = time.time()

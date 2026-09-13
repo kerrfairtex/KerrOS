@@ -6,6 +6,7 @@ calls allowlisted KerrOS tools via RPC-style helpers, in a subprocess.
 """
 
 from __future__ import annotations
+from core.config import BASE
 
 import json
 import os
@@ -13,6 +14,7 @@ import subprocess
 import tempfile
 import textwrap
 from typing import Any
+from core.config import BASE
 
 # Tools callable from a pipeline script (passive / diagnostic only).
 # Offensive + deploy stay out — must use normal gated chat path.
@@ -31,6 +33,7 @@ PIPELINE_ALLOWLIST = frozenset(
 _RUNNER = r'''
 import json, sys
 from kernel.router import run_tool
+from core.config import BASE
 
 ALLOW = set(json.loads(sys.argv[1]))
 script = sys.stdin.read()
@@ -70,7 +73,7 @@ def execute_pipeline(script: str, *, timeout: int = 20) -> str:
         return "[pipeline] blocked pattern: open("
 
     env = os.environ.copy()
-    env["PYTHONPATH"] = os.path.expanduser("~/offline_ai") + os.pathsep + env.get(
+    env["PYTHONPATH"] = str(BASE) + os.pathsep + env.get(
         "PYTHONPATH", ""
     )
     try:
@@ -85,7 +88,7 @@ def execute_pipeline(script: str, *, timeout: int = 20) -> str:
             capture_output=True,
             text=True,
             timeout=max(1, int(timeout)),
-            cwd=os.path.expanduser("~/offline_ai"),
+            cwd=str(BASE),
             env=env,
         )
     except subprocess.TimeoutExpired:

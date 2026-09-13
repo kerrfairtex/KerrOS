@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 _lock = threading.RLock()
-BASE = Path(os.path.expanduser("~/offline_ai"))
+from core.config import BASE
 TRACE_PATH = BASE / "data" / "channel_trace.jsonl"
 MAX_LINES = 2000
 

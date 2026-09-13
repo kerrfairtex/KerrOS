@@ -1,54 +1,115 @@
-import logging
-logging.basicConfig(filename="kerros.log", level=logging.DEBUG)
-import sys, os, time, threading, random
-sys.path.insert(0, os.path.expanduser("~/offline_ai"))
+import sys, os
+from pathlib import Path
 
-from core.adaptive_engine import AdaptiveEngine, check_internet
-from core.context import build, build_chat
-from core.thinking import needs_thinking
-from core.complete import generate_complete
-from memory.manager import (add_message, clear_session, init_session,
-    get_history, get_recent, extract_and_learn, get_profile, update_profile,
-    format_resume_picker, resume_session)
-from kernel.access import (
-    detect_tool,
-    run_tool,
-    detect_domain,
-    memory_query,
-    memory_list_sources,
-    memory_upsert,
-    memory_ingest_file,
-)
-from tools.goal_state import ToolResult, GoalState, split_goal_steps
-from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
-from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
-from kernel import boot as kernel_boot, get_kernel, resolve
-from cli.ui import (
-    ANGEL_LOGO,
-    Spinner,
-    ai_header,
-    ask_online_prompt,
-    boot_sequence,
-    divider,
-    info_mode,
-    info_ok,
-    info_warn,
-    mode_badge,
-    print_welcome_banner,
-    prompt_input,
-    session_end,
-    typewrite,
-    BL,
-    BOL,
-    CY,
-    GO,
-    GR,
-    GY,
-    PU,
-    RE,
-    R,
-    YL,
-)
+# Add the repository root before importing project modules. This is required
+# for direct execution (`python3 cli/chat.py`) as well as `python3 -m cli.chat`.
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
+import time, threading, random
+
+# Handle dual invocation: python cli/chat.py and python -m cli.chat
+try:
+    from core.adaptive_engine import AdaptiveEngine, check_internet
+    from core.context import build, build_chat
+    from kernel.compat import generate_complete
+    from memory.manager import (add_message, clear_session, init_session,
+        get_history, get_recent, extract_and_learn, get_profile, update_profile,
+        format_resume_picker, resume_session)
+    from kernel.access import (
+        detect_tool,
+        run_tool,
+        detect_domain,
+        memory_query,
+        memory_list_sources,
+        memory_upsert,
+        memory_ingest_file,
+    )
+    from tools.goal_state import ToolResult, GoalState, split_goal_steps
+    from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
+    from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
+    from kernel import boot as kernel_boot, get_kernel, resolve
+    from cli.chat_service import build_service
+    from cli.ui import (
+        Spinner,
+        SwordSpinner,
+        ai_header,
+        ask_online_prompt,
+        boot_sequence,
+        divider,
+        draw_agent_response,
+        draw_header_panel,
+        info_mode,
+        info_ok,
+        info_warn,
+        mode_badge,
+        print_welcome_banner,
+        prompt_input,
+        session_end,
+        typewrite,
+        BL,
+        BOL,
+        CY,
+        GO,
+        GR,
+        GY,
+        PU,
+        RE,
+        R,
+        YL,
+    )
+except ImportError:
+    # Fallback for direct script execution
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.adaptive_engine import AdaptiveEngine, check_internet
+    from core.context import build, build_chat
+    from kernel.compat import generate_complete
+    from memory.manager import (add_message, clear_session, init_session,
+        get_history, get_recent, extract_and_learn, get_profile, update_profile,
+        format_resume_picker, resume_session)
+    from kernel.access import (
+        detect_tool,
+        run_tool,
+        detect_domain,
+        memory_query,
+        memory_list_sources,
+        memory_upsert,
+        memory_ingest_file,
+    )
+    from tools.goal_state import ToolResult, GoalState, split_goal_steps
+    from tools.code_saver import save_code_blocks, run_and_verify, extract_code_blocks
+    from tools.claw_cli import detect_claw_tool, run_claw_tool, claw_tool_help_lines, claw_tools_summary
+    from kernel import boot as kernel_boot, get_kernel, resolve
+    from cli.chat_service import build_service
+    from cli.ui import (
+        Spinner,
+        SwordSpinner,
+        ai_header,
+        ask_online_prompt,
+        boot_sequence,
+        divider,
+        draw_agent_response,
+        draw_header_panel,
+        info_mode,
+        info_ok,
+        info_warn,
+        mode_badge,
+        print_welcome_banner,
+        prompt_input,
+        session_end,
+        typewrite,
+        BL,
+        BOL,
+        CY,
+        GO,
+        GR,
+        GY,
+        PU,
+        RE,
+        R,
+        YL,
+    )
 
 # ── Markdown stripper ────────────────────────────────────
 def strip_md(text):
@@ -88,8 +149,35 @@ def ask_mode(engine, spinner):
         engine.init_offline()
         return "offline"
 
+def is_interactive():
+    if os.environ.get("CI"):
+        return False
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def read_stdin_non_interactive() -> str | None:
+    """Read one line from stdin when available; return None if empty/closed."""
+    try:
+        line = sys.stdin.readline()
+        if not line:
+            return None
+        return line.strip()
+    except (KeyboardInterrupt, EOFError):
+        return None
+
+
 # ── Main ──────────────────────────────────────────────────
 def main():
+    from models.engine.loader import ModelLoader
+    ModelLoader().validate()
+    
+    if not is_interactive():
+        sys.argv.append("--no-prompt")
+    
+    # If stdin is not interactive and has no piped input, exit cleanly
+    if not is_interactive() and sys.stdin.isatty() is False and sys.stdin.buffer.peek() == b"":
+        return
+    
     boot_sequence()
     kernel = kernel_boot()
     kcfg = kernel.config
@@ -107,9 +195,15 @@ def main():
         bind_channel_engine(engine)
     except Exception:
         pass
-    spinner = Spinner()
-
-    mode = ask_mode(engine, spinner)
+    
+    # Check for --offline flag
+    if "--offline" in sys.argv:
+        mode = "offline"
+        engine.init_offline()
+        spinner = Spinner()
+    else:
+        spinner = Spinner()
+        mode = ask_mode(engine, spinner)
 
     session_id = ""
     try:
@@ -133,6 +227,15 @@ def main():
         model_hint=str(model_hint)[-48:],
     )
 
+    chat_service = build_service(
+        engine=engine,
+        kernel=kernel,
+        kcfg=kcfg,
+        mode=mode,
+        session_id=session_id,
+        model_hint=model_hint,
+    )
+
     while True:
         try:
             user = prompt_input()
@@ -142,13 +245,23 @@ def main():
 
         if not user: continue
 
+        # Fast-path dispatch for extracted testable commands.
+        handled, svc_out = chat_service.dispatch(user)
+        if handled:
+            if svc_out:
+                if svc_out == "":
+                    session_end()
+                    break
+                print(f"  {svc_out}")
+            continue
+
         if user=="/exit":
             session_end()
             break
 
         elif user.startswith("/scope add "):
             from tools.scope_gate import add_target
-            t = user.replace("/scope add ","").strip()
+            t = user.replace("/scope add ", "").strip()
             confirm = input(f"  {YL}Authorize '{t}' for active scanning/recon tools? [y/n]{R} ").strip().lower()
             if confirm == "y":
                 added = add_target(t)
@@ -158,7 +271,7 @@ def main():
 
         elif user.startswith("/scope remove "):
             from tools.scope_gate import remove_target
-            t = user.replace("/scope remove ","").strip()
+            t = user.replace("/scope remove ", "").strip()
             removed = remove_target(t)
             print(f"  {GR}[ ✓ ] Removed{R}" if removed else f"  {GY}Not in scope.{R}")
 
@@ -181,384 +294,128 @@ def main():
                     print(f"  {GY}Cancelled.{R}")
 
         elif user.startswith("/scope policy"):
-            parts = user.split()
-            if len(parts) >= 3 and parts[2] in ("export", "docs", "render"):
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
                 divider()
-                try:
-                    import subprocess
-                    import sys
-                    from pathlib import Path
-                    script = Path(__file__).resolve().parent.parent / "scripts" / "render_scope_policy.py"
-                    result = subprocess.run(
-                        [sys.executable, str(script)],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                    )
-                    out = (result.stdout or result.stderr or "").strip()
-                    if result.returncode == 0:
-                        print(f"  {GR}[ ✓ ]{R} {out or 'docs/SCOPE_POLICY.md regenerated'}")
-                    else:
-                        print(f"  {RE}Export failed:{R} {out}")
-                except Exception as e:
-                    print(f"  {RE}Export failed: {e}{R}")
+                print(f"  {out}")
                 divider()
-            else:
-                from tools.scope_gate import policy_summary
-                summary = policy_summary()
-                divider()
-                print(f"  {BL}Source:{R} {summary.get('source')}")
-                print(f"  {BL}Offensive ({len(summary['offensive_tools'])}):{R} {', '.join(summary['offensive_tools'])}")
-                print(f"  {BL}Deploy ({len(summary['deploy_tools'])}):{R} {', '.join(summary['deploy_tools'])}")
-                print(f"  {BL}Defaults:{R} {summary.get('defaults')}")
-                print(f"  {GY}Tip: /scope policy export → docs/SCOPE_POLICY.md{R}")
-                divider()
+                continue
 
-        elif user=="/scope":
-            from tools.scope_gate import list_scope, policy_summary
-            targets, cidrs = list_scope()
-            summary = policy_summary()
-            divider()
-            print(f"  {BL}Authorized targets:{R} {', '.join(targets) if targets else 'none'}")
-            print(f"  {BL}Authorized CIDRs:{R} {', '.join(cidrs) if cidrs else 'none'}")
-            print(f"  {BL}Policy:{R} {summary.get('source')}  (use /scope policy)")
-            divider()
+        elif user == "/scope":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/apistatus":
-            divider()
-            if engine._multi:
-                h = engine._multi.health
-                if h:
-                    for name, status in h.items():
-                        print(f"  {BL}{name:<20}{R} {status}")
-                else:
-                    print(f"  {GY}No API calls made yet this session.{R}")
-                if engine._multi.dead_apis:
-                    print(f"  {RE}Dead (auth failed): {', '.join(engine._multi.dead_apis)}{R}")
-            else:
-                print(f"  {GY}Online mode not initialized yet — showing catalog instead.{R}")
-            try:
-                from adapters.integrations.registry import catalog_status, format_status_lines, resolve_for_task
-                st = catalog_status()
-                print(f"  {BL}catalog{R} ready={st.get('ready_count')} needs_setup={st.get('needs_setup_count')}")
-                coding = resolve_for_task("coding")
-                if coding.get("ok"):
-                    print(f"  {GR}coding tier → {coding.get('provider')} ({coding.get('model') or ''}){R}")
-                else:
-                    print(f"  {GY}coding tier: no provider key configured yet{R}")
-                print(f"  {GY}Tip: /integrations [section|coding] — full catalog{R}")
-            except Exception as exc:
-                print(f"  {GY}integrations catalog unavailable: {exc}{R}")
-            divider()
+        elif user == "/apistatus":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
         elif user == "/integrations" or user.startswith("/integrations "):
-            divider()
-            try:
-                from adapters.integrations.registry import (
-                    catalog_status,
-                    format_status_lines,
-                    list_tiers,
-                    resolve_tier,
-                )
-                arg = user[len("/integrations"):].strip().lower()
-                if arg in ("sol", "terra", "luna", "coding", "research"):
-                    tiers = list_tiers()
-                    spec = tiers.get(arg) or {}
-                    print(f"  {BL}tier:{arg}{R} {spec.get('description', '')}")
-                    print(f"  providers: {', '.join(spec.get('providers') or [])}")
-                    print(f"  resolve: {resolve_tier(arg)}")
-                else:
-                    section = arg or None
-                    ready_only = False
-                    if arg == "ready":
-                        section = None
-                        ready_only = True
-                    st = catalog_status(sections=[section] if section else None)
-                    for line in format_status_lines(st, section=section, ready_only=ready_only):
-                        print(f"  {line}")
-            except Exception as exc:
-                print(f"  {RE}integrations error: {exc}{R}")
-            divider()
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/mode":
-            print(f"  {mode_badge(engine.current_mode)}")
+        elif user == "/mode":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                print(f"  {out}")
+                continue
 
-        elif user=="/online":
-            spinner.label="Connecting"
-            spinner.start()
-            ok,msg=engine.switch_online()
-            spinner.stop()
-            mode=engine.current_mode
-            if ok: print(f"  {GR}[ ✓ ] Switched to online — LLaMA-3.3-70B{R}")
-            else: print(f"  {RE}[ ✗ ] {msg}{R}")
+        elif user == "/online":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                print(f"  {out}")
+                continue
 
-        elif user=="/offline":
-            engine.switch_offline()
-            mode=engine.current_mode
-            info_mode("Switched to offline mode")
+        elif user == "/offline":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                info_mode(out)
+                continue
 
         elif user.startswith("/setkey "):
-            parts=user.split()
-            if len(parts)==3 and parts[1]=="groq":
-                import json
-                p="/data/data/com.termux/files/home/offline_ai/config.json"
-                with open(p) as f: c=json.load(f)
-                c["groq_api_key"]=parts[2]
-                with open(p,"w") as f: json.dump(c,f,indent=2)
-                print(f"  {GR}[ ✓ ] Groq API key saved{R}")
-            else:
-                print(f"  {GY}Usage: /setkey groq YOUR_API_KEY{R}")
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                print(f"  {out}")
+                continue
 
-        elif user=="/help":
-            divider()
-            cmds=[
-                ("/online",            "Switch to online mode (Groq)"),
-                ("/offline",           "Switch to offline mode (local)"),
-                ("/mode",              "Show current mode"),
-                ("/scope",             "Show authorized scan/recon targets"),
-                ("/scope add <t>",     "Authorize a target for active tools"),
-                ("/scope remove <t>",  "Remove a target from scope"),
-                ("/scope arm-deploy",  "Arm deploy tools for N minutes"),
-                ("/scope policy",      "Show declarative scope_policy.yaml"),
-                ("/scope policy export","Regenerate docs/SCOPE_POLICY.md"),
-                ("/apistatus",         "Show online API health/dead status"),
-                ("/integrations",      "Adaptive catalog / tiers (coding, sol, terra…)"),
-                ("search past sessions <q>", "FTS recall across chat history"),
-                ("skills curate",      "Archive duplicate/stale learned skills"),
-                ("execute pipeline <py>", "Allowlisted multi-tool script (ADR-060)"),
-                ("/setkey groq <key>", "Set Groq API key"),
-                ("/switch small|large","Switch local model"),
-                ("/react <task>",      "ReAct agent — multi-step reasoning"),
-                ("/knowledge <q>",     "Knowledge Agent — RAG-grounded Q&A + live tools"),
-                ("/delegate a:q || b:q2", "Parallel subagents (KERROS_SUBAGENTS=1; ADR-061)"),
-                ("profile memory …",     "Durable MEMORY.md/USER.md notes (ADR-062)"),
-                ("tool search <q>",      "Progressive tool disclosure (KERROS_TOOL_SEARCH=1)"),
-                ("agent cron …",         "Persisted agent cron jobs (data/agent_cron)"),
-                ("list sessions",        "List indexed chat sessions (ADR-063)"),
-                ("browse session <id>",  "Browse turns in a past session"),
-                ("/resume [id|latest]",  "Resume indexed session into REPL (ADR-068)"),
-                ("bg spawn|poll|kill",   "Background process registry"),
-                ("skills hub …",         "Install/scan/quarantine skills (ADR-064)"),
-                ("gateway start|status", "Webhook channel gateway (KERROS_GATEWAY=1)"),
-                ("gateway channel …",    "channels + llm/stream/slash/tools/trace (ADR-066…087)"),
-                ("python3 -m cli.tui",   "Full-screen Soft TUI + persisted trace (ADR-078/083/087)"),
-                ("/recall [keyword]",  "Search past sessions"),
-                ("/clear",             "Summarize + clear session"),
-                ("/history",           "Show conversation history"),
-                ("/memory",            "Profile + Scout/agent memory (ADR-106)"),
-                ("kerros memory …",    "Unified stores: status|read|write|dream|export"),
-                ("memory graph …",     "Entity graph (add|link|query|neighbors)"),
-                ("/tools",             "List all tools"),
-                ("/read <path>",       "Read a workspace file (claw)"),
-                ("/write <p> :: <txt>", "Write a workspace file (claw)"),
-                ("/exec <cmd>",        "Run shell command in workspace (claw)"),
-                ("/list [path]",       "List workspace directory (claw)"),
-                ("/workspace",         "Show claw workspace root"),
-                ("/kernel",            "Show kernel boot status"),
-                ("/health",            "Show runtime health report"),
-                ("/services",          "Show managed service status"),
-                ("/events [n]",        "Show recent event bus events"),
-                ("/schedule",          "List jobs; cron <name> <expr>; cancel <id>"),
-                ("/workflows",         "List/run/reload YAML workflows; runs; resume"),
-                ("/reflect",           "Review episodes → lessons (Reflection Agent)"),
-                ("/reflections",       "Show saved reflection lessons"),
-                ("/llm",               "LLM providers + resilience; reset [name]"),
-                ("/capabilities [kind]", "List capability registry entries"),
-                ("/capabilities export", "Regenerate docs/CAPABILITIES.md from YAML"),
-                ("/decisions",         "Show recent decision log entries"),
-                ("/decisions verify",  "Verify decision_log hash chain (ADR-017)"),
-                ("/decisions export [path]", "Export decision_log JSONL"),
-                ("/decisions seal <id>", "Seal id prefix to WORM segment (ADR-019)"),
-                ("/decisions retain",  "Apply retention policy once (ADR-019)"),
-                ("/decisions whoami",  "Show audit RBAC role (ADR-021)"),
-                ("/decisions privacy", "Show audit privacy egress status (ADR-024)"),
-                ("/decisions residency", "Show residency stamp status (ADR-025)"),
-                ("/decisions erasure <ref> [ids]", "Record erasure request (ADR-025)"),
-                ("/decisions erasure-review <id> <outcome>", "Sealed-cold review (ADR-026)"),
-                ("/decisions transfer <to> <mechanism>", "Record transfer intent (ADR-026)"),
-                ("/decisions transfer-exec <id>", "Execute transfer copy pipeline (ADR-027)"),
-                ("/sources",           "List RAG knowledge sources"),
-                ("/analyze <topic>",   "Deep system analysis"),
-                ("/search <query>",    "Search knowledge base"),
-                ("/learn <text>",      "Teach KerrOS something"),
-                ("/ingest <file>",     "Load file into knowledge base"),
-                ("/exit",              "End session"),
-            ]
-            for cmd,desc in cmds:
-                print(f"  {BL}{cmd:<28}{R} {GY}{desc}{R}")
-            divider()
+        elif user == "/help":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/clear":
-            try:
-                from memory.summarizer import summarize_session
-                spinner.label="Summarizing session"
-                spinner.start()
-                result = summarize_session(engine)
-                spinner.stop()
-                if result:
-                    ep_id, summary = result
-                    print(f"  {GR}[ ✓ ] Session saved as Episode #{ep_id}{R}")
-                    print(f"  {GY}{summary[:100]}...{R}")
-            except Exception as e:
-                spinner.stop()
-                print(f"  {GY}[Summary skipped: {e}]{R}")
-            clear_session()
-            print(f"  {GR}[ ✓ ] Session cleared{R}")
+        elif user == "/clear":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                print(f"  {out}")
+                continue
 
         elif user == "/resume" or user.startswith("/resume "):
-            arg = user[len("/resume") :].strip()
-            if not arg:
-                print(f"  {format_resume_picker()}{R}")
-            else:
-                out = resume_session(arg)
-                if out.get("ok"):
-                    title = (out.get("title") or "")[:60]
-                    print(
-                        f"  {GR}[ ✓ ] Resumed{R} {BL}{out.get('session_id')}{R}  "
-                        f"{GY}loaded {out.get('loaded')} turn(s)"
-                        f"{(' · ' + title) if title else ''}{R}"
-                    )
-                else:
-                    print(f"  {RE}[resume] {out.get('error') or 'failed'}{R}")
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                print(f"  {out}")
+                continue
 
-        elif user=="/memory" or user.startswith("/memory "):
-            divider()
-            p=get_profile()
-            if p:
-                print(f"  {GO}Profile:{R}")
-                for k,v in p.items(): print(f"  {BL}{k:<20}{R} {v}")
-            try:
-                from memory.manage import status as mem_status
-                from memory.unified_store import snapshot_for_prompt, current_session_id
+        elif user == "/memory" or user.startswith("/memory "):
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-                st = mem_status()
-                print(f"\n  {GO}KerrOS agent memory:{R} {'ON' if st.get('enabled') else 'OFF'}")
-                for s in st.get("stores") or []:
-                    print(
-                        f"  {BL}{s.get('name'):<10}{R} "
-                        f"{GY}{s.get('default_access')} · {s.get('file_count', 0)} files"
-                        f"{' · RO' if s.get('readonly') else ''}{R}"
-                    )
-                snap = snapshot_for_prompt(current_session_id(), budget=1200)
-                if snap:
-                    print(f"\n  {GO}Attached snapshot:{R}")
-                    for line in snap.splitlines()[:40]:
-                        print(f"  {line}")
-            except Exception as e:
-                print(f"  {GY}[agent memory: {e}]{R}")
-            arg = user[len("/memory"):].strip()
-            if arg:
-                try:
-                    from memory.kerros_memory import kerros_memory
-                    print(kerros_memory(arg))
-                except Exception as e:
-                    print(f"  {RE}[kerros memory] {e}{R}")
-            try:
-                from memory.semantic import get_all
-                sem=get_all()
-                if sem:
-                    print(f"\n  {GO}Semantic Memory:{R}")
-                    for cat,facts in sem.items():
-                        print(f"  {GY}{cat}{R}")
-                        for k,v in facts.items():
-                            print(f"    {BL}{k:<16}{R} {v['value']}")
-            except: pass
-            try:
-                from memory.episodic import get_all_episodes
-                eps=get_all_episodes()
-                if eps: print(f"\n  {GO}Episodes stored:{R} {len(eps)}")
-            except: pass
-            if not p: print(f"  {GY}No profile data yet{R}")
-            divider()
+        elif user == "/history":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/history":
-            divider()
-            for m in get_history(10):
-                col=YL if m['role']=='user' else CY
-                role="You    " if m['role']=='user' else "KerrOS "
-                print(f"  {col}{role}{R} {GY}│{R} {m['content'][:65]}")
-            divider()
+        elif user == "/tools":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/tools":
-            divider()
-            print(f"  {GO}Filesystem (claw){R}  {GY}{claw_tools_summary()}{R}")
-            for cmd, desc in claw_tool_help_lines():
-                print(f"    {BL}{cmd:<28}{R} {GY}{desc}{R}")
-            print()
-            cats={
-                f"{GO}Network{R}":       "nmap · ping · traceroute · nikto · whois · dig",
-                f"{GO}OSINT{R}":         "osint · recon · geoip · geoint · dnsenum · reversedns",
-                f"{GO}Investigation{R}": "metadata · headers · cert · email_osint · fake_detect",
-                f"{GO}Intel{R}":         "sigint · humint · verify_source · opsec · psyop",
-                f"{GO}System{R}":        "sysinfo · netstat · speedtest · calc · file_read · bash",
-                f"{GO}Hardware{R}":      "esptool · mikrotik · modem",
-            }
-            for cat,tools in cats.items():
-                print(f"  {cat}  {GY}{tools}{R}")
-            divider()
+        elif user == "/kernel":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif (claw_match := detect_claw_tool(user))[0]:
-            claw_name, claw_args = claw_match
-            print(f"  {GR}◈ Claw: {claw_name}{R}")
-            spinner.label = "Executing"
-            spinner.start()
-            tool_result = run_claw_tool(claw_name, claw_args)
-            spinner.stop()
-            divider()
-            for line in tool_result.split("\n"):
-                print(f"  {GY}{line}{R}")
-            divider()
-            add_message("user", user)
-            add_message("assistant", tool_result[:800])
+        elif user == "/health":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-        elif user=="/kernel":
-            divider()
-            status = get_kernel().status()
-            print(f"  {BL}Phase:{R}      {status['phase']}")
-            print(f"  {BL}Workspace:{R}  {status['workspace']}")
-            print(f"  {BL}Base:{R}       {status['base']}")
-            print(f"  {BL}Services:{R}   {', '.join(status['services'])}")
-            print(f"  {BL}Boot log:{R}   {' → '.join(status['boot_log'])}")
-            divider()
-
-        elif user=="/health":
-            divider()
-            try:
-                health = resolve("health_monitor")
-                mgr = resolve("service_manager")
-                report = health.collect(mgr)
-                print(f"  {BL}Healthy:{R}   {report['healthy']}")
-                print(f"  {BL}Uptime:{R}    {report['uptime_s']}s")
-                for name, comp in report["components"].items():
-                    status = comp.get("status", "unknown")
-                    if name == "omniroute":
-                        enabled = "on" if comp.get("enabled") else "off"
-                        avail = "up" if comp.get("available") else "down"
-                        url = comp.get("base_url", "")
-                        extra = f"  enabled={enabled}  {avail}  {url}"
-                        err = comp.get("error")
-                        if err:
-                            extra += f"  ({err})"
-                        print(f"  {GO}{name}{R}: {status}{extra}")
-                    else:
-                        print(f"  {GO}{name}{R}: {status}")
-            except Exception as e:
-                print(f"  {RE}Health unavailable: {e}{R}")
-            divider()
-
-        elif user=="/services":
-            divider()
-            try:
-                mgr = resolve("service_manager")
-                status = mgr.status()
-                for name, info in status["services"].items():
-                    print(
-                        f"  {GO}{name}{R}  {info['state']}  "
-                        f"pid={info.get('pid') or '-'}  restarts={info['restart_count']}"
-                    )
-            except Exception as e:
-                print(f"  {RE}Services unavailable: {e}{R}")
-            divider()
+        elif user == "/services":
+            handled, out = chat_service.dispatch(user)
+            if handled and out:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
         elif user.startswith("/events"):
             divider()
@@ -767,11 +624,11 @@ def main():
                 sub = parts[1] if len(parts) > 1 else None
                 if sub in ("export", "docs", "render"):
                     import subprocess
-                    import sys
+                    import sys as _sys
                     from pathlib import Path
                     script = Path(__file__).resolve().parent.parent / "scripts" / "render_capabilities.py"
                     result = subprocess.run(
-                        [sys.executable, str(script)],
+                        [_sys.executable, str(script)],
                         capture_output=True,
                         text=True,
                         timeout=30,
@@ -1155,9 +1012,9 @@ def main():
                 spinner.label = "Delegating"
                 spinner.start()
                 try:
-                    from core.config import cfg as _cfg
+                    from kernel.config import load_config
 
-                    out = delegate_tasks(jobs, engine, cfg=_cfg())
+                    out = delegate_tasks(jobs, engine, cfg=load_config().values)
                 except Exception as exc:
                     spinner.stop()
                     print(f"  {RE}[delegate] {exc}{R}")
@@ -1173,371 +1030,67 @@ def main():
                     add_message("assistant", text[:800])
 
         elif user.startswith("/analyze"):
-            from prompts.system import ANALYST_PROMPT
-            target=user.replace("/analyze","").strip()
-            if not target:
-                print(f"  {RE}Usage: /analyze <describe your system>{R}")
-            else:
-                spinner.label="Analyzing"
-                spinner.start()
-                if engine.current_mode=="online":
-                    response=generate_complete(engine, target, system=ANALYST_PROMPT, stream=False)
-                else:
-                    response=generate_complete(engine, target, system=ANALYST_PROMPT, stream=False)
-                spinner.stop()
-                divider(); ai_header(mode); typewrite(response); divider()
-
-        elif user.startswith("/switch "):
-            model=user.replace("/switch ","").strip()
-            models={"small":"models/qwen0.5b-q4.gguf","large":"models/model.gguf"}
-            if model in models:
-                import json
-                p="/data/data/com.termux/files/home/offline_ai/config.json"
-                with open(p) as f: c=json.load(f)
-                c["model_path"]=models[model]
-                with open(p,"w") as f: json.dump(c,f,indent=2)
-                print(f"  {GR}[ ✓ ] Switched to {model} — restart to apply{R}")
-            else:
-                print(f"  {GY}Available: small · large{R}")
-
-        elif user.startswith("/learn "):
-            memory_upsert(user[7:].strip(), "user_knowledge")
-            print(f"  {GR}[ ✓ ] Learned and stored{R}")
-
-        elif user.startswith("/ingest "):
-            memory_ingest_file(user[8:].strip())
-
-        elif user=="/sources":
-            srcs=memory_list_sources()
-            print(f"  {BL}Sources:{R}", ", ".join(srcs) if srcs else f"{GY}None{R}")
-
-        elif user=="/recall" or user.startswith("/recall "):
-            from memory.episodic import get_recent_episodes, search_episodes
-            query=user.replace("/recall","").strip()
-            divider()
-            episodes=search_episodes(query) if query else get_recent_episodes(5)
-            label=f"Search: {query}" if query else "Recent sessions:"
-            print(f"  {BL}{label}{R}")
-            if episodes:
-                for ep in episodes:
-                    print(f"  {GO}#{ep['id']}{R} {GY}{ep['time']}{R}")
-                    print(f"  {CY}{ep['summary'][:120]}{R}")
-                    if ep.get('tags'): print(f"  {GY}Tags: {', '.join(ep['tags'])}{R}")
-                    print()
-            else: print(f"  {GY}No episodes found{R}")
-            divider()
-
-        elif user.startswith("/search "):
-            query = user[8:].strip()
-            hits = []
-            try:
-                mem = resolve("memory_port")
-                hits = [(float(s), t, src) for s, t, src in mem.query(query, top_k=3)]
-            except Exception:
-                from kernel.access import memory_query
-                hits = [(float(s), t, src) for s, t, src in memory_query(query, top_k=3)]
-            divider()
-            if hits:
-                for _, text, src in hits:
-                    print(f"  {BL}[{src}]{R} {text[:200]}")
-            else:
-                print(f"  {GY}No results found{R}")
-            divider()
-
-        else:
-            extract_and_learn(user)
-            # Save only the raw user text, never tool-augmented content
-            add_message("user", user)
-            try:
-                from memory.nudges import note_turn, pending_nudges
-
-                note_turn()
-                for nudge in pending_nudges():
-                    print(f"  {GY}{nudge}{R}")
-            except Exception:
-                pass
-
-            active_goal = GoalState.load()
-            _is_goal_step = False
-            if user.strip().lower().startswith("/goal "):
-                goal_text = user[6:].strip()
-                steps = split_goal_steps(goal_text)
-                active_goal = GoalState.start(goal_text, steps)
-                print(f"  {GO}[goal] started — {len(steps)} step(s){R}")
-                print(active_goal.summary())
-                user = active_goal.current_step()["desc"]
-                _is_goal_step = True
-            elif active_goal and not active_goal.is_complete():
-                if active_goal.is_stuck():
-                    print(f"  {RE}[goal] stuck on: {active_goal.current_step()['desc']}{R}")
-                    print(active_goal.summary())
-                    active_goal.clear()
-                    active_goal = None
-                else:
-                    user = active_goal.current_step()["desc"]
-                    _is_goal_step = True
-
-            domain=detect_domain(user)
-            if domain: print(f"  {PU}◈ Domain: {domain}{R}")
-
-            tool_result=None
-            claw_name, claw_args = detect_claw_tool(user)
-            if claw_name:
-                print(f"  {GR}◈ Claw: {claw_name}{R}")
-                spinner.label = "Executing"
-                spinner.start()
-                spinner.stop()
-                tool_result = run_claw_tool(claw_name, claw_args)
-                divider()
-                for line in tool_result.split("\n"):
-                    print(f"  {GY}{line}{R}")
-                divider()
-                add_message("assistant", tool_result[:800])
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                if out:
+                    divider()
+                    print(f"  {out}")
+                    divider()
                 continue
 
-            tool,args=detect_tool(user, bypass_gate=_is_goal_step)
-            if tool:
-                print(f"  {GR}◈ Tool: {tool}{R}")
+        elif user.startswith("/switch "):
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                print(f"  {out}")
+                continue
 
-                from tools.scope_gate import check as _scope_check, add_target as _scope_add
-                allowed, reason = _scope_check(tool, args)
+        elif user.startswith("/learn "):
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                print(f"  {out}")
+                continue
 
-                from tools.scope_gate import DEPLOY_TOOLS, arm_deploy
-                if tool in DEPLOY_TOOLS:
-                    if not allowed:
-                        print(f"  {RE}◈ Scope: {reason}{R}")
-                        proceed = input(f"  {YL}Arm deploy tools for 5 minutes and run '{tool}' now? [y/n]{R} ").strip().lower()
-                        if proceed == "y":
-                            arm_deploy(5)
-                            print(f"  {GR}[ ✓ ] Deploy armed for 5 minute(s){R}")
-                        else:
-                            print(f"  {GY}Cancelled.{R}")
-                            continue
-                    from kernel.access import run_tool as _run_devops_tool
-                    tool_result = _run_devops_tool(tool, args)
-                    divider(); ai_header(mode); typewrite(tool_result); divider()
-                    add_message("assistant", tool_result)
-                    continue
+        elif user.startswith("/ingest "):
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                print(f"  {out}")
+                continue
 
-                if not allowed:
-                    target_str = args[0] if isinstance(args,(list,tuple)) else args
-                    print(f"  {RE}◈ Scope: {reason}{R}")
-                    proceed = input(f"  {YL}Target not authorized. Run '{tool}' on '{target_str}' anyway? [y/n]{R} ").strip().lower()
-                    if proceed == "y":
-                        _scope_add(str(target_str))
-                        print(f"  {GR}[ ✓ ] Authorized for this session{R}")
-                    else:
-                        print(f"  {GY}Skipped.{R}")
-                        tool = None
+        elif user == "/sources":
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                print(f"  {out}")
+                continue
 
-            if tool:
-                spinner.label="Executing"
-                spinner.start()
-                spinner.stop()
-                tool_result=run_tool(tool,args)
-                try:
-                    from tools.skill_experience import maybe_create_skill, set_task_hint
+        elif user == "/recall" or user.startswith("/recall "):
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-                    set_task_hint(user)
-                    skill_path = maybe_create_skill(min_tools=5)
-                    if skill_path:
-                        print(f"  {GR}[skill] learned → {skill_path}{R}")
-                except Exception:
-                    pass
+        elif user.startswith("/search "):
+            handled, out = chat_service.dispatch(user)
+            if handled:
+                divider()
+                print(f"  {out}")
+                divider()
+                continue
 
-                if active_goal and not active_goal.is_complete():
-                    _fail_markers = ("error", "fail", "traceback", "not found", "[✗]")
-                    _ok = bool(tool_result) and not any(m in str(tool_result).lower() for m in _fail_markers)
-                    active_goal.record_result(ToolResult(
-                        status="ok" if _ok else "fail",
-                        tool=tool,
-                        stdout=str(tool_result)[:500],
-                    ))
-                    print(active_goal.summary())
-                    if active_goal.is_complete():
-                        print(f"  {GR}[goal] complete!{R}")
-                        active_goal.clear()
-
-                if tool_result.startswith("__EXPLAIN_REQUEST__"):
-                    _, fpath, code = tool_result.split("__SPLIT__", 1)[0], None, None
-                    raw = tool_result[len("__EXPLAIN_REQUEST__"):]
-                    fpath, code = raw.split("__SPLIT__", 1)
-                    explain_prompt = f"Explain what this code does, in 3-5 concise sentences. File: {fpath}\n\nCode:\n{code}"
-                    spinner.label="Explaining"; spinner.start()
-                    try:
-                        explanation = generate_complete(engine, explain_prompt, stream=False)
-                    except Exception as e:
-                        explanation = f"[Error generating explanation: {e}]"
-                    spinner.stop()
-                    divider(); ai_header(mode); typewrite(explanation); divider()
-                    add_message("assistant", explanation[:800])
-                    continue
-                else:
-                    divider()
-                    for line in tool_result.split("\n"):
-                        print(f"  {GY}{line}{R}")
-                    divider()
-
-            elif active_goal and not active_goal.is_complete():
-                _stuck_desc = active_goal.current_step()["desc"]
-                active_goal.record_result(ToolResult(
-                    status="fail",
-                    tool="none",
-                    stderr=f"No tool matched for step: {_stuck_desc}",
-                ))
-                print(f"  {RE}[goal] stuck — no tool matched for: {_stuck_desc}{R}")
-                print(active_goal.summary())
-
-            from prompts.system import SYSTEM_PROMPT
-            spinner.label="Thinking"
-            spinner.start()
-
-            system_p, user_p = build_chat(user, tool_result=tool_result, domain=domain)
-            if tool_result:
-                user_p += "\nAnalyze the tool output and explain what it means."
-            # Use only current session turns (no cross-session bleed)
-            raw_hist = get_recent(4)
-            clean_hist = []
-            for m in raw_hist:
-                c = m.get("content","").strip()
-                bad = ["[Domain:","[Tool output]","Analyze the tool",
-                       "<|im_start|>","User: ","Assistant: ",
-                       "PING ","bytes from","icmp_seq","packets transmitted"]
-                if c and len(c)>3 and len(c)<500 and not any(b in c for b in bad):
-                    clean_hist.append({"role":m["role"],"content":c})
-            try:
-                from core.config import cfg as _cfg
-                from core.context_compressor import compress_context
-                from core.message_policy import prepare_history, should_compress
-
-                _c = _cfg()
-                _ctx = int(_c.get("context_size") or 4096)
-                _max = int(_c.get("max_tokens") or 512)
-                if should_compress(clean_hist, context_size=_ctx, max_tokens=_max):
-                    clean_hist, _meta = compress_context(
-                        clean_hist,
-                        keep_last=6,
-                        engine=engine,
-                        context_size=_ctx,
-                        max_tokens=_max,
-                    )
-                else:
-                    clean_hist, _meta = prepare_history(
-                        clean_hist,
-                        context_size=_ctx,
-                        max_tokens=_max,
-                    )
-            except Exception:
-                pass
-            response = generate_complete(engine, 
-                user_message=user_p,
-                system=system_p,
-                history=clean_hist,
-                stream=False
-            )
-
-            spinner.stop()
-            # Strip any leaked ChatML tokens from response
-            for tok in ["<|im_start|>","<|im_end|>","<|endoftext|>"]:
-                response = response.replace(tok,"")
-            # Strip thinking artifacts
-            if "Now give your final answer:" in response:
-                response = response.split("Now give your final answer:")[-1]
-            if "[Your reasoning:" in response:
-                response = response.split("]")[-1]
-            response = response.strip()
-            divider(); ai_header(mode); typewrite(response); divider()
-
-            # Interactive "[code] Found N… Save to file? [y/n]" — hidden by default.
-            # Opt in: KERROS_CODE_SAVE_PROMPT=1
-            _code_save_prompt = os.environ.get("KERROS_CODE_SAVE_PROMPT", "").strip().lower() in (
-                "1", "true", "yes", "on",
-            )
-            saved_files = save_code_blocks(response) if _code_save_prompt else []
-            if saved_files:
-                print(f"  [code] Found {len(saved_files)} code block(s).")
-                choice = input("  Save to file? [y/n] ").strip().lower()
-                if choice == "y":
-                    default_folder = "project_" + time.strftime("%Y%m%d_%H%M%S")
-                    folder_input = input(f"  Folder name [{default_folder}]: ").strip()
-                    folder = folder_input if folder_input else default_folder
-                    saved_files = save_code_blocks(response, folder=folder)
-                    _goal_step_ok = True
-                    for f in saved_files:
-                        print(f"  [saved] {f}")
-                        result = run_and_verify(f)
-                        if result.get("ran"):
-                            status = "PASS" if result["ok"] else "FAIL"
-                            print(f"  [run:{status}] {f}")
-                            if result["stdout"]:
-                                print(f"    stdout: {result['stdout'][:300]}")
-                            if result["stderr"]:
-                                print(f"    stderr: {result['stderr'][:300]}")
-
-                            attempts = 0
-                            while not result["ok"] and attempts < 2:
-                                attempts += 1
-                                print(f"  [fix] Attempt {attempts}/2 — asking AI to fix...")
-                                with open(f) as cf:
-                                    broken_code = cf.read()
-                                fix_prompt = (
-                                    f"This code failed when run.\n\nCode:\n{broken_code}\n\n"
-                                    f"Error:\n{result['stderr'][:1000]}\n\n"
-                                    f"Return ONLY the corrected full code in a single code block, no explanation."
-                                )
-                                try:
-                                    fix_response = generate_complete(engine, fix_prompt, stream=False)
-                                except Exception as e:
-                                    print(f"  [fix] Failed to call engine: {e}")
-                                    break
-                                fixed_blocks = extract_code_blocks(fix_response)
-                                if not fixed_blocks:
-                                    print("  [fix] No code returned — stopping retries.")
-                                    break
-                                _, fixed_code = fixed_blocks[0]
-                                with open(f, "w") as wf:
-                                    wf.write(fixed_code.strip() + "\n")
-                                result = run_and_verify(f)
-                                status = "PASS" if result["ok"] else "FAIL"
-                                print(f"  [run:{status}] {f} (attempt {attempts})")
-                                if result["stdout"]:
-                                    print(f"    stdout: {result['stdout'][:300]}")
-                                if result["stderr"]:
-                                    print(f"    stderr: {result['stderr'][:300]}")
-
-                            if result["ok"]:
-                                print(f"  [fixed] {f} now passes.")
-                            elif attempts > 0:
-                                print(f"  [unresolved] {f} still failing after {attempts} attempt(s).")
-                            if not result["ok"]:
-                                _goal_step_ok = False
-                        else:
-                            print(f"  [run:skip] {result.get('reason')}")
-                else:
-                    for f in saved_files:
-                        os.remove(f)
-
-                if active_goal and not active_goal.is_complete():
-                    _step_desc = active_goal.current_step()["desc"]
-                    if choice == "y":
-                        active_goal.record_result(ToolResult(
-                            status="ok" if _goal_step_ok else "fail",
-                            tool="code_saver",
-                            path=folder,
-                            stdout=f"Saved {len(saved_files)} file(s) to {folder}",
-                        ))
-                    else:
-                        active_goal.record_result(ToolResult(
-                            status="fail",
-                            tool="code_saver",
-                            stderr="User declined to save generated code",
-                        ))
-                    print(active_goal.summary())
-                    if active_goal.is_complete():
-                        print(f"  {GR}[goal] complete!{R}")
-                        active_goal.clear()
-                    elif active_goal.is_stuck():
-                        print(f"  {RE}[goal] still stuck on: {_step_desc}{R}")
+        else:
+            result = chat_service.run_noninteractive_flow(user, None, active_goal, engine)
+            active_goal = result["active_goal"]
+            response = result["response"]
+            if result.get("goal_complete"):
+                print(f"  {GR}[goal] complete!{R}")
+            elif result.get("goal_stuck"):
+                _step_desc = active_goal.current_step()["desc"] if active_goal else ""
+                print(f"  {RE}[goal] still stuck on: {_step_desc}{R}")
+            if response:
+                print(draw_agent_response(response, label=f"KerrOS [{mode}]"))
+            if result.get("error"):
+                print(f"  {RE}[error] {result['error']}{R}")
 
             # Only save clean short responses
             clean_resp = response.strip()
