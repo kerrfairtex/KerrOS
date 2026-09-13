@@ -148,6 +148,192 @@ flowchart TB
 Boot phases: `INIT → CONFIG → SERVICES → PORTS → READY`
 (`kernel/boot.py`, `docs/KERNEL_CONTRACT.md`).
 
+## Repository tree
+
+```text
+offline_ai/
+├── cli/                        # Terminal UI and REPL runtime
+│   ├── chat.py                 # Entrypoint REPL loop
+│   ├── chat_service.py         # Slash-command dispatch + response helpers
+│   ├── command_dispatch.py     # Slash command registry
+│   ├── repl_input.py           # Input handling / autocomplete
+│   ├── tui.py                  # TUI rendering
+│   └── ui.py                   # Colors, banners, mode badge, typing effect
+├── kernel/                     # Boot lifecycle, config, DI, access facade
+│   ├── __init__.py
+│   ├── boot.py                 # Kernel boot phases: INIT → CONFIG → SERVICES → PORTS → READY
+│   ├── config.py               # Typed config + env overlays
+│   ├── access.py               # Public facade: detect_tool, run_tool, memory_query, ...
+│   ├── capability_registry.py  # Capability manifest registry
+│   ├── decision_log.py         # Decision log persistence
+│   ├── container.py            # Lightweight DI container
+│   ├── compat.py               # Backward-compat import shims
+│   └── router.py               # Tool/domain routing
+├── core/                       # Engine, context, completion, config
+│   ├── adaptive_engine.py      # Online/offline mode selection
+│   ├── context.py              # Chat context builders
+│   ├── context_compressor.py   # Context compression
+│   ├── engine.py               # LLM engine abstraction
+│   ├── config.py               # Base config loader
+│   ├── complete.py             # Unified completion facade
+│   ├── multi_api.py            # Multi-provider API routing
+│   ├── retriever.py            # RAG retrieval
+│   └── router.py               # Request router
+├── adapters/                   # Port implementations
+│   ├── llm/
+│   │   ├── composite_adapter.py
+│   │   ├── ollama_adapter.py
+│   │   ├── llama_cpp_adapter.py
+│   │   ├── vllm_adapter.py
+│   │   ├── litellm_adapter.py
+│   │   ├── omniroute_adapter.py
+│   │   └── resilience.py
+│   ├── memory/
+│   │   ├── hybrid_memory_adapter.py
+│   │   ├── faiss_vector_store.py
+│   │   ├── qdrant_vector_store.py
+│   │   └── rag_store_adapter.py
+│   ├── tools/
+│   │   ├── claw_adapter.py
+│   │   └── router_adapter.py
+│   ├── embeddings/sentence_transformers_adapter.py
+│   ├── search/duckduckgo_adapter.py
+│   ├── storage/local_fs_adapter.py
+│   └── integrations/registry.py
+├── agents/                     # User-facing agents
+│   ├── code.py
+│   ├── knowledge.py
+│   ├── planner.py
+│   ├── react.py
+│   ├── reflection.py
+│   ├── research.py
+│   ├── security.py
+│   ├── document.py
+│   ├── subagents.py
+│   ├── tool_discovery.py
+│   └── agents/supervisor/      # Supervisor/meta-agent layer
+│       ├── supervisor.py
+│       ├── unified_core.py
+│       ├── objective_model.py
+│       ├── global_observer.py
+│       ├── meta_observer.py
+│       ├── environment.py
+│       └── world_registry.py
+├── tools/                      # Built-in tools and wrappers
+│   ├── code_saver.py
+│   ├── claw_cli.py
+│   ├── goal_state.py
+│   ├── scope_gate.py
+│   ├── shell_utils.py
+│   ├── fs_tool.py
+│   ├── memory_graph.py
+│   └── registry/
+├── memory/                     # Session/profile/episodic/semantic stores
+│   ├── manager.py
+│   ├── session_store.py
+│   ├── session_fts.py
+│   ├── episodic.py
+│   ├── semantic.py
+│   ├── profile_store.py
+│   ├── unified_store.py
+│   ├── service.py
+│   ├── base.py
+│   └── kerros_memory.py
+├── runtime/                    # Services and background runtime
+│   ├── service_bus.py
+│   ├── services.py
+│   ├── event_bus.py
+│   ├── scheduler.py
+│   ├── workflows.py
+│   ├── health.py
+│   ├── daemon/
+│   ├── evolution/
+│   ├── healing/
+│   ├── integrity/
+│   ├── state/
+│   └── watchdog/
+├── gateway/                    # Channel/bridge integrations
+│   ├── webhook.py
+│   └── channels/
+│       ├── bridge.py
+│       ├── telegram.py
+│       ├── discord.py
+│       ├── signal.py
+│       ├── whatsapp.py
+│       ├── routing.py
+│       ├── registry.py
+│       ├── slash.py
+│       ├── trace.py
+│       └── secrets.py
+├── execution/                  # Sandboxed execution
+│   ├── safe_executor.py
+│   ├── executor.py
+│   └── sandbox/process_sandbox.py
+├── rag/                        # RAG store and path guards
+│   └── store.py
+├── ports/                      # Port interfaces
+│   ├── llm_port.py
+│   ├── memory_port.py
+│   ├── tool_port.py
+│   ├── embedding_port.py
+│   ├── code_index_port.py
+│   ├── storage_port.py
+│   └── search_port.py
+├── data/                       # Runtime data and local storage
+│   ├── rag_store.db
+│   ├── decision_log.db
+│   ├── session_store.db
+│   ├── session_fts.db
+│   ├── memory.json
+│   ├── code_index/
+│   ├── faiss/
+│   ├── knowledge/
+│   ├── workflows/
+│   └── raw/
+├── config/                     # Declarative configuration
+│   ├── config.json
+│   ├── capabilities/           # Capability manifests
+│   ├── profiles/               # Runtime profiles
+│   ├── workflows/              # Workflow DAGs
+│   └── scope_policy.yaml
+├── models/                     # Local model binaries and engine loader
+│   └── engine/
+├── docs/                       # Architecture decisions and runbooks
+│   ├── adr/
+│   ├── CAPABILITIES.md
+│   ├── SCOPE_POLICY.md
+│   ├── KERNEL_CONTRACT.md
+│   ├── PHASE2.md
+│   └── PHASE3.md
+├── tests/                      # Centralized unit tests
+│   ├── unit/
+│   ├── unit_tools/
+│   ├── unit_memory/
+│   ├── unit_core/
+│   └── unit_adapters/
+├── deploy/                     # Docker and deployment kits
+│   ├── llama_cpp/
+│   ├── ollama/
+│   ├── vllm/
+│   ├── omniroute/
+│   ├── qdrant/
+│   └── systemd/
+├── wrapped_tools/              # Tool wrapper modules
+├── skills/                     # Skill manifests
+├── prompts/                    # Prompt templates
+├── scripts/                    # Helper scripts
+├── Makefile
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── requirements-dev.txt
+├── pytest.ini
+├── run.sh
+└── README.md
+```
+
+This tree reflects the current project layout used by the kernel, CLI, runtime, and test structure in this checkout.
+
 ### Runtime flow
 
 ```mermaid
