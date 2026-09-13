@@ -62,6 +62,9 @@ scope gates, self-extensible workflows/skills.
 flowchart TB
   subgraph cli [CLI]
     Chat["cli/chat.py REPL"]
+    Service["cli/chat_service.py dispatch/runtime"]
+    Input["cli/repl_input.py + cli/command_dispatch.py"]
+    UI["cli/ui.py"]
   end
 
   subgraph kernel [Kernel]
@@ -102,8 +105,11 @@ flowchart TB
     CodeIdx["code_index/"]
   end
 
+  Chat --> Input
+  Chat --> Service
   Chat --> Boot
   Chat --> Access
+  Service --> UI
   Boot --> Caps
   Boot --> ports
   Boot --> runtime
@@ -124,10 +130,10 @@ flowchart TB
 
 | Layer | Path | Role |
 |-------|------|------|
-|| **CLI** | `cli/chat.py` | Thin REPL loop; delegates command dispatch and response generation to `cli/chat_service.py` |
-|| **CLI service** | `cli/chat_service.py` | Centralized command dispatch, goal/tool/code-save flow, and response generation helpers |
-|| **CLI input** | `cli/repl_input.py`, `cli/command_dispatch.py` | prompt_toolkit-based input, slash registry |
-|| **Kernel** | `kernel/` | Boot lifecycle, config, DI, access facade, capabilities, decision log, watchdog |
+| **CLI** | `cli/chat.py` | Thin REPL loop; delegates command dispatch and response generation to `cli/chat_service.py` |
+| **CLI service** | `cli/chat_service.py` | Centralized command dispatch, goal/tool/code-save flow, and response generation helpers |
+| **CLI input** | `cli/repl_input.py`, `cli/command_dispatch.py` | prompt_toolkit-based input, slash registry |
+| **Kernel** | `kernel/` | Boot lifecycle, config, DI, access facade, capabilities, decision log, watchdog |
 | **Ports** | `ports/` | Interfaces: LLM, Memory, Tool, Embedding, CodeIndex, Storage, Search, … |
 | **Adapters** | `adapters/` | Implementations behind ports (composite LLM, hybrid memory, claw, …) |
 | **Runtime** | `runtime/` | EventBus, scheduler, workflows, health, services, optional mesh |
@@ -141,6 +147,49 @@ flowchart TB
 
 Boot phases: `INIT → CONFIG → SERVICES → PORTS → READY`
 (`kernel/boot.py`, `docs/KERNEL_CONTRACT.md`).
+
+### Runtime flow
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant R as cli/chat.py
+  participant I as repl_input / command_dispatch
+  participant S as chat_service.py
+  participant K as kernel/access
+  participant E as AdaptiveEngine / LLM
+  participant M as memory / RAG
+
+  U->>R: python3 cli/chat.py
+  R->>R: boot_sequence()
+  R->>K: kernel_boot()
+  K-->>R: READY
+  R->>R: AdaptiveEngine()
+  loop REPL
+    U->>I: input line
+    I->>R: normalized text
+    alt slash command
+      R->>S: dispatch(text)
+      S-->>R: (handled, output)
+      R->>U: render output
+    else claw / tool
+      R->>K: detect_tool + scope_gate
+      K-->>R: tool result
+      R->>U: render output
+    else chat
+      R->>M: optional recall / context
+      R->>E: generate_complete / chat
+      E-->>R: streamed reply
+      R->>U: render output
+    end
+  end
+```
+
+1. **Startup**: `cli/chat.py` adds the repo root to `sys.path`, imports kernel/access/memory/tools/ui, runs `boot_sequence()`, boots the kernel, initializes session state, and creates an `AdaptiveEngine`.
+2. **Mode selection**: prompts for online/offline. Online binds cloud adapters; offline binds local `LLMEngine` + GGUF if present.
+3. **REPL**: each line is checked by `ChatService.dispatch()`. If a slash command is recognized, `chat_service.py` handles it and returns output. If not, `cli/chat.py` falls back to claw/tool handling or LLM chat.
+4. **Response path**: context is built from memory/RAG when available, sent through the active LLM path, and rendered via `cli/ui.py` helpers.
+5. **Shutdown**: `/exit` or EOF tears down the kernel and session.
 
 ---
 
