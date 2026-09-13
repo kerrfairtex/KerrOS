@@ -124,8 +124,10 @@ flowchart TB
 
 | Layer | Path | Role |
 |-------|------|------|
-| **CLI** | `cli/chat.py` | REPL, mode switch, slash-commands, agent entrypoints |
-| **Kernel** | `kernel/` | Boot lifecycle, config, DI, access facade, capabilities, decision log, watchdog |
+|| **CLI** | `cli/chat.py` | Thin REPL loop; delegates command dispatch and response generation to `cli/chat_service.py` |
+|| **CLI service** | `cli/chat_service.py` | Centralized command dispatch, goal/tool/code-save flow, and response generation helpers |
+|| **CLI input** | `cli/repl_input.py`, `cli/command_dispatch.py` | prompt_toolkit-based input, slash registry |
+|| **Kernel** | `kernel/` | Boot lifecycle, config, DI, access facade, capabilities, decision log, watchdog |
 | **Ports** | `ports/` | Interfaces: LLM, Memory, Tool, Embedding, CodeIndex, Storage, Search, … |
 | **Adapters** | `adapters/` | Implementations behind ports (composite LLM, hybrid memory, claw, …) |
 | **Runtime** | `runtime/` | EventBus, scheduler, workflows, health, services, optional mesh |
